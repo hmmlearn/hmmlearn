@@ -1,6 +1,4 @@
 import os
-from os.path import join
-import warnings
 
 
 def configuration(parent_package='', top_path=None):
