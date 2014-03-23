@@ -3,9 +3,10 @@
 # Author: Ron Weiss <ronweiss@gmail.com>
 # and Shiqiao Du <lucidfrontier.45@gmail.com>
 # API changes: Jaques Grobler <jaquesgrobler@gmail.com>
+# Modifications to create of the HMMLearn module: Gael Varoquaux
 
 """
-The :mod:`sklearn.hmm` module implements hidden Markov models.
+The :mod:`hmmlearn.hmm` module implements hidden Markov models.
 """
 
 import string
@@ -19,7 +20,8 @@ from sklearn.mixture import (
     GMM, log_multivariate_normal_density, sample_gaussian,
     distribute_covar_matrix_to_match_covariance_type, _validate_covars)
 from sklearn import cluster
-from sklearn import _hmmc
+
+from . import _hmmc
 
 __all__ = ['GMMHMM',
            'GaussianHMM',
@@ -661,7 +663,7 @@ class GaussianHMM(_BaseHMM):
 
     Examples
     --------
-    >>> from sklearn.hmm import GaussianHMM
+    >>> from hmmlearn.hmm import GaussianHMM
     >>> GaussianHMM(n_components=2)
     ...                             #doctest: +ELLIPSIS +NORMALIZE_WHITESPACE
     GaussianHMM(algorithm='viterbi',...
@@ -926,7 +928,7 @@ class MultinomialHMM(_BaseHMM):
 
     Examples
     --------
-    >>> from sklearn.hmm import MultinomialHMM
+    >>> from hmmlearn.hmm import MultinomialHMM
     >>> MultinomialHMM(n_components=2)
     ...                             #doctest: +ELLIPSIS +NORMALIZE_WHITESPACE
     MultinomialHMM(algorithm='viterbi',...
@@ -1116,7 +1118,7 @@ class GMMHMM(_BaseHMM):
 
     Examples
     --------
-    >>> from sklearn.hmm import GMMHMM
+    >>> from hmmlearn.hmm import GMMHMM
     >>> GMMHMM(n_components=2, n_mix=10, covariance_type='diag')
     ... # doctest: +ELLIPSIS, +NORMALIZE_WHITESPACE
     GMMHMM(algorithm='viterbi', covariance_type='diag',...
