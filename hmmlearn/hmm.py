@@ -6,16 +6,13 @@
 
 """
 The :mod:`sklearn.hmm` module implements hidden Markov models.
-
-**Warning:** :mod:`sklearn.hmm` is orphaned, undocumented and has known
-numerical stability issues. This module will be removed in version 0.17.
 """
 
 import string
 
 import numpy as np
 
-from sklearn.utils import check_random_state, deprecated
+from sklearn.utils import check_random_state
 from sklearn.utils.extmath import logsumexp
 from sklearn.base import BaseEstimator
 from sklearn.mixture import (
@@ -36,8 +33,6 @@ NEGINF = -np.inf
 decoder_algorithms = ("viterbi", "map")
 
 
-@deprecated("WARNING: The HMM module and its functions will be removed in 0.17"
-            "as it no longer falls within the project's scope and API.")
 def normalize(A, axis=None):
     """ Normalize the input array so that it sums to 1.
 
@@ -69,8 +64,6 @@ def normalize(A, axis=None):
     return A / Asum
 
 
-@deprecated("WARNING: The HMM module and its function will be removed in 0.17"
-            "as it no longer falls within the project's scope and API.")
 class _BaseHMM(BaseEstimator):
     """Hidden Markov Model base class.
 
@@ -80,11 +73,6 @@ class _BaseHMM(BaseEstimator):
 
     See the instance documentation for details specific to a
     particular object.
-
-    .. warning::
-
-       The HMM module and its functions will be removed in 0.17
-       as it no longer falls within the project's scope and API.
 
     Attributes
     ----------
@@ -609,11 +597,6 @@ class GaussianHMM(_BaseHMM):
     This class allows for easy evaluation of, sampling from, and
     maximum-likelihood estimation of the parameters of a HMM.
 
-    .. warning::
-
-       The HMM module and its functions will be removed in 0.17
-       as it no longer falls within the project's scope and API.
-
     Parameters
     ----------
     n_components : int
@@ -903,11 +886,6 @@ class GaussianHMM(_BaseHMM):
 class MultinomialHMM(_BaseHMM):
     """Hidden Markov Model with multinomial (discrete) emissions
 
-    .. warning::
-
-       The HMM module and its functions will be removed in 0.17
-       as it no longer falls within the project's scope and API.
-
     Attributes
     ----------
     n_components : int
@@ -1100,11 +1078,6 @@ class MultinomialHMM(_BaseHMM):
 
 class GMMHMM(_BaseHMM):
     """Hidden Markov Model with Gaussin mixture emissions
-
-    .. warning::
-
-       The HMM module and its functions will be removed in 0.17
-       as it no longer falls within the project's scope and API.
 
     Attributes
     ----------
