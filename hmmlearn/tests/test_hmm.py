@@ -5,7 +5,7 @@ from numpy.testing import assert_array_equal, assert_array_almost_equal
 from unittest import TestCase
 
 from sklearn.datasets.samples_generator import make_spd_matrix
-from sklearn import hmm
+from hmmlearn import hmm
 from sklearn import mixture
 from sklearn.utils.extmath import logsumexp
 from sklearn.utils import check_random_state
