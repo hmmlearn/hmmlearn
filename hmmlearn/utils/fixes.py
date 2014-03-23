@@ -4,7 +4,74 @@ Backports. Mostly from scikit-learn
 import numpy as np
 from scipy import linalg
 
-from sklearn.utils.extmath import pinvh
+
+###############################################################################
+# For scikit-learn < 0.14
+
+def _pinvh(a, cond=None, rcond=None, lower=True):
+    """Compute the (Moore-Penrose) pseudo-inverse of a hermetian matrix.
+
+    Calculate a generalized inverse of a symmetric matrix using its
+    eigenvalue decomposition and including all 'large' eigenvalues.
+
+    Parameters
+    ----------
+    a : array, shape (N, N)
+        Real symmetric or complex hermetian matrix to be pseudo-inverted
+    cond, rcond : float or None
+        Cutoff for 'small' eigenvalues.
+        Singular values smaller than rcond * largest_eigenvalue are considered
+        zero.
+
+        If None or -1, suitable machine precision is used.
+    lower : boolean
+        Whether the pertinent array data is taken from the lower or upper
+        triangle of a. (Default: lower)
+
+    Returns
+    -------
+    B : array, shape (N, N)
+
+    Raises
+    ------
+    LinAlgError
+        If eigenvalue does not converge
+
+    Examples
+    --------
+    >>> import numpy as np
+    >>> a = np.random.randn(9, 6)
+    >>> a = np.dot(a, a.T)
+    >>> B = _pinvh(a)
+    >>> np.allclose(a, np.dot(a, np.dot(B, a)))
+    True
+    >>> np.allclose(B, np.dot(B, np.dot(a, B)))
+    True
+
+    """
+    a = np.asarray_chkfinite(a)
+    s, u = linalg.eigh(a, lower=lower)
+
+    if rcond is not None:
+        cond = rcond
+    if cond in [None, -1]:
+        t = u.dtype.char.lower()
+        factor = {'f': 1E3, 'd': 1E6}
+        cond = factor[t] * np.finfo(t).eps
+
+    # unlike svd case, eigh can lead to negative eigenvalues
+    above_cutoff = (abs(s) > cond * np.max(abs(s)))
+    psigma_diag = np.zeros_like(s)
+    psigma_diag[above_cutoff] = 1.0 / s[above_cutoff]
+
+    return np.dot(u * psigma_diag, np.conjugate(u).T)
+
+
+try:
+    from sklearn.utils.extmath import pinvh
+except ImportError:
+    pinvh = _pinvh
+
 
 def _log_multivariate_normal_density_diag(X, means=0.0, covars=1.0):
     """Compute Gaussian log-density at X for a diagonal model"""
@@ -96,10 +163,37 @@ def _log_multivariate_normal_density(X, means, covars, covariance_type='diag'):
         X, means, covars)
 
 
-
 try:
     from sklearn.mixture import log_multivariate_normal_density
 except ImportError:
-    # New in 0.15
+    # New in 0.14
     log_multivariate_normal_density = _log_multivariate_normal_density
+
+
+def _distribute_covar_matrix_to_match_covariance_type(
+        tied_cv, covariance_type, n_components):
+    """Create all the covariance matrices from a given template
+    """
+    if covariance_type == 'spherical':
+        cv = np.tile(tied_cv.mean() * np.ones(tied_cv.shape[1]),
+                     (n_components, 1))
+    elif covariance_type == 'tied':
+        cv = tied_cv
+    elif covariance_type == 'diag':
+        cv = np.tile(np.diag(tied_cv), (n_components, 1))
+    elif covariance_type == 'full':
+        cv = np.tile(tied_cv, (n_components, 1, 1))
+    else:
+        raise ValueError("covariance_type must be one of " +
+                         "'spherical', 'tied', 'diag', 'full'")
+    return cv
+
+
+try:
+    from sklearn.mixture import _distribute_covar_matrix_to_match_covariance_type
+except ImportError:
+    # New in 0.14
+    distribute_covar_matrix_to_match_covariance_type =\
+        _distribute_covar_matrix_to_match_covariance_type
+
 

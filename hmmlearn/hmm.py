@@ -21,7 +21,8 @@ from sklearn.mixture import (
     distribute_covar_matrix_to_match_covariance_type, _validate_covars)
 from sklearn import cluster
 
-from .utils.fixes import log_multivariate_normal_density
+from .utils.fixes import log_multivariate_normal_density, \
+    distribute_covar_matrix_to_match_covariance_type
 
 from . import _hmmc
 
