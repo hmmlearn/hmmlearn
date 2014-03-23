@@ -16,7 +16,7 @@ before_install:
     - if [[ $TRAVIS_PYTHON_VERSION != '2.7' ]]; then conda update --yes conda ; fi
     - if [[ $TRAVIS_PYTHON_VERSION != '2.7' ]]; then conda create -n testenv --yes pip python=$TRAVIS_PYTHON_VERSION ; fi
     - if [[ $TRAVIS_PYTHON_VERSION != '2.7' ]]; then source activate testenv ; fi
-    - if [[ $TRAVIS_PYTHON_VERSION != '2.7' ]]; then conda install --yes numpy scipy nose sklearn ; fi
+    - if [[ $TRAVIS_PYTHON_VERSION != '2.7' ]]; then conda install --yes numpy scipy nose scikit-learn ; fi
     - if [[ $TRAVIS_PYTHON_VERSION == '2.7' ]]; then sudo apt-get update -qq ; fi
     - if [[ $TRAVIS_PYTHON_VERSION == '2.7' ]]; then sudo apt-get install -qq python-scipy python-nose python-pip python-sklearn ; fi
 install:
