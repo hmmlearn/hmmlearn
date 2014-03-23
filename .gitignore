@@ -34,3 +34,10 @@ nosetests.xml
 .mr.developer.cfg
 .project
 .pydevproject
+
+# vim and emacs backups
+*~
+.#*
+*.swp
+*.swo
+
