@@ -17,9 +17,11 @@ from sklearn.utils import check_random_state
 from sklearn.utils.extmath import logsumexp
 from sklearn.base import BaseEstimator
 from sklearn.mixture import (
-    GMM, log_multivariate_normal_density, sample_gaussian,
+    GMM, sample_gaussian,
     distribute_covar_matrix_to_match_covariance_type, _validate_covars)
 from sklearn import cluster
+
+from .utils.fixes import log_multivariate_normal_density
 
 from . import _hmmc
 
