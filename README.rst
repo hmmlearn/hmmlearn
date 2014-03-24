@@ -19,6 +19,10 @@ issue on Github and we will gladly give you contributor rights.
 Continuous integration (ie running tests) is found on:
 https://travis-ci.org/hmmlearn/hmmlearn
 
+The learning algorithms in this package are unsupervised. For supervised
+learning of HMMs and similar models, see `seqlearn
+<https://github.com/larsmans/seqlearn>`_.
+
 Getting the latest code
 =========================
 
