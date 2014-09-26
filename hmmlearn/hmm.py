@@ -68,6 +68,36 @@ def normalize(A, axis=None):
     return A / Asum
 
 
+class VerboseReporter(object):
+    """Reports verbose output to stdout.
+
+    If ``verbose==1`` output is printed once in a while (when iteration mod
+    verbose_mod is zero).; if larger than 1 then output is printed for
+    each update.
+    """
+
+    def __init__(self, verbose):
+        self.verbose = verbose
+        self.verbose_fmt = '{iter:>10d} {lpr:>16.4f} {improvement:>16.4f}'
+        self.verbose_mod = 1
+
+    def init(self):
+        header_fields = ['Iter', 'Log Likelihood', 'Log Improvement']
+        print(('%10s ' + '%16s ' *
+               (len(header_fields) - 1)) % tuple(header_fields))
+
+    def update(self, i, lpr, improvement):
+        """Update reporter with new iteration. """
+        # we need to take into account if we fit additional estimators.
+        if (i + 1) % self.verbose_mod == 0:
+            print(self.verbose_fmt.format(iter=i + 1,
+                                          lpr=lpr,
+                                          improvement=improvement))
+            if self.verbose == 1 and ((i + 1) // (self.verbose_mod * 10) > 0):
+                # adjust verbose frequency (powers of 10)
+                self.verbose_mod *= 10
+
+
 class _BaseHMM(BaseEstimator):
     """Hidden Markov Model base class.
 
@@ -121,6 +151,13 @@ class _BaseHMM(BaseEstimator):
         subclass-specific emmission parameters. Defaults to all
         parameters.
 
+    verbose : int, default: 0
+        Enable verbose output. If 1 then it prints progress and performance
+        once in a while (the more iterations the lower the frequency). If
+        greater than 1 then it prints progress and performance for every
+        iteration.
+
+
     See Also
     --------
     GMM : Gaussian mixture model
@@ -141,7 +178,7 @@ class _BaseHMM(BaseEstimator):
                  startprob_prior=None, transmat_prior=None,
                  algorithm="viterbi", random_state=None,
                  n_iter=10, thresh=1e-2, params=string.ascii_letters,
-                 init_params=string.ascii_letters):
+                 init_params=string.ascii_letters, verbose=0):
 
         self.n_components = n_components
         self.n_iter = n_iter
@@ -154,6 +191,7 @@ class _BaseHMM(BaseEstimator):
         self.transmat_prior = transmat_prior
         self._algorithm = algorithm
         self.random_state = random_state
+        self.verbose = verbose
 
     def eval(self, X):
         return self.score_samples(X)
@@ -424,6 +462,10 @@ class _BaseHMM(BaseEstimator):
 
         self._init(obs, self.init_params)
 
+        if self.verbose:
+            verbose_reporter = VerboseReporter(self.verbose)
+            verbose_reporter.init()
+
         logprob = []
         for i in range(self.n_iter):
             # Expectation step
@@ -440,6 +482,11 @@ class _BaseHMM(BaseEstimator):
                     stats, seq, framelogprob, posteriors, fwdlattice,
                     bwdlattice, self.params)
             logprob.append(curr_logprob)
+            if i > 0:
+                improvement = logprob[-1] - logprob[-2]
+            else:
+                improvement = np.inf
+            verbose_reporter.update(i, curr_logprob, improvement)
 
             # Check for convergence.
             if i > 0 and abs(logprob[-1] - logprob[-2]) < self.thresh:
@@ -662,6 +709,11 @@ class GaussianHMM(_BaseHMM):
         startprob, 't' for transmat, 'm' for means, and 'c' for
         covars.  Defaults to all parameters.
 
+    verbose : int, default: 0
+        Enable verbose output. If 1 then it prints progress and performance
+        once in a while (the more iterations the lower the frequency). If
+        greater than 1 then it prints progress and performance for every
+        iteration.
 
     Examples
     --------
@@ -682,13 +734,14 @@ class GaussianHMM(_BaseHMM):
                  covars_prior=1e-2, covars_weight=1,
                  random_state=None, n_iter=10, thresh=1e-2,
                  params=string.ascii_letters,
-                 init_params=string.ascii_letters):
+                 init_params=string.ascii_letters,
+                 verbose=0):
         _BaseHMM.__init__(self, n_components, startprob, transmat,
                           startprob_prior=startprob_prior,
                           transmat_prior=transmat_prior, algorithm=algorithm,
                           random_state=random_state, n_iter=n_iter,
                           thresh=thresh, params=params,
-                          init_params=init_params)
+                          init_params=init_params, verbose=verbose)
 
         self._covariance_type = covariance_type
         if not covariance_type in ['spherical', 'tied', 'diag', 'full']:
@@ -928,6 +981,12 @@ class MultinomialHMM(_BaseHMM):
         startprob, 't' for transmat, 'e' for emmissionprob.
         Defaults to all parameters.
 
+    verbose : int, default: 0
+        Enable verbose output. If 1 then it prints progress and performance
+        once in a while (the more iterations the lower the frequency). If
+        greater than 1 then it prints progress and performance for every
+        iteration.
+
     Examples
     --------
     >>> from hmmlearn.hmm import MultinomialHMM
@@ -944,7 +1003,8 @@ class MultinomialHMM(_BaseHMM):
                  startprob_prior=None, transmat_prior=None,
                  algorithm="viterbi", random_state=None,
                  n_iter=10, thresh=1e-2, params=string.ascii_letters,
-                 init_params=string.ascii_letters):
+                 init_params=string.ascii_letters,
+                 verbose=0):
         """Create a hidden Markov model with multinomial emissions.
 
         Parameters
@@ -960,7 +1020,7 @@ class MultinomialHMM(_BaseHMM):
                           n_iter=n_iter,
                           thresh=thresh,
                           params=params,
-                          init_params=init_params)
+                          init_params=init_params, verbose=verbose)
 
     def _get_emissionprob(self):
         """Emission probability distribution for each state."""
@@ -1118,6 +1178,16 @@ class GMMHMM(_BaseHMM):
     thresh : float, optional
         Convergence threshold.
 
+    verbose : int, default: 0
+        Enable verbose output. If 1 then it prints progress and performance
+        once in a while (the more iterations the lower the frequency). If
+        greater than 1 then it prints progress and performance for every
+        iteration.
+
+    var : float, default: 1.0
+        Variance parameter to randomize the initialization of the GMM objects.
+        The larger var, the greater the randomization.
+
     Examples
     --------
     >>> from hmmlearn.hmm import GMMHMM
@@ -1135,7 +1205,9 @@ class GMMHMM(_BaseHMM):
                  algorithm="viterbi", gmms=None, covariance_type='diag',
                  covars_prior=1e-2, random_state=None, n_iter=10, thresh=1e-2,
                  params=string.ascii_letters,
-                 init_params=string.ascii_letters):
+                 init_params=string.ascii_letters,
+                 verbose=0,
+                 var=1.0):
         """Create a hidden Markov model with GMM emissions.
 
         Parameters
@@ -1151,7 +1223,8 @@ class GMMHMM(_BaseHMM):
                           n_iter=n_iter,
                           thresh=thresh,
                           params=params,
-                          init_params=init_params)
+                          init_params=init_params,
+                          verbose=verbose)
 
         # XXX: Hotfit for n_mix that is incompatible with the scikit's
         # BaseEstimator API
@@ -1168,6 +1241,7 @@ class GMMHMM(_BaseHMM):
                     g = GMM(n_mix, covariance_type=covariance_type)
                 gmms.append(g)
         self.gmms_ = gmms
+        self.var = var
 
     # Read-only properties.
     @property
@@ -1188,9 +1262,14 @@ class GMMHMM(_BaseHMM):
         super(GMMHMM, self)._init(obs, params=params)
 
         allobs = np.concatenate(obs, 0)
+        n_features = allobs.shape[1]
+
         for g in self.gmms_:
             g.set_params(init_params=params, n_iter=0)
             g.fit(allobs)
+            g.means_ += np.random.multivariate_normal(np.zeros(n_features),
+                                                      np.eye(n_features) * self.var,
+                                                      self.n_mix)
 
     def _initialize_sufficient_statistics(self):
         stats = super(GMMHMM, self)._initialize_sufficient_statistics()
@@ -1207,9 +1286,10 @@ class GMMHMM(_BaseHMM):
             params)
 
         for state, g in enumerate(self.gmms_):
-            _, lgmm_posteriors = g.score_samples(obs)
-            lgmm_posteriors += np.log(posteriors[:, state][:, np.newaxis]
-                                      + np.finfo(np.float).eps)
+            _, tmp_gmm_posteriors = g.score_samples(obs)
+            lgmm_posteriors = np.log(tmp_gmm_posteriors) + \
+                    np.log(posteriors[:, state][:, np.newaxis]
+                           + np.finfo(np.float).eps)
             gmm_posteriors = np.exp(lgmm_posteriors)
             tmp_gmm = GMM(g.n_components, covariance_type=g.covariance_type)
             n_features = g.means_.shape[1]
