@@ -1119,6 +1119,10 @@ class GMMHMM(_BaseHMM):
     thresh : float, optional
         Convergence threshold.
 
+    var : float, default: 1.0
+        Variance parameter to randomize the initialization of the GMM objects.
+        The larger var, the greater the randomization.
+
     Examples
     --------
     >>> from hmmlearn.hmm import GMMHMM
@@ -1136,7 +1140,8 @@ class GMMHMM(_BaseHMM):
                  algorithm="viterbi", gmms=None, covariance_type='diag',
                  covars_prior=1e-2, random_state=None, n_iter=10, thresh=1e-2,
                  params=string.ascii_letters,
-                 init_params=string.ascii_letters):
+                 init_params=string.ascii_letters,
+                 var=1.0):
         """Create a hidden Markov model with GMM emissions.
 
         Parameters
@@ -1169,6 +1174,7 @@ class GMMHMM(_BaseHMM):
                     g = GMM(n_mix, covariance_type=covariance_type)
                 gmms.append(g)
         self.gmms_ = gmms
+        self.var = var
 
     # Read-only properties.
     @property
@@ -1189,9 +1195,14 @@ class GMMHMM(_BaseHMM):
         super(GMMHMM, self)._init(obs, params=params)
 
         allobs = np.concatenate(obs, 0)
+        n_features = allobs.shape[1]
+
         for g in self.gmms_:
             g.set_params(init_params=params, n_iter=0)
             g.fit(allobs)
+            g.means_ += np.random.multivariate_normal(np.zeros(n_features),
+                                                      np.eye(n_features) * self.var,
+                                                      self.n_mix)
 
     def _initialize_sufficient_statistics(self):
         stats = super(GMMHMM, self)._initialize_sufficient_statistics()
