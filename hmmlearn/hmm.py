@@ -1219,9 +1219,11 @@ class GMMHMM(_BaseHMM):
             params)
 
         for state, g in enumerate(self.gmms_):
-            _, lgmm_posteriors = g.score_samples(obs)
-            lgmm_posteriors += np.log(posteriors[:, state][:, np.newaxis]
-                                      + np.finfo(np.float).eps)
+            _, tmp_gmm_posteriors = g.score_samples(obs)
+            lgmm_posteriors = np.log(tmp_gmm_posteriors
+                                     + np.finfo(np.float).eps) + \
+                    np.log(posteriors[:, state][:, np.newaxis]
+                           + np.finfo(np.float).eps)
             gmm_posteriors = np.exp(lgmm_posteriors)
             tmp_gmm = GMM(g.n_components, covariance_type=g.covariance_type)
             n_features = g.means_.shape[1]
