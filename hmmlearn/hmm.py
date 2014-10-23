@@ -1098,7 +1098,8 @@ class MultinomialHMM(_BaseHMM):
         e.g. x = [0, 0, 2, 1, 3, 1, 1] is OK and y = [0, 0, 3, 5, 10] not
         """
 
-        symbols = np.asarray(obs).flatten()
+        symbols = reduce(lambda x, y: np.concatenate([x, y]),
+                         obs)
 
         if symbols.dtype.kind != 'i':
             # input symbols must be integer
