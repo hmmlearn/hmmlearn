@@ -23,10 +23,7 @@ inplace:
 test-code: in
 	$(NOSETESTS) -s -v hmmlearn
 test-doc:
-	$(NOSETESTS) -s -v doc/ doc/modules/ doc/datasets/ \
-	doc/developers doc/tutorial/basic doc/tutorial/statistical_inference \
-	doc/tutorial/text_analytics
-
+	$(NOSETESTS) -s -v doc/ doc/modules/
 test-coverage:
 	rm -rf coverage .coverage
 	$(NOSETESTS) -s -v --with-coverage hmmlearn
