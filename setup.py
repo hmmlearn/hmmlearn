@@ -23,7 +23,7 @@ LICENSE = "new BSD"
 CLASSIFIERS = [
     "Development Status :: 3 - Alpha",
     "License :: OSI Approved",
-    "Programming Language :: C",
+    "Programming Language :: Cython",
     "Programming Language :: Python",
     "Intended Audience :: Developers",
     "Intended Audience :: Science/Research",
