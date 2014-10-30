@@ -78,6 +78,7 @@ def configuration(parent_package='', top_path=None):
                        quiet=True)
 
     config.add_subpackage('hmmlearn')
+    config.add_subpackage('hmmlearn.utils')
 
     return config
 
