@@ -47,7 +47,7 @@ Running the test suite
 To run the test suite, you need nosetests and the coverage modules.
 Run the test suite using::
 
-    nosetests
+    python setup.py build_ext --inplace && nosetests
 
 from the root of the project.
 
