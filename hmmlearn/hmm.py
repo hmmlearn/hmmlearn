@@ -780,8 +780,9 @@ class GaussianHMM(_BaseHMM):
         stats['post'] = np.zeros(self.n_components)
         stats['obs'] = np.zeros((self.n_components, self.n_features))
         stats['obs**2'] = np.zeros((self.n_components, self.n_features))
-        stats['obs*obs.T'] = np.zeros((self.n_components, self.n_features,
-                                       self.n_features))
+        if self._covariance_type in ('tied', 'full'):
+            stats['obs*obs.T'] = np.zeros((self.n_components, self.n_features,
+                                          self.n_features))
         return stats
 
     def _accumulate_sufficient_statistics(self, stats, obs, framelogprob,
