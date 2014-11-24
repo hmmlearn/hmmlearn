@@ -773,7 +773,7 @@ class GaussianHMM(_BaseHMM):
                 cv.shape = (1, 1)
             self._covars_ = distribute_covar_matrix_to_match_covariance_type(
                 cv, self._covariance_type, self.n_components)
-            self._covars_[self._covars_==0] = 1e-5
+            self._covars_[self._covars_ == 0] = 1e-5
 
     def _initialize_sufficient_statistics(self):
         stats = super(GaussianHMM, self)._initialize_sufficient_statistics()
