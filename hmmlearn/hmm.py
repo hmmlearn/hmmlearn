@@ -20,8 +20,10 @@ from sklearn.mixture import (
     GMM, sample_gaussian,
     distribute_covar_matrix_to_match_covariance_type, _validate_covars)
 from sklearn import cluster
+from scipy.stats import (poisson, expon)
 
-from .utils.fixes import log_multivariate_normal_density
+from .utils.fixes import (log_multivariate_normal_density,
+                          log_poisson_pmf, log_exponential_density)
 
 from . import _hmmc
 
@@ -617,11 +619,13 @@ class _BaseHMM(BaseEstimator):
             # when the sample is of length 1, it contains no transitions
             # so there is no reason to update our trans. matrix estimate
             if n_observations > 1:
-                lneta = np.zeros((n_observations - 1, n_components, n_components))
+                lneta = np.zeros((n_observations - 1,
+                                  n_components,
+                                  n_components))
                 lnP = logsumexp(fwdlattice[-1])
                 _hmmc._compute_lneta(n_observations, n_components, fwdlattice,
-                                     self._log_transmat, bwdlattice, framelogprob,
-                                     lnP, lneta)
+                                     self._log_transmat, bwdlattice,
+                                     framelogprob, lnP, lneta)
                 stats['trans'] += np.exp(np.minimum(logsumexp(lneta, 0), 700))
 
     def _do_mstep(self, stats, params):
@@ -893,7 +897,8 @@ class GaussianHMM(_BaseHMM):
                           - 2 * self._means_ * stats['obs']
                           + self._means_ ** 2 * denom)
                 cv_den = max(covars_weight - 1, 0) + denom
-                self._covars_ = (covars_prior + cv_num) / np.maximum(cv_den, 1e-5)
+                self._covars_ = (covars_prior + cv_num) / np.maximum(cv_den,
+                                                                     1e-5)
                 if self._covariance_type == 'spherical':
                     self._covars_ = np.tile(
                         self._covars_.mean(1)[:, np.newaxis],
@@ -941,6 +946,7 @@ class GaussianHMM(_BaseHMM):
         more training data, or increasing covars_prior.
         """
         return super(GaussianHMM, self).fit(obs)
+
 
 class MultinomialHMM(_BaseHMM):
     """Hidden Markov Model with multinomial (discrete) emissions
@@ -1143,6 +1149,330 @@ class MultinomialHMM(_BaseHMM):
         return _BaseHMM.fit(self, obs, **kwargs)
 
 
+class PoissonHMM(_BaseHMM):
+    """Hidden Markov Model with Poisson (discrete) emissions
+
+    Attributes
+    ----------
+    n_components : int
+        Number of states in the model.
+
+    transmat : array, shape (`n_components`, `n_components`)
+        Matrix of transition probabilities between states.
+
+    startprob : array, shape ('n_components`,)
+        Initial state occupation distribution.
+
+    rates : array, shape ('n_components`,)
+        Poisson rate parameters for each state.
+
+    random_state: RandomState or an int seed (0 by default)
+        A random number generator instance
+
+    n_iter : int, optional
+        Number of iterations to perform.
+
+    thresh : float, optional
+        Convergence threshold.
+
+    params : string, optional
+        Controls which parameters are updated in the training
+        process.  Can contain any combination of 's' for startprob,
+        't' for transmat, 'e' for emmissionprob.
+        Defaults to all parameters.
+
+    init_params : string, optional
+        Controls which parameters are initialized prior to
+        training.  Can contain any combination of 's' for
+        startprob, 't' for transmat, 'e' for emmissionprob.
+        Defaults to all parameters.
+
+    verbose : int, default: 0
+        Enable verbose output. If 1 then it prints progress and performance
+        once in a while (the more iterations the lower the frequency). If
+        greater than 1 then it prints progress and performance for every
+        iteration.
+
+    Examples
+    --------
+    >>> from hmmlearn.hmm import PoissonHMM
+    >>> PoissonHMM(n_components=2)
+    ...                             #doctest: +ELLIPSIS +NORMALIZE_WHITESPACE
+    PoissonHMM(algorithm='viterbi',...
+
+    See Also
+    --------
+    GaussianHMM : HMM with Gaussian emissions
+    """
+
+    def __init__(self, n_components=1, startprob=None, transmat=None,
+                 startprob_prior=None, transmat_prior=None,
+                 rates_prior=None, rates_weight=None, algorithm="viterbi",
+                 random_state=None, n_iter=10, thresh=1e-2,
+                 params=string.ascii_letters,
+                 init_params=string.ascii_letters, verbose=0):
+        """Create a hidden Markov model with multinomial emissions.
+
+        Parameters
+        ----------
+        n_components : int
+            Number of states.
+        """
+        _BaseHMM.__init__(self, n_components, startprob, transmat,
+                          startprob_prior=startprob_prior,
+                          transmat_prior=transmat_prior,
+                          algorithm=algorithm,
+                          random_state=random_state,
+                          n_iter=n_iter,
+                          thresh=thresh,
+                          params=params,
+                          init_params=init_params, verbose=verbose)
+        self.rates_prior = rates_prior
+        self.rates_weight = rates_weight
+
+    def _get_rates(self):
+        """Emission rate for each state."""
+        return self._rates
+
+    def _set_rates(self, rates):
+        rates = np.asarray(rates)
+        self._rates = rates.copy()
+
+    rates_ = property(_get_rates, _set_rates)
+
+    def _compute_log_likelihood(self, obs):
+        return log_poisson_pmf(obs, self._rates)
+
+    def _generate_sample_from_state(self, state, random_state=None):
+        return poisson.rvs(self._rates[state])
+
+    def _init(self, obs, params='str'):
+        super(PoissonHMM, self)._init(obs, params=params)
+
+        concat_obs = np.concatenate(obs)
+        if 'r' in params:
+            self._rates = (cluster.KMeans(
+                n_clusters=self.n_components).fit(
+                np.atleast_2d(concat_obs).T).cluster_centers_.T[0]
+                + np.random.choice(concat_obs, size=self.n_components,
+                                   replace=False)) / 2.
+
+    def _initialize_sufficient_statistics(self):
+        stats = super(PoissonHMM, self)._initialize_sufficient_statistics()
+        stats['post'] = np.zeros(self.n_components)
+        stats['obs'] = np.zeros((self.n_components,))
+        return stats
+
+    def _accumulate_sufficient_statistics(self, stats, obs, framelogprob,
+                                          posteriors, fwdlattice, bwdlattice,
+                                          params):
+        super(PoissonHMM, self)._accumulate_sufficient_statistics(
+            stats, obs, framelogprob, posteriors, fwdlattice, bwdlattice,
+            params)
+
+        if 'r' in params:
+            stats['post'] += posteriors.sum(axis=0)
+            stats['obs'] += np.dot(posteriors.T, obs)
+
+    def _do_mstep(self, stats, params):
+        super(PoissonHMM, self)._do_mstep(stats, params)
+
+        denom = stats['post']
+        if 'r' in params:
+            prior = self.rates_prior
+            weight = self.rates_weight
+            if prior is None:
+                weight = 0
+                prior = 0
+            self._rates = (weight * prior + stats['obs']) / (weight + denom)
+
+    def fit(self, obs):
+        """Estimate model parameters.
+
+        An initialization step is performed before entering the EM
+        algorithm. If you want to avoid this step, pass proper
+        ``init_params`` keyword argument to estimator's constructor.
+
+        Parameters
+        ----------
+        obs : list
+            List of array-like observation sequences, each of which
+            has shape (n_i, n_features), where n_i is the length of
+            the i_th observation.
+
+        Notes
+        -----
+        In general, `logprob` should be non-decreasing unless
+        aggressive pruning is used.  Decreasing `logprob` is generally
+        a sign of overfitting (e.g. the covariance parameter on one or
+        more components becomminging too small).  You can fix this by getting
+        more training data, or increasing covars_prior.
+        """
+        return super(PoissonHMM, self).fit(obs)
+
+
+class ExponentialHMM(_BaseHMM):
+    """Hidden Markov Model with Exponential (continuous) emissions
+
+    Attributes
+    ----------
+    n_components : int
+        Number of states in the model.
+
+    transmat : array, shape (`n_components`, `n_components`)
+        Matrix of transition probabilities between states.
+
+    startprob : array, shape ('n_components`,)
+        Initial state occupation distribution.
+
+    rates : array, shape ('n_components`,)
+        Exponential rate parameters for each state.
+
+    random_state: RandomState or an int seed (0 by default)
+        A random number generator instance
+
+    n_iter : int, optional
+        Number of iterations to perform.
+
+    thresh : float, optional
+        Convergence threshold.
+
+    params : string, optional
+        Controls which parameters are updated in the training
+        process.  Can contain any combination of 's' for startprob,
+        't' for transmat, 'e' for emmissionprob.
+        Defaults to all parameters.
+
+    init_params : string, optional
+        Controls which parameters are initialized prior to
+        training.  Can contain any combination of 's' for
+        startprob, 't' for transmat, 'e' for emmissionprob.
+        Defaults to all parameters.
+
+    verbose : int, default: 0
+        Enable verbose output. If 1 then it prints progress and performance
+        once in a while (the more iterations the lower the frequency). If
+        greater than 1 then it prints progress and performance for every
+        iteration.
+
+    Examples
+    --------
+    >>> from hmmlearn.hmm import ExponentialHMM
+    >>> ExponentialHMM(n_components=2)
+    ...                             #doctest: +ELLIPSIS +NORMALIZE_WHITESPACE
+    ExponentialHMM(algorithm='viterbi',...
+
+    See Also
+    --------
+    GaussianHMM : HMM with Gaussian emissions
+    """
+
+    def __init__(self, n_components=1, startprob=None, transmat=None,
+                 startprob_prior=None, transmat_prior=None,
+                 rates_prior=None, rates_weight=None, algorithm="viterbi",
+                 random_state=None, n_iter=10, thresh=1e-2,
+                 params=string.ascii_letters,
+                 init_params=string.ascii_letters, verbose=0):
+        """Create a hidden Markov model with multinomial emissions.
+
+        Parameters
+        ----------
+        n_components : int
+            Number of states.
+        """
+        _BaseHMM.__init__(self, n_components, startprob, transmat,
+                          startprob_prior=startprob_prior,
+                          transmat_prior=transmat_prior,
+                          algorithm=algorithm,
+                          random_state=random_state,
+                          n_iter=n_iter,
+                          thresh=thresh,
+                          params=params,
+                          init_params=init_params, verbose=verbose)
+        self.rates_prior = rates_prior
+        self.rates_weight = rates_weight
+
+    def _get_rates(self):
+        """Emission rate for each state."""
+        return self._rates
+
+    def _set_rates(self, rates):
+        rates = np.asarray(rates)
+        self._rates = rates.copy()
+
+    rates_ = property(_get_rates, _set_rates)
+
+    def _compute_log_likelihood(self, obs):
+        return log_exponential_density(obs, self._rates)
+
+    def _generate_sample_from_state(self, state, random_state=None):
+        return expon.rvs(scale=1./self._rates[state])
+
+    def _init(self, obs, params='str'):
+        super(ExponentialHMM, self)._init(obs, params=params)
+
+        concat_obs = np.concatenate(obs)
+        if 'r' in params:
+            self._rates = 2 / (cluster.KMeans(
+                n_clusters=self.n_components).fit(
+                np.atleast_2d(concat_obs).T).cluster_centers_.T[0]
+                + np.random.choice(concat_obs, size=self.n_components,
+                                   replace=False))
+
+    def _initialize_sufficient_statistics(self):
+        stats = super(ExponentialHMM, self)._initialize_sufficient_statistics()
+        stats['post'] = np.zeros(self.n_components)
+        stats['obs'] = np.zeros((self.n_components,))
+        return stats
+
+    def _accumulate_sufficient_statistics(self, stats, obs, framelogprob,
+                                          posteriors, fwdlattice, bwdlattice,
+                                          params):
+        super(ExponentialHMM, self)._accumulate_sufficient_statistics(
+            stats, obs, framelogprob, posteriors, fwdlattice, bwdlattice,
+            params)
+
+        if 'r' in params:
+            stats['post'] += posteriors.sum(axis=0)
+            stats['obs'] += np.dot(posteriors.T, obs)
+
+    def _do_mstep(self, stats, params):
+        super(ExponentialHMM, self)._do_mstep(stats, params)
+
+        numer = stats['post']
+        if 'r' in params:
+            prior = self.rates_prior
+            weight = self.rates_weight
+            if prior is None:
+                weight = 0
+                prior = 0
+            self._rates = (weight + numer) / (weight * prior + stats['obs'])
+
+    def fit(self, obs):
+        """Estimate model parameters.
+
+        An initialization step is performed before entering the EM
+        algorithm. If you want to avoid this step, pass proper
+        ``init_params`` keyword argument to estimator's constructor.
+
+        Parameters
+        ----------
+        obs : list
+            List of array-like observation sequences, each of which
+            has shape (n_i, n_features), where n_i is the length of
+            the i_th observation.
+
+        Notes
+        -----
+        In general, `logprob` should be non-decreasing unless
+        aggressive pruning is used.  Decreasing `logprob` is generally
+        a sign of overfitting (e.g. the covariance parameter on one or
+        more components becomminging too small).  You can fix this by getting
+        more training data, or increasing covars_prior.
+        """
+        return super(ExponentialHMM, self).fit(obs)
+
+
 class GMMHMM(_BaseHMM):
     """Hidden Markov Model with Gaussin mixture emissions
 
@@ -1271,7 +1601,8 @@ class GMMHMM(_BaseHMM):
             g.set_params(init_params=params, n_iter=0)
             g.fit(allobs)
             g.means_ += np.random.multivariate_normal(np.zeros(n_features),
-                                                      np.eye(n_features) * self.var,
+                                                      np.eye(n_features) *
+                                                      self.var,
                                                       self.n_mix)
 
     def _initialize_sufficient_statistics(self):

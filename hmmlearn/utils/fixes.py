@@ -3,6 +3,7 @@ Backports. Mostly from scikit-learn
 """
 import numpy as np
 from scipy import linalg
+from scipy.stats import (poisson, expon)
 
 
 ###############################################################################
@@ -161,6 +162,24 @@ def _log_multivariate_normal_density(X, means, covars, covariance_type='diag'):
         'full': _log_multivariate_normal_density_full}
     return log_multivariate_normal_density_dict[covariance_type](
         X, means, covars)
+
+
+def log_poisson_pmf(X, rates):
+    n_samples = len(X)
+    nmix = len(rates)
+    log_prob = np.empty((n_samples, nmix))
+    for c, rate in enumerate(rates):
+        log_prob[:, c] = poisson.logpmf(X, rate)
+    return log_prob
+
+
+def log_exponential_density(X, rates):
+    n_samples = len(X)
+    nmix = len(rates)
+    log_prob = np.empty((n_samples, nmix))
+    for c, rate in enumerate(rates):
+        log_prob[:, c] = expon.logpdf(X, scale=1/rate)
+    return log_prob
 
 
 try:
