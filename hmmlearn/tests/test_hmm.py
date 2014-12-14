@@ -1,15 +1,14 @@
 from __future__ import print_function
-import numpy as np
 
-from numpy.testing import assert_array_equal, assert_array_almost_equal
 from unittest import TestCase
 
+import numpy as np
+from nose import SkipTest
+from numpy.testing import assert_array_equal, assert_array_almost_equal
 from sklearn.datasets.samples_generator import make_spd_matrix
 from sklearn import mixture
 from sklearn.utils.extmath import logsumexp
 from sklearn.utils import check_random_state
-
-from nose import SkipTest
 
 from hmmlearn import hmm
 
@@ -545,6 +544,13 @@ class MultinomialHMMTestCase(TestCase):
             print('Test train: (%s)\n  %s\n  %s' % (params, trainll,
                                                     np.diff(trainll)))
         self.assertTrue(np.all(np.diff(trainll) > -1.e-3))
+
+    def test__check_input_symbols(self):
+        self.assertTrue(self.h._check_input_symbols([[0, 0, 2, 1, 3, 1, 1]]))
+        self.assertFalse(self.h._check_input_symbols([[0, 0, 3, 5, 10]]))
+        self.assertFalse(self.h._check_input_symbols([[0]]))
+        self.assertFalse(self.h._check_input_symbols([[0., 2., 1., 3.]]))
+        self.assertFalse(self.h._check_input_symbols([[0, 0, -2, 1, 3, 1, 1]]))
 
 
 def create_random_gmm(n_mix, n_features, covariance_type, prng=0):

@@ -888,6 +888,7 @@ class GaussianHMM(_BaseHMM):
         """
         return super(GaussianHMM, self).fit(obs)
 
+
 class MultinomialHMM(_BaseHMM):
     """Hidden Markov Model with multinomial (discrete) emissions
 
@@ -1032,31 +1033,23 @@ class MultinomialHMM(_BaseHMM):
                                   / stats['obs'].sum(1)[:, np.newaxis])
 
     def _check_input_symbols(self, obs):
-        """check if input can be used for Multinomial.fit input must be both
-        positive integer array and every element must be continuous.
-        e.g. x = [0, 0, 2, 1, 3, 1, 1] is OK and y = [0, 0, 3, 5, 10] not
+        """Check if ``obs`` is a sample from a Multinomial distribution.
+
+        That is ``obs`` should be an array of non-negative integers from
+        range ``[min(obs), max(obs)]``, such that each integer from the range
+        occurs in ``obs`` at least once.
+
+        For example ``[0, 0, 2, 1, 3, 1, 1]`` is a valid sample from a
+        Multinomial distribution, while ``[0, 0, 3, 5, 10]`` is not.
         """
-
-        symbols = np.asarray(obs).flatten()
-
-        if symbols.dtype.kind != 'i':
-            # input symbols must be integer
-            return False
-
-        if len(symbols) == 1:
-            # input too short
-            return False
-
-        if np.any(symbols < 0):
-            # input contains negative intiger
+        symbols = np.concatenate(obs)
+        if (len(symbols) == 1 or          # not enough data
+            symbols.dtype.kind != 'i' or  # not an integer
+            np.any(symbols < 0)):         # contains negative integers
             return False
 
         symbols.sort()
-        if np.any(np.diff(symbols) > 1):
-            # input is discontinous
-            return False
-
-        return True
+        return np.all(np.diff(symbols) <= 1)
 
     def fit(self, obs, **kwargs):
         """Estimate model parameters.
@@ -1068,15 +1061,13 @@ class MultinomialHMM(_BaseHMM):
         Parameters
         ----------
         obs : list
-            List of array-like observation sequences, each of which
-            has shape (n_i, n_features), where n_i is the length of
-            the i_th observation.
+            List of array-like observation sequences. Each observation
+            sequence should consist of two or more integers from
+            range ``[0, n_symbols - 1]``.
         """
-        err_msg = ("Input must be both positive integer array and "
-                   "every element must be continuous, but %s was given.")
-
         if not self._check_input_symbols(obs):
-            raise ValueError(err_msg % obs)
+            raise ValueError("expected a sample from "
+                             "a Multinomial distribution.")
 
         return _BaseHMM.fit(self, obs, **kwargs)
 
