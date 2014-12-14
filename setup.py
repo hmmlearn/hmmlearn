@@ -3,8 +3,9 @@
 # Copyright (C) 2007-2009 Cournapeau David <cournape@gmail.com>
 #               2010 Fabian Pedregosa <fabian.pedregosa@inria.fr>
 #               2014 Gael Varoquaux
+#               2014 Sergei Lebedev <superbobry@gmail.com>
 
-descr = """Hidden Markov Models in Python with scikit-learn like API"""
+"""Hidden Markov Models in Python with scikit-learn like API"""
 
 import sys
 
@@ -23,12 +24,12 @@ LICENSE = "new BSD"
 CLASSIFIERS = [
     "Development Status :: 3 - Alpha",
     "License :: OSI Approved",
-    "Programming Language :: Cython",
-    "Programming Language :: Python",
     "Intended Audience :: Developers",
     "Intended Audience :: Science/Research",
     "Topic :: Software Development",
     "Topic :: Scientific/Engineering",
+    "Programming Language :: Cython",
+    "Programming Language :: Python",
     "Programming Language :: Python :: 2",
     "Programming Language :: Python :: 2.6",
     "Programming Language :: Python :: 2.7",
