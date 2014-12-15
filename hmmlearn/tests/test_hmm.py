@@ -11,6 +11,7 @@ from sklearn.utils.extmath import logsumexp
 from sklearn.utils import check_random_state
 
 from hmmlearn import hmm
+from hmmlearn.utils import normalize
 
 rng = np.random.RandomState(0)
 np.seterr(all='warn')
@@ -276,7 +277,7 @@ class GaussianHMMBaseTester(object):
     def test_fit(self, params='stmc', n_iter=5, verbose=False, **kwargs):
         h = hmm.GaussianHMM(self.n_components, self.covariance_type)
         h.startprob_ = self.startprob
-        h.transmat_ = hmm.normalize(
+        h.transmat_ = normalize(
             self.transmat + np.diag(self.prng.rand(self.n_components)), 1)
         h.means_ = 20 * self.means
         h.covars_ = self.covars[self.covariance_type]
@@ -335,7 +336,7 @@ class GaussianHMMBaseTester(object):
         h = hmm.GaussianHMM(self.n_components, self.covariance_type)
         h.startprob_ = self.startprob
         h.startprob_prior = startprob_prior
-        h.transmat_ = hmm.normalize(
+        h.transmat_ = normalize(
             self.transmat + np.diag(self.prng.rand(self.n_components)), 1)
         h.transmat_prior = transmat_prior
         h.means_ = 20 * self.means
@@ -506,10 +507,10 @@ class MultinomialHMMTestCase(TestCase):
         train_obs = [h.sample(n=10)[0] for x in range(10)]
 
         # Mess up the parameters and see if we can re-learn them.
-        h.startprob_ = hmm.normalize(self.prng.rand(self.n_components))
-        h.transmat_ = hmm.normalize(self.prng.rand(self.n_components,
+        h.startprob_ = normalize(self.prng.rand(self.n_components))
+        h.transmat_ = normalize(self.prng.rand(self.n_components,
                                                    self.n_components), axis=1)
-        h.emissionprob_ = hmm.normalize(
+        h.emissionprob_ = normalize(
             self.prng.rand(self.n_components, self.n_symbols), axis=1)
 
         trainll = train_hmm_and_keep_track_of_log_likelihood(
@@ -568,7 +569,7 @@ def create_random_gmm(n_mix, n_features, covariance_type, prng=0):
             [make_spd_matrix(n_features, random_state=prng)
              + mincv * np.eye(n_features) for x in range(n_mix)])
     }[covariance_type]
-    g.weights_ = hmm.normalize(prng.rand(n_mix))
+    g.weights_ = normalize(prng.rand(n_mix))
     return g
 
 
@@ -642,7 +643,7 @@ class GMMHMMBaseTester(object):
     def test_fit(self, params='stmwc', n_iter=5, verbose=False, **kwargs):
         h = hmm.GMMHMM(self.n_components, covars_prior=1.0)
         h.startprob_ = self.startprob
-        h.transmat_ = hmm.normalize(
+        h.transmat_ = normalize(
             self.transmat + np.diag(self.prng.rand(self.n_components)), 1)
         h.gmms_ = self.gmms_
 
@@ -653,9 +654,9 @@ class GMMHMMBaseTester(object):
         # Mess up the parameters and see if we can re-learn them.
         h.n_iter = 0
         h.fit(train_obs)
-        h.transmat_ = hmm.normalize(self.prng.rand(self.n_components,
+        h.transmat_ = normalize(self.prng.rand(self.n_components,
                                                    self.n_components), axis=1)
-        h.startprob_ = hmm.normalize(self.prng.rand(self.n_components))
+        h.startprob_ = normalize(self.prng.rand(self.n_components))
 
         trainll = train_hmm_and_keep_track_of_log_likelihood(
             h, train_obs, n_iter=n_iter, params=params)[1:]
@@ -699,17 +700,3 @@ class TestGMMHMMWithTiedCovars(GMMHMMBaseTester, TestCase):
 
 class TestGMMHMMWithFullCovars(GMMHMMBaseTester, TestCase):
     covariance_type = 'full'
-
-
-def test_normalize_1D():
-    A = rng.rand(2) + 1.0
-    for axis in range(1):
-        Anorm = hmm.normalize(A, axis)
-        assert np.all(np.allclose(Anorm.sum(axis), 1.0))
-
-
-def test_normalize_3D():
-    A = rng.rand(2, 2, 2) + 1.0
-    for axis in range(3):
-        Anorm = hmm.normalize(A, axis)
-        assert np.all(np.allclose(Anorm.sum(axis), 1.0))

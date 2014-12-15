@@ -21,9 +21,9 @@ from sklearn.mixture import (
     distribute_covar_matrix_to_match_covariance_type, _validate_covars)
 from sklearn import cluster
 
-from .utils.fixes import log_multivariate_normal_density
-
 from . import _hmmc
+from .utils import normalize
+from .utils.fixes import log_multivariate_normal_density
 
 __all__ = ['GMMHMM',
            'GaussianHMM',
@@ -35,37 +35,6 @@ ZEROLOGPROB = -1e200
 EPS = np.finfo(float).eps
 NEGINF = -np.inf
 decoder_algorithms = ("viterbi", "map")
-
-
-def normalize(A, axis=None):
-    """ Normalize the input array so that it sums to 1.
-
-    WARNING: The HMM module and its functions will be removed in 0.17
-    as it no longer falls within the project's scope and API.
-
-    Parameters
-    ----------
-    A: array, shape (n_samples, n_features)
-       Non-normalized input data
-    axis: int
-          dimension along which normalization is performed
-
-    Returns
-    -------
-    normalized_A: array, shape (n_samples, n_features)
-        A with values normalized (summing to 1) along the prescribed axis
-
-    WARNING: Modifies inplace the array
-    """
-    A += EPS
-    Asum = A.sum(axis)
-    if axis and A.ndim > 1:
-        # Make sure we don't divide by zero.
-        Asum[Asum == 0] = 1
-        shape = list(A.shape)
-        shape[axis] = 1
-        Asum.shape = shape
-    return A / Asum
 
 
 class _BaseHMM(BaseEstimator):
@@ -442,7 +411,7 @@ class _BaseHMM(BaseEstimator):
             logprob.append(curr_logprob)
 
             # Check for convergence.
-            if i > 0 and abs(logprob[-1] - logprob[-2]) < self.thresh:
+            if i > 0 and (logprob[-1] - logprob[-2]) < self.thresh:
                 break
 
             # Maximization step
@@ -1235,7 +1204,7 @@ class GMMHMM(_BaseHMM):
             n_features = g.means_.shape[1]
             norm = stats['norm'][state]
             if 'w' in params:
-                g.weights_ = normalize(norm)
+                g.weights_ = normalize(norm.copy())
             if 'm' in params:
                 g.means_ = stats['means'][state] / norm[:, np.newaxis]
             if 'c' in params:
