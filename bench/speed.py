@@ -16,8 +16,8 @@ def timed_step(title):
 
 
 def bench_gaussian_hmm(size):
-    title = "Benchmarking Gaussian HMM on a sample of size {0}".format(size)
-    print(title.center(64, " "))
+    title = "benchmarking Gaussian HMM on a sample of size {0}".format(size)
+    print(title.center(36, " "))
     ghmm = GaussianHMM()
     ghmm.means_ = [[42], [24]]
     ghmm.covars_ = [[1], [1]]
@@ -26,7 +26,10 @@ def bench_gaussian_hmm(size):
         sample, _states = ghmm.sample(size)
 
     with timed_step("fitting"):
-        GaussianHMM(n_components=2).fit([sample])
+        fit = GaussianHMM(n_components=2).fit([sample])
+
+    with timed_step("estimating states"):
+        fit.predict(sample)
 
 
 if __name__ == "__main__":

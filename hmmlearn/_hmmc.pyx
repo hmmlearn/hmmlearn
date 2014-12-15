@@ -1,16 +1,15 @@
-from libc.math cimport exp, log
-import numpy as np
-cimport numpy as np
 cimport cython
+cimport numpy as np
 
-np.import_array()
+import numpy as np
+from libc.math cimport exp, log
 
 ctypedef np.float64_t dtype_t
 
 cdef dtype_t _NINF = -np.inf
 
 @cython.boundscheck(False)
-cdef dtype_t _max(dtype_t[:] values):
+cdef inline dtype_t _max(dtype_t[:] values):
     # find maximum value (builtin 'max' is unrolled for speed)
     cdef dtype_t value
     cdef dtype_t vmax = _NINF
@@ -21,12 +20,12 @@ cdef dtype_t _max(dtype_t[:] values):
     return vmax
 
 @cython.boundscheck(False)
-cpdef dtype_t _logsum(dtype_t[:] X):
+cdef dtype_t _logsum(dtype_t[:] X):
     cdef dtype_t vmax = _max(X)
     cdef dtype_t power_sum = 0
 
     for i in range(X.shape[0]):
-        power_sum += exp(X[i]-vmax)
+        power_sum += exp(X[i] - vmax)
 
     return log(power_sum) + vmax
 
@@ -39,8 +38,7 @@ def _forward(int n_observations, int n_components,
         np.ndarray[dtype_t, ndim=2] fwdlattice):
 
     cdef int t, i, j
-    cdef double logprob
-    cdef np.ndarray[dtype_t, ndim = 1] work_buffer
+    cdef np.ndarray[dtype_t, ndim=1] work_buffer
     work_buffer = np.zeros(n_components)
 
     for i in range(n_components):
