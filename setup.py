@@ -11,12 +11,7 @@ import sys
 
 from distutils.core import setup
 from distutils.extension import Extension
-
-try:
-    from Cython.Distutils import build_ext
-except ImportError:
-    # Fallback to plain-old ``distutils`` for RTFD builds.
-    from distutils.command import build_ext
+from Cython.Distutils import build_ext
 
 
 DISTNAME = "hmmlearn"
