@@ -1,17 +1,16 @@
-HMMLearn: Hidden Markov Models in Python, with scikit-learn like API
-=====================================================================
+hmmlearn |Travis|_
+========
 
+.. |Travis| image:: https://api.travis-ci.org/hmmlearn/hmmlearn.png?branch=master
+.. _Travis: https://travis-ci.org/hmmlearn/hmmlearn
 
-HMMlearn is a set of algorithm for learning and inference of Hiden Markov
+``hmmlearn`` is a set of algorithm for learning and inference of Hiden Markov
 Models.
 
-Historically, this code was present in scikit-learn, but unmaintained. It
+Historically, this code was present in ``scikit-learn``, but unmaintained. It
 has been orphaned and separated as a different package.
 
-Continuous integration (ie running tests) is found on:
-https://travis-ci.org/hmmlearn/hmmlearn
-
-The learning algorithms in this package are unsupervised. For supervised
+The learning algorithms in this package are **unsupervised**. For supervised
 learning of HMMs and similar models, see `seqlearn
 <https://github.com/larsmans/seqlearn>`_.
 
@@ -20,39 +19,41 @@ Getting the latest code
 
 To get the latest code using git, simply type::
 
-    git clone git://github.com/hmmlearn/hmmlearn.git
+    $ git clone git://github.com/hmmlearn/hmmlearn.git
 
 Installing
 ==========
 
-As with any Python packages, to install hmmlearn, simply do::
+Make sure you have all the dependencies::
 
-    python setup.py install
+    $ pip install scikit-learn Cython 
+
+and then install ``hmmlearn`` by running::
+
+    $ python setup.py install
 
 in the source code directory.
-
-HMMLearn depends on scikit-learn.
 
 Running the test suite
 ======================
 
-To run the test suite, you need nosetests and the coverage modules.
+To run the test suite, you need ``nosetests`` and the ``coverage`` modules.
 Run the test suite using::
 
-    python setup.py build_ext --inplace && nosetests
+    $ python setup.py build_ext --inplace && nosetests
 
 from the root of the project.
 
 Building the docs
 =================
 
-To build the docs you need to have setuptools and sphinx (>=0.5) installed.
+To build the docs you need to have ``setuptools`` and ``Sphinx`` installed.
 Run the command::
 
-    cd doc
-    make html
+    $ cd doc
+    $ make html
 
-The docs are built in the build/sphinx/html directory.
+The docs are built in the ``build/sphinx/html`` directory.
 
 Making a source tarball
 =======================
@@ -60,12 +61,12 @@ Making a source tarball
 To create a source tarball, eg for packaging or distributing, run the
 following command::
 
-    python setup.py sdist
+    $ python setup.py sdist
 
-The tarball will be created in the `dist` directory. This command will
+The tarball will be created in the ``dist`` directory. This command will
 compile the docs, and the resulting tarball can be installed with
 no extra dependencies than the Python standard library. You will need
-setuptool and sphinx.
+``setuptool`` and ``Sphinx``.
 
 Making a release and uploading it to PyPI
 =========================================
@@ -73,4 +74,4 @@ Making a release and uploading it to PyPI
 This command is only run by project manager, to make a release, and
 upload in to PyPI::
 
-    python setup.py sdist bdist_egg register upload
+    $ python setup.py sdist bdist_egg register upload
