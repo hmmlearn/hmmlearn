@@ -12,30 +12,14 @@
 # All configuration values have a default; values that are commented out
 # serve to show the default.
 
-import sys
-import os
-from sklearn.externals.six import u
-
-# If extensions (or modules to document with autodoc) are in another
-# directory, add these directories to sys.path here. If the directory
-# is relative to the documentation root, use os.path.abspath to make it
-# absolute, like shown here.
-sys.path.insert(0, os.path.abspath('sphinxext'))
+from __future__ import unicode_literals
 
 # -- General configuration ---------------------------------------------------
 
-# Try to override the matplotlib configuration as early as possible
-try:
-    import gen_rst
-except:
-    pass
-
 # Add any Sphinx extension module names here, as strings. They can be
 # extensions coming with Sphinx (named 'sphinx.ext.*') or your custom ones.
-extensions = ['gen_rst',
-              'sphinx.ext.autodoc', 'sphinx.ext.autosummary',
-              'sphinx.ext.pngmath', 'numpy_ext.numpydoc'
-              ]
+extensions = ['sphinx.ext.autodoc', 'sphinx.ext.autosummary',
+              'sphinx.ext.pngmath', 'numpydoc']
 
 autosummary_generate = True
 
@@ -60,15 +44,15 @@ plot_gallery = True
 master_doc = 'index'
 
 # General information about the project.
-project = u('HMMLearn')
-copyright = u('2010 - 2014, HMMLearn developers (BSD License)')
+project = 'hmmlearn'
+copyright = '2010 - 2015, hmmlearn developers (BSD License)'
 
 # The version info for the project you're documenting, acts as replacement for
 # |version| and |release|, also used in various other places throughout the
 # built documents.
 #
 # The short X.Y version.
-version = '0.1-git'
+version = '0.1'
 # The full version, including alpha/beta/rc tags.
 import hmmlearn
 release = hmmlearn.__version__
@@ -116,14 +100,12 @@ pygments_style = 'sphinx'
 
 # The theme to use for HTML and HTML Help pages.  Major themes that come with
 # Sphinx are currently 'default' and 'sphinxdoc'.
-html_theme = 'scikit-learn'
+html_theme = 'default'
 
 # Theme options are theme-specific and customize the look and feel of a theme
 # further.  For a list of options available for each theme, see the
 # documentation.
-html_theme_options = {'oldversion': False, 'collapsiblesidebar': True,
-                      'google_analytics': True, 'surveybanner': False,
-                      'sprintbanner' : True}
+html_theme_options = {}
 
 # Add any paths that contain custom themes here, relative to this directory.
 html_theme_path = ['themes']
@@ -134,7 +116,7 @@ html_theme_path = ['themes']
 #html_title = None
 
 # A shorter title for the navigation bar.  Default is the same as html_title.
-html_short_title = 'HMM-learn'
+html_short_title = 'hmmlearn'
 
 # The name of an image file (relative to this directory) to place at the top
 # of the sidebar.
@@ -143,7 +125,7 @@ html_short_title = 'HMM-learn'
 # The name of an image file (within the static path) to use as favicon of the
 # docs.  This file should be a Windows icon file (.ico) being 16x16 or 32x32
 # pixels large.
-html_favicon = 'logos/favicon.ico'
+#html_favicon = 'logos/favicon.ico'
 
 # Add any paths that contain custom static files (such as style sheets) here,
 # relative to this directory. They are copied after the builtin static files,
@@ -186,7 +168,7 @@ html_use_index = False
 #html_file_suffix = ''
 
 # Output file base name for HTML help builder.
-htmlhelp_basename = 'hmm-learndoc'
+htmlhelp_basename = 'hmmlearndoc'
 
 
 # -- Options for LaTeX output ------------------------------------------------
@@ -200,8 +182,8 @@ htmlhelp_basename = 'hmm-learndoc'
 # Grouping the document tree into LaTeX files. List of tuples
 # (source start file, target name, title, author, documentclass
 # [howto/manual]).
-latex_documents = [('index', 'user_guide.tex', u('hmm-learn user guide'),
-                    u('hmm-learn developers'), 'manual'), ]
+latex_documents = [('index', 'user_guide.tex', 'hmmlearn user guide',
+                    'hmmlearn developers', 'manual'), ]
 
 # The name of an image file (relative to this directory) to place at the top of
 # the title page.
