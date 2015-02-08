@@ -23,7 +23,7 @@ inplace:
 test-code: in
 	$(NOSETESTS) -s -v hmmlearn
 test-doc:
-	$(NOSETESTS) -s -v doc/ doc/modules/
+	$(NOSETESTS) -s -v doc/ doc/generated
 test-coverage:
 	rm -rf coverage .coverage
 	$(NOSETESTS) -s -v --with-coverage hmmlearn
