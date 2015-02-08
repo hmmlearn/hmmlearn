@@ -9,8 +9,7 @@
 
 import sys
 
-from distutils.core import setup
-from distutils.extension import Extension
+from setuptools import setup, Extension
 from Cython.Distutils import build_ext
 
 
@@ -58,7 +57,8 @@ setup_options = dict(
     ext_modules=[
         Extension("hmmlearn._hmmc", ["hmmlearn/_hmmc.pyx"])
     ],
-    requires=["sklearn"]
+    requires=["sklearn"],
+    install_requires=["Cython>=0.21.2"]
 )
 
 

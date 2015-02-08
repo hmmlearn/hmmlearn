@@ -26,7 +26,7 @@ Installing
 
 Make sure you have all the dependencies::
 
-    $ pip install scikit-learn Cython 
+    $ pip install scikit-learn Cython
 
 and then install ``hmmlearn`` by running::
 
@@ -47,13 +47,16 @@ from the root of the project.
 Building the docs
 =================
 
-To build the docs you need to have ``setuptools`` and ``Sphinx`` installed.
+To build the docs you need to have the following packages installed::
+
+    $ pip install Pillow matplotlib Sphinx numpydoc
+
 Run the command::
 
     $ cd doc
     $ make html
 
-The docs are built in the ``build/sphinx/html`` directory.
+The docs are built in the ``_build/html`` directory.
 
 Making a source tarball
 =======================
@@ -63,10 +66,7 @@ following command::
 
     $ python setup.py sdist
 
-The tarball will be created in the ``dist`` directory. This command will
-compile the docs, and the resulting tarball can be installed with
-no extra dependencies than the Python standard library. You will need
-``setuptool`` and ``Sphinx``.
+The tarball will be created in the ``dist`` directory.
 
 Making a release and uploading it to PyPI
 =========================================

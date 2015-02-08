@@ -1,5 +1,0 @@
-Pillow==2.7.0
-matplotlib==1.4.2
-Cython==0.21.2
-scikit-learn==0.15.2
-numpydoc==0.5
