@@ -100,7 +100,7 @@ in model2 will have a different order than those in the generating model.::
 
 .. topic:: Examples:
 
- * :ref:`example_applications_plot_hmm_stock_analysis.py`
+ * :ref:`example_plot_hmm_stock_analysis.py`
 
 
 Implementing HMMs with custom emission probabilities

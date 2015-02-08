@@ -21,6 +21,7 @@ import sys
 # add these directories to sys.path here. If the directory is relative to the
 # documentation root, use os.path.abspath to make it absolute, like shown here.
 sys.path.insert(0, os.path.abspath('..'))
+sys.path.insert(0, os.path.abspath('sphinxext'))
 
 # -- General configuration ---------------------------------------------------
 
@@ -32,7 +33,9 @@ extensions = [
     'sphinx.ext.mathjax',
 
     'matplotlib.sphinxext.plot_directive',
-    'numpydoc']
+    'numpydoc',
+    'gen_rst'
+]
 
 autosummary_generate = True
 
@@ -207,10 +210,14 @@ latex_documents = [('index', 'user_guide.tex', 'hmmlearn user guide',
 #latex_use_parts = False
 
 # Additional stuff for the LaTeX preamble.
-latex_preamble = r"""
-\usepackage{amsmath}\usepackage{amsfonts}\usepackage{bm}\usepackage{morefloats}
-\usepackage{enumitem} \setlistdepth{10}
-"""
+# latex_preamble = r"""
+# \usepackage{amsmath}
+# \usepackage{amsfonts}
+# \usepackage{bm}
+# \usepackage{morefloats}
+# \usepackage{enumitem}
+# \setlistdepth{10}
+# """
 
 # Documents to append as an appendix to all manuals.
 #latex_appendices = []

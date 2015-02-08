@@ -33,6 +33,7 @@ help:
 clean:
 	-rm -rf $(BUILDDIR)/*
 	-rm -rf generated/*
+	-rm -rf auto_examples/*
 
 html:
 	# These two lines make the build a bit more lengthy, and the
