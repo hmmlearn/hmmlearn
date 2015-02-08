@@ -16,5 +16,5 @@ User guide: table of contents
 .. toctree::
    :numbered:
 
-   modules/hmm.rst
-   modules/classes.rst
+   hmm.rst
+   classes.rst

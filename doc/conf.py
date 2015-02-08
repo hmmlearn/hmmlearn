@@ -14,6 +14,14 @@
 
 from __future__ import unicode_literals
 
+import os
+import sys
+
+# If extensions (or modules to document with autodoc) are in another directory,
+# add these directories to sys.path here. If the directory is relative to the
+# documentation root, use os.path.abspath to make it absolute, like shown here.
+sys.path.insert(0, os.path.abspath('..'))
+
 # -- General configuration ---------------------------------------------------
 
 # Add any Sphinx extension module names here, as strings. They can be
@@ -31,7 +39,7 @@ autosummary_generate = True
 autodoc_default_flags = ['members', 'inherited-members']
 
 # Add any paths that contain templates here, relative to this directory.
-templates_path = ['templates']
+templates_path = ['_templates']
 
 # generate autosummary even if no references
 autosummary_generate = True
@@ -40,10 +48,10 @@ autosummary_generate = True
 source_suffix = '.rst'
 
 # The encoding of source files.
-#source_encoding = 'utf-8'
+source_encoding = 'utf-8'
 
 # Generate the plots for the gallery
-plot_gallery = True
+#plot_gallery = True
 
 # The master toctree document.
 master_doc = 'index'
@@ -77,7 +85,7 @@ release = hmmlearn.__version__
 
 # List of directories, relative to source directory, that shouldn't be
 # searched for source files.
-exclude_trees = ['_build', 'templates', 'includes']
+exclude_trees = ['_build', 'includes']
 
 # The reST default role (used for this markup: `text`) to use for all
 # documents.
@@ -121,7 +129,7 @@ html_theme_path = ['themes']
 #html_title = None
 
 # A shorter title for the navigation bar.  Default is the same as html_title.
-html_short_title = 'hmmlearn'
+#html_short_title = 'hmmlearn'
 
 # The name of an image file (relative to this directory) to place at the top
 # of the sidebar.
@@ -135,7 +143,7 @@ html_short_title = 'hmmlearn'
 # Add any paths that contain custom static files (such as style sheets) here,
 # relative to this directory. They are copied after the builtin static files,
 # so a file named "default.css" will overwrite the builtin "default.css".
-html_static_path = ['images']
+html_static_path = ['_static']
 
 # If not '', a 'Last updated on:' timestamp is inserted at every page bottom,
 # using the given strftime format.

@@ -22,11 +22,8 @@ uses.
 .. currentmodule:: hmmlearn
 
 .. autosummary::
-   :toctree: generated/
-   :template: class.rst
+   :toctree: generated
 
    hmm.GaussianHMM
    hmm.MultinomialHMM
    hmm.GMMHMM
-
-

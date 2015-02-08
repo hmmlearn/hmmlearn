@@ -32,9 +32,7 @@ help:
 
 clean:
 	-rm -rf $(BUILDDIR)/*
-	-rm -rf auto_examples/
 	-rm -rf generated/*
-	-rm -rf modules/generated/*
 
 html:
 	# These two lines make the build a bit more lengthy, and the
@@ -108,5 +106,3 @@ doctest:
 	$(SPHINXBUILD) -b doctest $(ALLSPHINXOPTS) $(BUILDDIR)/doctest
 	@echo "Testing of doctests in the sources finished, look at the " \
 	      "results in $(BUILDDIR)/doctest/output.txt."
-
-
