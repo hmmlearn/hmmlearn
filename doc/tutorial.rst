@@ -1,8 +1,8 @@
-.. _hmm:
+.. _tutorial:
 
-====================
-Hidden Markov Models
-====================
+========
+Tutorial
+========
 
 .. currentmodule:: hmmlearn.hmm
 

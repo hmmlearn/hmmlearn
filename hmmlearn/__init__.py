@@ -8,7 +8,7 @@ Models.
 Historically, this code was present in ``scikit-learn``, but unmaintained.
 It has been orphaned and separated as a different package.
 """
-__version__ = '0.1.0'
+__version__ = '0.1.1'
 
 
 def setup_module(module):

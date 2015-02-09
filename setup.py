@@ -58,7 +58,7 @@ setup_options = dict(
         Extension("hmmlearn._hmmc", ["hmmlearn/_hmmc.pyx"])
     ],
     requires=["sklearn"],
-    install_requires=["Cython>=0.21.2"]
+    install_requires=["Cython"]
 )
 
 

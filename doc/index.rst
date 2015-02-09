@@ -14,7 +14,8 @@ User guide: table of contents
 .. include:: includes/big_toc_css.rst
 
 .. toctree::
-   :numbered:
+   :titlesonly:
 
-   hmm.rst
-   classes.rst
+   tutorial
+   api
+   changelog

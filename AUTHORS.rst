@@ -19,3 +19,4 @@ Authors and contributors, in no particular order:
 * Vlad Niculae
 * csytracy
 * Alexandre Gramfort
+* Sergei Lebedev
