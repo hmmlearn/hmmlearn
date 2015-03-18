@@ -4,7 +4,7 @@ hmmlearn |Travis|_
 .. |Travis| image:: https://api.travis-ci.org/hmmlearn/hmmlearn.png?branch=master
 .. _Travis: https://travis-ci.org/hmmlearn/hmmlearn
 
-``hmmlearn`` is a set of algorithm for learning and inference of Hiden Markov
+``hmmlearn`` is a set of algorithm for learning and inference of Hidden Markov
 Models.
 
 Historically, this code was present in ``scikit-learn``, but unmaintained. It
