@@ -417,7 +417,7 @@ class MultinomialHMM(_BaseHMM):
         # check if there exists a component whose value is exactly zero
         # if so, add a small number and re-normalize
         if not np.alltrue(emissionprob):
-            normalize(emissionprob)
+            normalize(emissionprob, axis=1)
 
         self._log_emissionprob = np.log(emissionprob)
         underflow_idx = np.isnan(self._log_emissionprob)
