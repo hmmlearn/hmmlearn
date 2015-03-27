@@ -102,6 +102,9 @@ class _BaseHMM(BaseEstimator):
         self.transmat_prior = transmat_prior
         self.algorithm = algorithm
         self.random_state = random_state
+        self.logprob_ = None
+        self.n_iterations_performed = None
+        self.logprob_delta = None
 
     def eval(self, X):
         return self.score_samples(X)
@@ -384,10 +387,14 @@ class _BaseHMM(BaseEstimator):
                     stats, seq, framelogprob, posteriors, fwdlattice,
                     bwdlattice, self.params)
             logprob.append(curr_logprob)
+            self.logprob_ = curr_logprob
 
             # Check for convergence.
-            if i > 0 and logprob[-1] - logprob[-2] < self.thresh:
-                break
+            self.n_iterations_performed = i
+            if i > 0:
+                self.logprob_delta = logprob[-1] - logprob[-2]
+                if self.logprob_delta < self.thresh:
+                    break
 
             # Maximization step
             self._do_mstep(stats, self.params)
