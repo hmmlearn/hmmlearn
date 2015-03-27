@@ -68,6 +68,17 @@ class _BaseHMM(BaseEstimator):
         startprob, 't' for transmat, and other characters for
         subclass-specific emmission parameters. Defaults to all
         parameters.
+        
+    n_iter_performed : int
+        Number of iterations performed while training the model.
+        
+    logprob_ : float
+        The log probability of the model after training has completed.
+        
+    logprob_delta : float
+        The last update to the model's log probability before training
+        was terminated. If this parameter is negative, or is less than
+        the convergence threshold, the model did not converge.
 
     See Also
     --------
