@@ -103,7 +103,7 @@ class _BaseHMM(BaseEstimator):
         self.algorithm = algorithm
         self.random_state = random_state
         self.logprob_ = None
-        self.n_iterations_performed = None
+        self.n_iter_performed_ = None
         self.logprob_delta = None
 
     def eval(self, X):
@@ -390,7 +390,7 @@ class _BaseHMM(BaseEstimator):
             self.logprob_ = curr_logprob
 
             # Check for convergence.
-            self.n_iterations_performed = i
+            self.n_iter_performed_ = i
             if i > 0:
                 self.logprob_delta = logprob[-1] - logprob[-2]
                 if self.logprob_delta < self.thresh:
