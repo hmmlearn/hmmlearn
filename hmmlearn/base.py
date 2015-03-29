@@ -68,6 +68,17 @@ class _BaseHMM(BaseEstimator):
         startprob, 't' for transmat, and other characters for
         subclass-specific emmission parameters. Defaults to all
         parameters.
+        
+    n_iter_performed : int
+        Number of iterations performed while training the model.
+        
+    logprob_ : float
+        The log probability of the model after training has completed.
+        
+    logprob_delta : float
+        The last update to the model's log probability before training
+        was terminated. If this parameter is negative, or is less than
+        the convergence threshold, the model did not converge.
 
     See Also
     --------
@@ -102,6 +113,9 @@ class _BaseHMM(BaseEstimator):
         self.transmat_prior = transmat_prior
         self.algorithm = algorithm
         self.random_state = random_state
+        self.logprob_ = None
+        self.n_iter_performed_ = None
+        self.logprob_delta = None
 
     def eval(self, X):
         return self.score_samples(X)
@@ -384,10 +398,14 @@ class _BaseHMM(BaseEstimator):
                     stats, seq, framelogprob, posteriors, fwdlattice,
                     bwdlattice, self.params)
             logprob.append(curr_logprob)
+            self.logprob_ = curr_logprob
 
             # Check for convergence.
-            if i > 0 and logprob[-1] - logprob[-2] < self.thresh:
-                break
+            self.n_iter_performed_ = i
+            if i > 0:
+                self.logprob_delta = logprob[-1] - logprob[-2]
+                if self.logprob_delta < self.thresh:
+                    break
 
             # Maximization step
             self._do_mstep(stats, self.params)
