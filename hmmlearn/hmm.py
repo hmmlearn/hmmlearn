@@ -195,19 +195,19 @@ class GaussianHMM(_BaseHMM):
     def _init(self, obs, params='stmc'):
         super(GaussianHMM, self)._init(obs, params=params)
 
-        if (hasattr(self, 'n_features')
-                and self.n_features != obs[0].shape[1]):
+        all_obs = np.concatenate(obs)
+        _, n_features = all_obs.shape
+        if hasattr(self, 'n_features') and self.n_features != n_features:
             raise ValueError('Unexpected number of dimensions, got %s but '
-                             'expected %s' % (obs[0].shape[1],
-                                              self.n_features))
+                             'expected %s' % (n_features, self.n_features))
 
-        self.n_features = obs[0].shape[1]
-
+        self.n_features = n_features
         if 'm' in params:
-            self._means_ = cluster.KMeans(
-                n_clusters=self.n_components).fit(obs[0]).cluster_centers_
+            kmeans = cluster.KMeans(n_clusters=self.n_components)
+            kmeans.fit(all_obs)
+            self._means_ = kmeans.cluster_centers_
         if 'c' in params:
-            cv = np.cov(obs[0].T)
+            cv = np.cov(all_obs.T)
             if not cv.shape:
                 cv.shape = (1, 1)
             self._covars_ = distribute_covar_matrix_to_match_covariance_type(
