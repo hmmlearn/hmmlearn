@@ -15,12 +15,12 @@ import numpy as np
 from sklearn.utils import check_random_state
 from sklearn.mixture import (
     GMM, sample_gaussian,
+    log_multivariate_normal_density,
     distribute_covar_matrix_to_match_covariance_type, _validate_covars)
 from sklearn import cluster
 
 from .base import _BaseHMM, decoder_algorithms
 from .utils import normalize
-from .utils.fixes import log_multivariate_normal_density
 
 __all__ = ['GMMHMM',
            'GaussianHMM',
