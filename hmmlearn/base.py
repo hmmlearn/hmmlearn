@@ -1,4 +1,8 @@
+from __future__ import print_function
+
 import string
+import sys
+from collections import deque
 
 import numpy as np
 from sklearn.base import BaseEstimator
@@ -15,6 +19,58 @@ decoder_algorithms = frozenset(("viterbi", "map"))
 ZEROLOGPROB = -1e200
 EPS = np.finfo(float).eps
 NEGINF = -np.inf
+
+
+class ConvergenceMonitor(object):
+    """Monitors and reports convergence to :data:`sys.stderr`.
+
+    Parameters
+    ----------
+    thresh : double
+        Convergence threshold. The algorithm has convereged eitehr if
+        the maximum number of iterations is reached or the log probability
+        improvement between the two consecutive iterations is less than
+        threshold.
+
+    n_iter : int
+        Maximum number of iterations to perform.
+
+    verbose : bool
+        If ``True`` then per-iteration convergence reports are printed,
+        otherwise the monitor is mute.
+
+    history : deque
+        The log probability of the data for the last two training
+        iterations. If the values are not strictly increasing, the
+        model did not converge.
+
+    iter : int
+        Number of iterations performed while training the model.
+    """
+    fmt = "{iter:>10d} {logprob:>16.4f} {delta:>+16.4f}"
+
+    def __init__(self, thresh, n_iter, verbose):
+        self.thresh = thresh
+        self.n_iter = n_iter
+        self.verbose = verbose
+        self.history = deque(maxlen=2)
+        self.iter = 1
+
+    def report(self, logprob):
+        if self.history and self.verbose:
+            delta = logprob - self.history[-1]
+            message = self.fmt.format(
+                iter=self.iter, logprob=logprob, delta=delta)
+            print(message, file=sys.stderr)
+
+        self.history.append(logprob)
+        self.iter += 1
+
+    @property
+    def converged(self):
+        return (self.iter == self.n_iter or
+                (len(self.history) == 2 and
+                 self.history[1] - self.history[0] < self.thresh))
 
 
 class _BaseHMM(BaseEstimator):
@@ -51,10 +107,15 @@ class _BaseHMM(BaseEstimator):
         A random number generator instance
 
     n_iter : int, optional
-        Number of iterations to perform.
+        Maximum number of iterations to perform.
 
     thresh : float, optional
         Convergence threshold.
+
+    verbose : bool, optional
+        When ``True`` per-iteration convergence reports are printed
+        to :data:`sys.stderr`. You can diagnose convergence via the
+        :attr:`monitor_` attribute.
 
     params : string, optional
         Controls which parameters are updated in the training
@@ -68,17 +129,6 @@ class _BaseHMM(BaseEstimator):
         startprob, 't' for transmat, and other characters for
         subclass-specific emmission parameters. Defaults to all
         parameters.
-        
-    n_iter_performed : int
-        Number of iterations performed while training the model.
-        
-    logprob_ : float
-        The log probability of the model after training has completed.
-        
-    logprob_delta : float
-        The last update to the model's log probability before training
-        was terminated. If this parameter is negative, or is less than
-        the convergence threshold, the model did not converge.
 
     See Also
     --------
@@ -99,12 +149,14 @@ class _BaseHMM(BaseEstimator):
     def __init__(self, n_components=1, startprob=None, transmat=None,
                  startprob_prior=None, transmat_prior=None,
                  algorithm="viterbi", random_state=None,
-                 n_iter=10, thresh=1e-2, params=string.ascii_letters,
+                 n_iter=10, thresh=1e-2, verbose=False,
+                 params=string.ascii_letters,
                  init_params=string.ascii_letters):
         # TODO: move all validation from descriptors to 'fit' and 'predict'.
         self.n_components = n_components
         self.n_iter = n_iter
         self.thresh = thresh
+        self.monitor_ = ConvergenceMonitor(thresh, n_iter, verbose)
         self.params = params
         self.init_params = init_params
         self.startprob_ = startprob
@@ -113,9 +165,6 @@ class _BaseHMM(BaseEstimator):
         self.transmat_prior = transmat_prior
         self.algorithm = algorithm
         self.random_state = random_state
-        self.logprob_ = None
-        self.n_iter_performed_ = None
-        self.logprob_delta = None
 
     def eval(self, X):
         return self.score_samples(X)
@@ -370,21 +419,10 @@ class _BaseHMM(BaseEstimator):
             List of array-like observation sequences, each of which
             has shape (n_i, n_features), where n_i is the length of
             the i_th observation.
-
-        Notes
-        -----
-        In general, `logprob` should be non-decreasing unless
-        aggressive pruning is used.  Decreasing `logprob` is generally
-        a sign of overfitting (e.g. a covariance parameter getting too
-        small).  You can fix this by getting more training data,
-        or strengthening the appropriate subclass-specific regularization
-        parameter.
         """
         self._init(obs, self.init_params)
 
-        logprob = []
         for i in range(self.n_iter):
-            # Expectation step
             stats = self._initialize_sufficient_statistics()
             curr_logprob = 0
             for seq in obs:
@@ -397,17 +435,11 @@ class _BaseHMM(BaseEstimator):
                 self._accumulate_sufficient_statistics(
                     stats, seq, framelogprob, posteriors, fwdlattice,
                     bwdlattice, self.params)
-            logprob.append(curr_logprob)
-            self.logprob_ = curr_logprob
 
-            # Check for convergence.
-            self.n_iter_performed_ = i
-            if i > 0:
-                self.logprob_delta = logprob[-1] - logprob[-2]
-                if self.logprob_delta < self.thresh:
-                    break
+            self.monitor_.report(curr_logprob)
+            if self.monitor_.converged:
+                break
 
-            # Maximization step
             self._do_mstep(stats, self.params)
 
         return self
