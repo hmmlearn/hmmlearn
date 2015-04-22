@@ -15,7 +15,7 @@ from __future__ import print_function
 import datetime
 import numpy as np
 import pylab as pl
-from matplotlib.finance import quotes_historical_yahoo
+from matplotlib.finance import quotes_historical_yahoo_ochl
 from matplotlib.dates import YearLocator, MonthLocator, DateFormatter
 from hmmlearn.hmm import GaussianHMM
 
@@ -27,7 +27,7 @@ print(__doc__)
 date1 = datetime.date(1995, 1, 1)  # start date
 date2 = datetime.date(2012, 1, 6)  # end date
 # get quotes from yahoo finance
-quotes = quotes_historical_yahoo("INTC", date1, date2)
+quotes = quotes_historical_yahoo_ochl("INTC", date1, date2)
 if len(quotes) == 0:
     raise SystemExit
 
