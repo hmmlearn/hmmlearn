@@ -117,7 +117,7 @@ class GaussianHMM(_BaseHMM):
 
     def __init__(self, n_components=1, covariance_type='diag', startprob=None,
                  transmat=None, startprob_prior=None, transmat_prior=None,
-                 algorithm="viterbi", means_prior=None, means_weight=0,
+                 algorithm="viterbi", means_prior=0, means_weight=0,
                  covars_prior=1e-2, covars_weight=1,
                  random_state=None, n_iter=10, thresh=1e-2,
                  params=string.ascii_letters,
@@ -167,11 +167,12 @@ class GaussianHMM(_BaseHMM):
         if self._covariance_type == 'full':
             return self._covars_
         elif self._covariance_type == 'diag':
-            return [np.diag(cov) for cov in self._covars_]
+            return np.array([np.diag(cov) for cov in self._covars_])
         elif self._covariance_type == 'tied':
-            return [self._covars_] * self.n_components
+            return np.array([self._covars_] * self.n_components)
         elif self._covariance_type == 'spherical':
-            return [np.eye(self.n_features) * f for f in self._covars_]
+            return np.array(
+                [np.eye(self.n_features) * cov for cov in self._covars_])
 
     def _set_covars(self, covars):
         covars = np.asarray(covars)
@@ -221,7 +222,7 @@ class GaussianHMM(_BaseHMM):
         stats['obs**2'] = np.zeros((self.n_components, self.n_features))
         if self._covariance_type in ('tied', 'full'):
             stats['obs*obs.T'] = np.zeros((self.n_components, self.n_features,
-                                          self.n_features))
+                                           self.n_features))
         return stats
 
     def _accumulate_sufficient_statistics(self, stats, obs, framelogprob,
@@ -247,29 +248,21 @@ class GaussianHMM(_BaseHMM):
     def _do_mstep(self, stats, params):
         super(GaussianHMM, self)._do_mstep(stats, params)
 
+        means_prior = self.means_prior
+        means_weight = self.means_weight
+
+        # TODO: find a proper reference for estimates for different
+        #       covariance models.
         # Based on Huang, Acero, Hon, "Spoken Language Processing",
         # p. 443 - 445
         denom = stats['post'][:, np.newaxis]
         if 'm' in params:
-            prior = self.means_prior
-            weight = self.means_weight
-            if prior is None:
-                weight = 0
-                prior = 0
-            self._means_ = (weight * prior + stats['obs']) / (weight + denom)
+            self._means_ = ((means_weight * means_prior + stats['obs'])
+                            / (means_weight + denom))
 
         if 'c' in params:
             covars_prior = self.covars_prior
             covars_weight = self.covars_weight
-            if covars_prior is None:
-                covars_weight = 0
-                covars_prior = 0
-
-            means_prior = self.means_prior
-            means_weight = self.means_weight
-            if means_prior is None:
-                means_weight = 0
-                means_prior = 0
             meandiff = self._means_ - means_prior
 
             if self._covariance_type in ('spherical', 'diag'):
@@ -284,23 +277,23 @@ class GaussianHMM(_BaseHMM):
                         self._covars_.mean(1)[:, np.newaxis],
                         (1, self._covars_.shape[1]))
             elif self._covariance_type in ('tied', 'full'):
-                cvnum = np.empty((self.n_components, self.n_features,
+                cv_num = np.empty((self.n_components, self.n_features,
                                   self.n_features))
                 for c in range(self.n_components):
                     obsmean = np.outer(stats['obs'][c], self._means_[c])
 
-                    cvnum[c] = (means_weight * np.outer(meandiff[c],
-                                                        meandiff[c])
-                                + stats['obs*obs.T'][c]
-                                - obsmean - obsmean.T
-                                + np.outer(self._means_[c], self._means_[c])
-                                * stats['post'][c])
+                    cv_num[c] = (means_weight * np.outer(meandiff[c],
+                                                         meandiff[c])
+                                 + stats['obs*obs.T'][c]
+                                 - obsmean - obsmean.T
+                                 + np.outer(self._means_[c], self._means_[c])
+                                 * stats['post'][c])
                 cvweight = max(covars_weight - self.n_features, 0)
                 if self._covariance_type == 'tied':
-                    self._covars_ = ((covars_prior + cvnum.sum(axis=0)) /
+                    self._covars_ = ((covars_prior + cv_num.sum(axis=0)) /
                                      (cvweight + stats['post'].sum()))
                 elif self._covariance_type == 'full':
-                    self._covars_ = ((covars_prior + cvnum) /
+                    self._covars_ = ((covars_prior + cv_num) /
                                      (cvweight + stats['post'][:, None, None]))
 
     def fit(self, obs):
