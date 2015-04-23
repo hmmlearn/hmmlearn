@@ -113,7 +113,7 @@ class GaussianHMMTestMixin(object):
 
         # Check that the log-likelihood is always increasing during training.
         diff = np.diff(trainll)
-        message = ("Decreasing log-likelihood for {} covariance: {}"
+        message = ("Decreasing log-likelihood for {0} covariance: {1}"
                    .format(self.covariance_type, diff))
         self.assertTrue(np.all(diff >= -1e-6), message)
 
@@ -340,7 +340,7 @@ class MultinomialHMMTestCase(TestCase):
         # Check that the log-likelihood is always increasing during training.
         diff = np.diff(trainll)
         self.assertTrue(np.all(diff >= -1e-6),
-                        "Decreasing log-likelihood: {}" .format(diff))
+                        "Decreasing log-likelihood: {0}" .format(diff))
 
     def test_fit_emissionprob(self):
         self.test_fit('e')
