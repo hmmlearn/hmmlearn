@@ -10,7 +10,6 @@
 import sys
 
 from setuptools import setup, Extension
-from Cython.Distutils import build_ext
 
 
 DISTNAME = "hmmlearn"
@@ -53,12 +52,10 @@ setup_options = dict(
     url="https://github.com/hmmlearn/hmmlearn",
     packages=["hmmlearn"],
     classifiers=CLASSIFIERS,
-    cmdclass={"build_ext": build_ext},
     ext_modules=[
-        Extension("hmmlearn._hmmc", ["hmmlearn/_hmmc.pyx"])
+        Extension("hmmlearn._hmmc", ["hmmlearn/_hmmc.c"])
     ],
-    requires=["sklearn"],
-    install_requires=["Cython"]
+    requires=["sklearn"]
 )
 
 
