@@ -1,4 +1,4 @@
-nosetests
+nose
 sklearn
 wheel
 wheelhouse_uploader
