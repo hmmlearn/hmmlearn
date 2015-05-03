@@ -1,4 +1,4 @@
 nose
-sklearn
+scikit-learn
 wheel
 wheelhouse_uploader
