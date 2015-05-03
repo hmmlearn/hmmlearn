@@ -1,8 +1,11 @@
-hmmlearn |Travis|_
+hmmlearn |travis| |appveyor|
 ========
 
-.. |Travis| image:: https://api.travis-ci.org/hmmlearn/hmmlearn.png?branch=master
-.. _Travis: https://travis-ci.org/hmmlearn/hmmlearn
+.. |travis| image:: https://api.travis-ci.org/hmmlearn/hmmlearn.png?branch=master
+   :target: https://travis-ci.org/hmmlearn/hmmlearn
+
+.. |appveyor| image:: https://ci.appveyor.com/api/projects/status/3c70msixtdvvae20/branch/master?svg=true
+   :target: https://ci.appveyor.com/project/superbobry/hmmlearn/branch/master
 
 ``hmmlearn`` is a set of algorithm for learning and inference of Hidden Markov
 Models.

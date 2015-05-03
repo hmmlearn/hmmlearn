@@ -1,0 +1,4 @@
+nosetests
+sklearn
+wheel
+wheelhouse_uploader
