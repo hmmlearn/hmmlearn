@@ -1,4 +1,6 @@
 nose
+numpy
 scikit-learn
+scipy
 wheel
 wheelhouse_uploader
