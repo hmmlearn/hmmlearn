@@ -138,7 +138,15 @@ class GaussianHMM(_BaseHMM):
 
         self.covars_prior = covars_prior
         self.covars_weight = covars_weight
-
+        
+    @_BaseHMM.is_identifiable.getter
+    def is_identifiable(self):
+        for i in range(0, self.n_components):
+            for j in range(0, self.n_components):
+                if i != j and (self._means_[i] == self._means_[j]).all():
+                    return False
+        return True
+    
     @property
     def covariance_type(self):
         """Covariance type of the model.
