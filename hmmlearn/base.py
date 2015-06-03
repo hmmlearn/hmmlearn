@@ -152,7 +152,8 @@ class _BaseHMM(BaseEstimator):
                  algorithm="viterbi", random_state=None,
                  n_iter=10, thresh=1e-2, verbose=False,
                  params=string.ascii_letters,
-                 init_params=string.ascii_letters):
+                 init_params=string.ascii_letters,
+                 _is_identifiable = True):
         # TODO: move all validation from descriptors to 'fit' and 'predict'.
         self.n_components = n_components
         self.n_iter = n_iter
@@ -166,6 +167,15 @@ class _BaseHMM(BaseEstimator):
         self.transmat_prior = transmat_prior
         self.algorithm = algorithm
         self.random_state = random_state
+        self._is_identifiable = _is_identifiable
+            
+    @property
+    def is_identifiable(self):
+        return self._is_identifiable
+    
+    @is_identifiable.setter
+    def is_identifiable(self, value):
+        self._is_identifiable = value
 
     def eval(self, X):
         return self.score_samples(X)
@@ -406,13 +416,6 @@ class _BaseHMM(BaseEstimator):
                 currstate, random_state=random_state))
 
         return np.array(obs), np.array(hidden_states, dtype=int)
-    
-    def _is_identifiable(self, means, n_components):
-        for i in range(0, n_components):
-            for j in range(0, n_components):
-                if i != j and (means[i] == means[j]).all():
-                    return False
-        return True
 
     def fit(self, obs):
         """Estimate model parameters.
@@ -445,11 +448,9 @@ class _BaseHMM(BaseEstimator):
                     bwdlattice, self.params)
 
             self.monitor_.report(curr_logprob)
-            if self.monitor_.converged:
-                if not hasattr(self, '_means_'):
+            if self.monitor_.converged and self._is_identifiable:
                     break
-                elif hasattr(self, '_means_') and self._is_identifiable(self._means_, self.n_components):
-                    break
+
 
             self._do_mstep(stats, self.params)
 
@@ -592,4 +593,4 @@ class _BaseHMM(BaseEstimator):
             transmat_ = normalize(
                 np.maximum(self.transmat_prior - 1.0 + stats['trans'], 1e-20),
                 axis=1)
-            self.transmat_ = transmat_
+            self.transmat_ = transmat_ 
