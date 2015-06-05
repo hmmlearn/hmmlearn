@@ -89,6 +89,11 @@ class GaussianHMM(_BaseHMM):
     thresh : float, optional
         Convergence threshold.
 
+    verbose : bool, optional
+        When ``True`` per-iteration convergence reports are printed
+        to :data:`sys.stderr`. You can diagnose convergence via the
+        :attr:`monitor_` attribute.
+
     params : string, optional
         Controls which parameters are updated in the training
         process.  Can contain any combination of 's' for startprob,
@@ -121,13 +126,13 @@ class GaussianHMM(_BaseHMM):
                  covars_prior=1e-2, covars_weight=1,
                  random_state=None, n_iter=10, thresh=1e-2,
                  params=string.ascii_letters,
-                 init_params=string.ascii_letters):
+                 init_params=string.ascii_letters, verbose=False):
         _BaseHMM.__init__(self, n_components, startprob, transmat,
                           startprob_prior=startprob_prior,
                           transmat_prior=transmat_prior, algorithm=algorithm,
                           random_state=random_state, n_iter=n_iter,
                           thresh=thresh, params=params,
-                          init_params=init_params)
+                          init_params=init_params, verbose=verbose)
 
         self._covariance_type = covariance_type
         if covariance_type not in ['spherical', 'tied', 'diag', 'full']:
@@ -350,6 +355,11 @@ class MultinomialHMM(_BaseHMM):
     thresh : float, optional
         Convergence threshold.
 
+    verbose : bool, optional
+        When ``True`` per-iteration convergence reports are printed
+        to :data:`sys.stderr`. You can diagnose convergence via the
+        :attr:`monitor_` attribute.
+
     params : string, optional
         Controls which parameters are updated in the training
         process.  Can contain any combination of 's' for startprob,
@@ -378,7 +388,7 @@ class MultinomialHMM(_BaseHMM):
                  startprob_prior=None, transmat_prior=None,
                  algorithm="viterbi", random_state=None,
                  n_iter=10, thresh=1e-2, params=string.ascii_letters,
-                 init_params=string.ascii_letters):
+                 init_params=string.ascii_letters, verbose=False):
         """Create a hidden Markov model with multinomial emissions.
 
         Parameters
@@ -394,7 +404,8 @@ class MultinomialHMM(_BaseHMM):
                           n_iter=n_iter,
                           thresh=thresh,
                           params=params,
-                          init_params=init_params)
+                          init_params=init_params,
+                          verbose=verbose)
 
     def _get_emissionprob(self):
         """Emission probability distribution for each state."""
@@ -542,6 +553,11 @@ class GMMHMM(_BaseHMM):
     thresh : float, optional
         Convergence threshold.
 
+    verbose : bool, optional
+        When ``True`` per-iteration convergence reports are printed
+        to :data:`sys.stderr`. You can diagnose convergence via the
+        :attr:`monitor_` attribute.
+
     Examples
     --------
     >>> from hmmlearn.hmm import GMMHMM
@@ -559,7 +575,7 @@ class GMMHMM(_BaseHMM):
                  algorithm="viterbi", gmms=None, covariance_type='diag',
                  covars_prior=1e-2, random_state=None, n_iter=10, thresh=1e-2,
                  params=string.ascii_letters,
-                 init_params=string.ascii_letters):
+                 init_params=string.ascii_letters, verbose=False):
         """Create a hidden Markov model with GMM emissions.
 
         Parameters
@@ -575,7 +591,8 @@ class GMMHMM(_BaseHMM):
                           n_iter=n_iter,
                           thresh=thresh,
                           params=params,
-                          init_params=init_params)
+                          init_params=init_params,
+                          verbose=verbose)
 
         # XXX: Hotfit for n_mix that is incompatible with the scikit's
         # BaseEstimator API
