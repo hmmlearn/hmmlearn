@@ -6,7 +6,7 @@ from collections import deque
 
 import numpy as np
 from sklearn.base import BaseEstimator
-from sklearn.utils import check_random_state
+from sklearn.utils import check_array, check_random_state
 from sklearn.utils.extmath import logsumexp
 
 from . import _hmmc
@@ -186,7 +186,7 @@ class _BaseHMM(BaseEstimator):
         score : Compute the log probability under the model.
         decode : Find most likely state sequence corresponding to ``X``.
         """
-        X = np.atleast_2d(X)
+        X = check_array(X)
         n_samples = X.shape[0]
         logprob = 0
         posteriors = np.zeros((n_samples, self.n_components))
@@ -285,7 +285,7 @@ class _BaseHMM(BaseEstimator):
             "map": self._decode_map
         }[algorithm]
 
-        X = np.atleast_2d(X)
+        X = check_array(X)
         n_samples = X.shape[0]
         logprob = 0
         state_sequence = np.empty(n_samples, dtype=int)
@@ -394,7 +394,7 @@ class _BaseHMM(BaseEstimator):
         self : object
             Returns self.
         """
-        X = np.atleast_2d(X)
+        X = check_array(X)
         self._init(X, lengths=lengths, params=self.init_params)
 
         for iter in range(self.n_iter):
