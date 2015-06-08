@@ -10,15 +10,10 @@ from sklearn.utils import check_random_state
 from sklearn.utils.extmath import logsumexp
 
 from . import _hmmc
-from .utils import normalize
+from .utils import normalize, iter_from_X_lengths
 
 
 decoder_algorithms = frozenset(("viterbi", "map"))
-
-
-ZEROLOGPROB = -1e200
-EPS = np.finfo(float).eps
-NEGINF = -np.inf
 
 
 class ConvergenceMonitor(object):
@@ -146,7 +141,8 @@ class _BaseHMM(BaseEstimator):
     # Subclasses will probably also want to implement properties for
     # the emission distribution parameters to expose them publicly.
 
-    def __init__(self, n_components=1, startprob=None, transmat=None,
+    def __init__(self, n_components=1,
+                 startprob=None, transmat=None,
                  startprob_prior=None, transmat_prior=None,
                  algorithm="viterbi", random_state=None,
                  n_iter=10, thresh=1e-2, verbose=False,
@@ -166,152 +162,112 @@ class _BaseHMM(BaseEstimator):
         self.algorithm = algorithm
         self.random_state = random_state
 
-    def eval(self, X):
-        return self.score_samples(X)
-
-    def score_samples(self, obs):
+    def score_samples(self, X, lengths=None):
         """Compute the log probability under the model and compute posteriors.
 
         Parameters
         ----------
-        obs : array_like, shape (n, n_features)
-            Sequence of n_features-dimensional data points. Each row
-            corresponds to a single point in the sequence.
+        X : array-like, shape (n_samples, n_features)
+            Feature matrix of individual samples.
+        lengths : array-like of integers, shape (n_sequences, ), optional
+            Lengths of the individual sequences in ``X``. The sum of
+            these should be ``n_samples``.
 
         Returns
         -------
         logprob : float
-            Log likelihood of the sequence ``obs``.
+            Log likelihood of ``X``.
 
-        posteriors : array_like, shape (n, n_components)
-            Posterior probabilities of each state for each
-            observation
+        posteriors : array, shape (n_samples, n_components)
+            State-membership probabilities for each sample in ``X``.
 
         See Also
         --------
-        score : Compute the log probability under the model
-        decode : Find most likely state sequence corresponding to a `obs`
+        score : Compute the log probability under the model.
+        decode : Find most likely state sequence corresponding to ``X``.
         """
-        obs = np.asarray(obs)
-        framelogprob = self._compute_log_likelihood(obs)
-        logprob, fwdlattice = self._do_forward_pass(framelogprob)
-        bwdlattice = self._do_backward_pass(framelogprob)
-        gamma = fwdlattice + bwdlattice
-        # gamma is guaranteed to be correctly normalized by logprob at
-        # all frames, unless we do approximate inference using pruning.
-        # So, we will normalize each frame explicitly in case we
-        # pruned too aggressively.
-        posteriors = np.exp(gamma.T - logsumexp(gamma, axis=1)).T
-        posteriors += np.finfo(np.float64).eps
-        posteriors /= np.sum(posteriors, axis=1).reshape((-1, 1))
+        X = np.atleast_2d(X)
+        n_samples = X.shape[0]
+        logprob = 0
+        posteriors = np.zeros((n_samples, self.n_components))
+        for i, j in iter_from_X_lengths(X, lengths):
+            framelogprob = self._compute_log_likelihood(X[i:j])
+            logprobij, fwdlattice = self._do_forward_pass(framelogprob)
+            logprob += logprobij
+
+            bwdlattice = self._do_backward_pass(framelogprob)
+            gamma = fwdlattice + bwdlattice
+
+            # gamma is guaranteed to be correctly normalized by logprob at
+            # all frames, unless we do approximate inference using pruning.
+            # So, we will normalize each frame explicitly in case we
+            # pruned too aggressively.
+            posteriors[i:j] = np.exp(gamma.T - logsumexp(gamma, axis=1)).T
+            posteriors[i:j] += np.finfo(np.float64).eps
+            posteriors[i:j] /= np.sum(posteriors, axis=1).reshape((-1, 1))
         return logprob, posteriors
 
-    def score(self, obs):
+    def score(self, X, lengths=None):
         """Compute the log probability under the model.
 
         Parameters
         ----------
-        obs : array_like, shape (n, n_features)
-            Sequence of n_features-dimensional data points.  Each row
-            corresponds to a single data point.
+        X : array-like, shape (n_samples, n_features)
+            Feature matrix of individual samples.
+        lengths : array-like of integers, shape (n_sequences, ), optional
+            Lengths of the individual sequences in ``X``. The sum of
+            these should be ``n_samples``.
 
         Returns
         -------
         logprob : float
-            Log likelihood of the ``obs``.
+            Log likelihood of ``X``.
 
         See Also
         --------
         score_samples : Compute the log probability under the model and
-            posteriors
-
-        decode : Find most likely state sequence corresponding to a `obs`
+            posteriors.
+        decode : Find most likely state sequence corresponding to ``X``.
         """
-        obs = np.asarray(obs)
-        framelogprob = self._compute_log_likelihood(obs)
-        logprob, _ = self._do_forward_pass(framelogprob)
+        # XXX we can unroll forward pass for speed and memory efficiency.
+        logprob = 0
+        for i, j in iter_from_X_lengths(X, lengths):
+            framelogprob = self._compute_log_likelihood(X[i:j])
+            logprobij, _fwdlattice = self._do_forward_pass(framelogprob)
+            logprob += logprobij
         return logprob
 
-    def _decode_viterbi(self, obs):
-        """Find most likely state sequence corresponding to ``obs``.
+    def _decode_viterbi(self, X):
+        framelogprob = self._compute_log_likelihood(X)
+        return self._do_viterbi_pass(framelogprob)
 
-        Uses the Viterbi algorithm.
-
-        Parameters
-        ----------
-        obs : array_like, shape (n, n_features)
-            Sequence of n_features-dimensional data points. Each row
-            corresponds to a single point in the sequence.
-
-        Returns
-        -------
-        viterbi_logprob : float
-            Log probability of the maximum likelihood path through the HMM.
-
-        state_sequence : array_like, shape (n,)
-            Index of the most likely states for each observation.
-
-        See Also
-        --------
-        score_samples : Compute the log probability under the model and
-            posteriors.
-
-        score : Compute the log probability under the model
-        """
-        obs = np.asarray(obs)
-        framelogprob = self._compute_log_likelihood(obs)
-        viterbi_logprob, state_sequence = self._do_viterbi_pass(framelogprob)
-        return viterbi_logprob, state_sequence
-
-    def _decode_map(self, obs):
-        """Find most likely state sequence corresponding to `obs`.
-
-        Uses the maximum a posteriori estimation.
-
-        Parameters
-        ----------
-        obs : array_like, shape (n, n_features)
-            Sequence of n_features-dimensional data points. Each row
-            corresponds to a single point in the sequence.
-
-        Returns
-        -------
-        map_logprob : float
-            Log probability of the maximum likelihood path through the HMM
-        state_sequence : array_like, shape (n,)
-            Index of the most likely states for each observation
-
-        See Also
-        --------
-        score_samples : Compute the log probability under the model and
-            posteriors.
-        score : Compute the log probability under the model.
-        """
-        _, posteriors = self.score_samples(obs)
+    def _decode_map(self, X):
+        _, posteriors = self.score_samples(X)
+        logprob = np.max(posteriors, axis=1).sum()
         state_sequence = np.argmax(posteriors, axis=1)
-        map_logprob = np.max(posteriors, axis=1).sum()
-        return map_logprob, state_sequence
+        return logprob, state_sequence
 
-    def decode(self, obs, algorithm="viterbi"):
-        """Find most likely state sequence corresponding to ``obs``.
-        Uses the selected algorithm for decoding.
+    def decode(self, X, lengths=None, algorithm="viterbi"):
+        """Find most likely state sequence corresponding to ``X``.
 
         Parameters
         ----------
-        obs : array_like, shape (n, n_features)
-            Sequence of n_features-dimensional data points. Each row
-            corresponds to a single point in the sequence.
-
-        algorithm : string, one of the `decoder_algorithms`
+        X : array-like, shape (n_samples, n_features)
+            Feature matrix of individual samples.
+        lengths : array-like of integers, shape (n_sequences, ), optional
+            Lengths of the individual sequences in ``X``. The sum of
+            these should be ``n_samples``.
+        algorithm : string, one of the ``decoder_algorithms``
             decoder algorithm to be used
 
         Returns
         -------
         logprob : float
-            Log probability of the maximum likelihood path through the HMM
+            Log probability of the produced state sequence.
 
-        state_sequence : array_like, shape (n,)
-            Index of the most likely states for each observation
+        state_sequence : array, shape (n_samples, )
+            Labels for each sample from ``X`` obtained via a given
+            decoder ``algorithm``.
 
         See Also
         --------
@@ -324,116 +280,135 @@ class _BaseHMM(BaseEstimator):
             algorithm = self.algorithm
         elif algorithm in decoder_algorithms:
             algorithm = algorithm
-        decoder = {"viterbi": self._decode_viterbi,
-                   "map": self._decode_map}
-        logprob, state_sequence = decoder[algorithm](obs)
+
+        decoder = {
+            "viterbi": self._decode_viterbi,
+            "map": self._decode_map
+        }[algorithm]
+
+        X = np.atleast_2d(X)
+        n_samples = X.shape[0]
+        logprob = 0
+        state_sequence = np.empty(n_samples, dtype=int)
+        for i, j in iter_from_X_lengths(X, lengths):
+            logprobij, state_sequenceij = decoder(X[i:j])
+            logprob += logprobij
+            state_sequence[i:j] = state_sequenceij
+
         return logprob, state_sequence
 
-    def predict(self, obs, algorithm="viterbi"):
-        """Find most likely state sequence corresponding to `obs`.
+    def predict(self, X, lengths=None, algorithm="viterbi"):
+        """Find most likely state sequence corresponding to ``X``.
 
         Parameters
         ----------
-        obs : array_like, shape (n, n_features)
-            Sequence of n_features-dimensional data points. Each row
-            corresponds to a single point in the sequence.
+        X : array-like, shape (n_samples, n_features)
+            Feature matrix of individual samples.
+        lengths : array-like of integers, shape (n_sequences, ), optional
+            Lengths of the individual sequences in ``X``. The sum of
+            these should be ``n_samples``.
 
         Returns
         -------
-        state_sequence : array_like, shape (n,)
-            Index of the most likely states for each observation
+        state_sequence : array, shape (n_samples, )
+            Labels for each sample from ``X``.
         """
-        _, state_sequence = self.decode(obs, algorithm)
+        _, state_sequence = self.decode(X, lengths, algorithm)
         return state_sequence
 
-    def predict_proba(self, obs):
+    def predict_proba(self, X, lengths=None):
         """Compute the posterior probability for each state in the model
 
-        Parameters
-        ----------
-        obs : array_like, shape (n, n_features)
-            Sequence of n_features-dimensional data points. Each row
-            corresponds to a single point in the sequence.
+        X : array-like, shape (n_samples, n_features)
+            Feature matrix of individual samples.
+        lengths : array-like of integers, shape (n_sequences, ), optional
+            Lengths of the individual sequences in ``X``. The sum of
+            these should be ``n_samples``.
 
         Returns
         -------
-        T : array-like, shape (n, n_components)
-            Returns the probability of the sample for each state in the model.
+        posterios : array, shape (n_samples, n_components)
+            State-membership probabilities for each sample from ``X``.
         """
-        _, posteriors = self.score_samples(obs)
+        _, posteriors = self.score_samples(X, lengths)
         return posteriors
 
-    def sample(self, n=1, random_state=None):
+    def sample(self, n_samples=1, random_state=None):
         """Generate random samples from the model.
 
         Parameters
         ----------
-        n : int
+        n_samples : int
             Number of samples to generate.
 
         random_state: RandomState or an int seed (0 by default)
-            A random number generator instance. If None is given, the
-            object's random_state is used
+            A random number generator instance. If ``None``, the object's
+            random_state is used.
 
         Returns
         -------
-        (obs, hidden_states)
-        obs : array_like, length `n` List of samples
-        hidden_states : array_like, length `n` List of hidden states
+        X : array, shape (n_samples, n_features)
+            Feature matrix.
+        state_sequence : array, shape (n_samples, )
+            State sequence produced by the model.
         """
         if random_state is None:
             random_state = self.random_state
         random_state = check_random_state(random_state)
 
-        startprob_pdf = self.startprob_
-        startprob_cdf = np.cumsum(startprob_pdf)
-        transmat_pdf = self.transmat_
-        transmat_cdf = np.cumsum(transmat_pdf, 1)
+        startprob_cdf = np.cumsum(self.startprob_)
+        transmat_cdf = np.cumsum(self.transmat_, axis=1)
 
-        # Initial state.
-        rand = random_state.rand()
-        currstate = (startprob_cdf > rand).argmax()
-        hidden_states = [currstate]
-        obs = [self._generate_sample_from_state(
+        currstate = (startprob_cdf > random_state.rand()).argmax()
+        state_sequence = [currstate]
+        X = [self._generate_sample_from_state(
             currstate, random_state=random_state)]
 
-        for _ in range(n - 1):
-            rand = random_state.rand()
-            currstate = (transmat_cdf[currstate] > rand).argmax()
-            hidden_states.append(currstate)
-            obs.append(self._generate_sample_from_state(
+        for t in range(n_samples - 1):
+            currstate = (transmat_cdf[currstate] > random_state.rand()) \
+                .argmax()
+            state_sequence.append(currstate)
+            X.append(self._generate_sample_from_state(
                 currstate, random_state=random_state))
 
-        return np.array(obs), np.array(hidden_states, dtype=int)
+        return np.atleast_2d(X), np.array(state_sequence, dtype=int)
 
-    def fit(self, obs):
+    def fit(self, X, lengths=None):
         """Estimate model parameters.
 
-        An initialization step is performed before entering the EM
-        algorithm. If you want to avoid this step, pass proper
-        ``init_params`` keyword argument to estimator's constructor.
+        An initialization step is performed before entering the
+        EM-algorithm. If you want to avoid this step for a subset of
+        the parameters, pass proper ``init_params`` keyword argument
+        to estimator's constructor.
 
         Parameters
         ----------
-        obs : list
-            List of array-like observation sequences, each of which
-            has shape (n_i, n_features), where n_i is the length of
-            the i_th observation.
-        """
-        self._init(obs, self.init_params)
+        X : array-like, shape (n_samples, n_features)
+            Feature matrix of individual samples.
+        lengths : array-like of integers, shape (n_sequences, )
+            Lengths of the individual sequences in ``X``. The sum of
+            these should be ``n_samples``.
 
-        for i in range(self.n_iter):
+        Returns
+        -------
+        self : object
+            Returns self.
+        """
+        X = np.atleast_2d(X)
+        self._init(X, lengths=lengths, params=self.init_params)
+
+        for iter in range(self.n_iter):
             stats = self._initialize_sufficient_statistics()
             curr_logprob = 0
-            for seq in obs:
-                framelogprob = self._compute_log_likelihood(seq)
-                lpr, fwdlattice = self._do_forward_pass(framelogprob)
+            for i, j in iter_from_X_lengths(X, lengths):
+                framelogprob = self._compute_log_likelihood(X[i:j])
+                logprob, fwdlattice = self._do_forward_pass(framelogprob)
+                curr_logprob += logprob
                 bwdlattice = self._do_backward_pass(framelogprob)
                 gamma = fwdlattice + bwdlattice
                 posteriors = np.exp(gamma.T - logsumexp(gamma, axis=1)).T
-                curr_logprob += lpr
                 self._accumulate_sufficient_statistics(
-                    stats, seq, framelogprob, posteriors, fwdlattice,
+                    stats, X[i:j], framelogprob, posteriors, fwdlattice,
                     bwdlattice, self.params)
 
             self.monitor_.report(curr_logprob)
@@ -502,7 +477,7 @@ class _BaseHMM(BaseEstimator):
 
         self._log_transmat = np.log(np.asarray(transmat).copy())
         underflow_idx = np.isnan(self._log_transmat)
-        self._log_transmat[underflow_idx] = NEGINF
+        self._log_transmat[underflow_idx] = -np.inf
 
     transmat_ = property(_get_transmat, _set_transmat)
 
@@ -527,13 +502,13 @@ class _BaseHMM(BaseEstimator):
                         self._log_transmat, framelogprob, bwdlattice)
         return bwdlattice
 
-    def _compute_log_likelihood(self, obs):
+    def _compute_log_likelihood(self, X):
         pass
 
     def _generate_sample_from_state(self, state, random_state=None):
         pass
 
-    def _init(self, obs, params):
+    def _init(self, X, lengths, params):
         if 's' in params:
             self.startprob_.fill(1.0 / self.n_components)
         if 't' in params:

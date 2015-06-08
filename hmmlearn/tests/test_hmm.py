@@ -16,13 +16,13 @@ rng = np.random.RandomState(0)
 np.seterr(all='warn')
 
 
-def fit_hmm_and_monitor_log_likelihood(h, obs, n_iter=1):
+def fit_hmm_and_monitor_log_likelihood(h, X, lengths=None, n_iter=1):
     h.n_iter = 1        # make sure we do a single iteration at a time
     h.init_params = ''  # and don't re-init params
     loglikelihoods = np.empty(n_iter, dtype=float)
     for i in range(n_iter):
-        h.fit(obs)
-        loglikelihoods[i] = sum(h.score(x) for x in obs)
+        h.fit(X, lengths=lengths)
+        loglikelihoods[i] = h.score(X, lengths=lengths)
     return loglikelihoods
 
 
@@ -72,15 +72,14 @@ class GaussianHMMTestMixin(object):
         h.means_ = 20 * h.means_
 
         gaussidx = np.repeat(np.arange(self.n_components), 5)
-        nobs = len(gaussidx)
-        obs = self.prng.randn(nobs, self.n_features) + h.means_[gaussidx]
+        n_samples = len(gaussidx)
+        X = self.prng.randn(n_samples, self.n_features) + h.means_[gaussidx]
+        ll, posteriors = h.score_samples(X)
 
-        ll, posteriors = h.score_samples(obs)
+        self.assertEqual(posteriors.shape, (n_samples, self.n_components))
+        assert_array_almost_equal(posteriors.sum(axis=1), np.ones(n_samples))
 
-        self.assertEqual(posteriors.shape, (nobs, self.n_components))
-        assert_array_almost_equal(posteriors.sum(axis=1), np.ones(nobs))
-
-        viterbi_ll, stateseq = h.decode(obs)
+        viterbi_ll, stateseq = h.decode(X)
         assert_array_equal(stateseq, gaussidx)
 
     def test_sample(self, n=1000):
@@ -91,8 +90,9 @@ class GaussianHMMTestMixin(object):
         h.covars_ = np.maximum(self.covars[self.covariance_type], 0.1)
         h.startprob_ = self.startprob
 
-        samples = h.sample(n)[0]
-        self.assertEqual(samples.shape, (n, self.n_features))
+        X, state_sequence = h.sample(n)
+        self.assertEqual(X.shape, (n, self.n_features))
+        self.assertEqual(len(state_sequence), n)
 
     def test_fit(self, params='stmc', n_iter=5, **kwargs):
         h = hmm.GaussianHMM(self.n_components, self.covariance_type)
@@ -102,14 +102,15 @@ class GaussianHMMTestMixin(object):
         h.means_ = 20 * self.means
         h.covars_ = self.covars[self.covariance_type]
 
-        # Create training data by sampling from the HMM.
-        train_obs = [h.sample(n=10)[0] for x in range(10)]
+        X, _state_sequence = h.sample(100)
+        lengths = [10] * 10
 
         # Mess up the parameters and see if we can re-learn them.
         h.n_iter = 0
-        h.fit(train_obs)
+        h.fit(X, lengths=lengths)
 
-        trainll = fit_hmm_and_monitor_log_likelihood(h, train_obs, n_iter)
+        trainll = fit_hmm_and_monitor_log_likelihood(
+            h, X, lengths=lengths, n_iter=n_iter)
 
         # Check that the log-likelihood is always increasing during training.
         diff = np.diff(trainll)
@@ -118,24 +119,23 @@ class GaussianHMMTestMixin(object):
         self.assertTrue(np.all(diff >= -1e-6), message)
 
     def test_fit_works_on_sequences_of_different_length(self):
-        obs = [self.prng.rand(3, self.n_features),
-               self.prng.rand(4, self.n_features),
-               self.prng.rand(5, self.n_features)]
+        lengths = [3, 4, 5]
+        X = self.prng.rand(sum(lengths), self.n_features)
 
         h = hmm.GaussianHMM(self.n_components, self.covariance_type)
         # This shouldn't raise
         # ValueError: setting an array element with a sequence.
-        h.fit(obs)
+        h.fit(X, lengths=lengths)
 
     def test_fit_with_length_one_signal(self):
-        obs = [self.prng.rand(10, self.n_features),
-               self.prng.rand(8, self.n_features),
-               self.prng.rand(1, self.n_features)]
+        lengths = [10, 8, 1]
+        X = self.prng.rand(sum(lengths), self.n_features)
+
         h = hmm.GaussianHMM(self.n_components, self.covariance_type)
         # This shouldn't raise
         # ValueError: zero-size array to reduction operation maximum which
         #             has no identity
-        h.fit(obs)
+        h.fit(X, lengths=lengths)
 
     def test_fit_with_priors(self, params='stmc', n_iter=5):
         startprob_prior = 10 * self.startprob + 2.0
@@ -160,23 +160,24 @@ class GaussianHMMTestMixin(object):
         h.covars_prior = covars_prior
         h.covars_weight = covars_weight
 
-        # Create training data by sampling from the HMM.
-        train_obs = [h.sample(n=100)[0] for x in range(10)]
+        X, _state_sequence = h.sample(1000)
+        lengths = [100] * 10
 
         # Re-initialize the parameters and check that we can converge to the
         # original parameter values.
         h_learn = hmm.GaussianHMM(self.n_components, self.covariance_type,
                                   params=params)
         h_learn.n_iter = 0
-        h_learn.fit(train_obs)
+        h_learn.fit(X, lengths=lengths)
 
-        trainll = fit_hmm_and_monitor_log_likelihood(h_learn, train_obs, n_iter)
+        fit_hmm_and_monitor_log_likelihood(
+            h_learn, X, lengths=lengths, n_iter=n_iter)
 
         # Make sure we've converged to the right parameters.
         # a) means
         self.assertTrue(np.allclose(sorted(h.means_.tolist()),
                                     sorted(h_learn.means_.tolist()),
-                                    1e-2))
+                                    0.01))
         # b) covars are hard to estimate precisely from a relatively small
         #    sample, thus the large threshold
         self.assertTrue(np.allclose(sorted(h._covars_.tolist()),
@@ -198,9 +199,9 @@ class GaussianHMMTestMixin(object):
         h.means_ = np.zeros((5, 10))
         h.covars_ = np.tile(np.identity(10), (5, 1, 1))
 
-        obs = [h.sample(10)[0] for _ in range(10)]
-
-        h.fit(obs=obs)
+        X, _state_sequence = h.sample(100)
+        lengths = [10] * 10
+        h.fit(X, lengths=lengths)
         # TODO: write the actual test
 
 
@@ -254,23 +255,23 @@ class MultinomialHMMTestCase(TestCase):
         # "This reveals that the observations ['walk', 'shop', 'clean']
         # were most likely generated by states ['Sunny', 'Rainy',
         # 'Rainy'], with probability 0.01344."
-        observations = [0, 1, 2]
-        logprob, state_sequence = self.h.decode(observations)
+        X = [[0], [1], [2]]
+        logprob, state_sequence = self.h.decode(X)
         self.assertAlmostEqual(np.exp(logprob), 0.01344)
         assert_array_equal(state_sequence, [1, 0, 0])
 
     def test_decode_map_algorithm(self):
-        observations = [0, 1, 2]
+        X = [[0], [1], [2]]
         h = hmm.MultinomialHMM(self.n_components, startprob=self.startprob,
                                transmat=self.transmat, algorithm="map")
         h.emissionprob_ = self.emissionprob
-        _logprob, state_sequence = h.decode(observations)
+        _logprob, state_sequence = h.decode(X)
         assert_array_equal(state_sequence, [1, 0, 0])
 
     def test_predict(self):
-        observations = [0, 1, 2]
-        state_sequence = self.h.predict(observations)
-        posteriors = self.h.predict_proba(observations)
+        X = [[0], [1], [2]]
+        state_sequence = self.h.predict(X)
+        posteriors = self.h.predict_proba(X)
         assert_array_equal(state_sequence, [1, 0, 0])
         assert_array_almost_equal(posteriors, [
             [0.23170303, 0.76829697],
@@ -308,25 +309,28 @@ class MultinomialHMMTestCase(TestCase):
 
     def test_score_samples(self):
         idx = np.repeat(np.arange(self.n_components), 10)
-        nobs = len(idx)
-        obs = [int(x) for x in np.floor(self.prng.rand(nobs) * self.n_symbols)]
+        n_samples = len(idx)
+        X = np.atleast_2d(
+            (self.prng.rand(n_samples) * self.n_symbols).astype(int)).T
 
-        ll, posteriors = self.h.score_samples(obs)
+        ll, posteriors = self.h.score_samples(X)
 
-        self.assertEqual(posteriors.shape, (nobs, self.n_components))
-        assert_array_almost_equal(posteriors.sum(axis=1), np.ones(nobs))
+        self.assertEqual(posteriors.shape, (n_samples, self.n_components))
+        assert_array_almost_equal(posteriors.sum(axis=1), np.ones(n_samples))
 
     def test_sample(self, n=1000):
-        samples = self.h.sample(n)[0]
-        self.assertEqual(len(samples), n)
-        self.assertEqual(len(np.unique(samples)), self.n_symbols)
+        X, state_sequence = self.h.sample(n)
+        self.assertEqual(X.ndim, 2)
+        self.assertEqual(len(X), n)
+        self.assertEqual(len(state_sequence), n)
+        self.assertEqual(len(np.unique(X)), self.n_symbols)
 
     def test_fit(self, params='ste', n_iter=5, **kwargs):
         h = self.h
         h.params = params
 
-        # Create training data by sampling from the HMM.
-        train_obs = [h.sample(n=10)[0] for x in range(10)]
+        X, _state_sequence = h.sample(100)
+        lengths = [10] * 10
 
         # Mess up the parameters and see if we can re-learn them.
         h.startprob_ = normalize(self.prng.rand(self.n_components))
@@ -335,7 +339,8 @@ class MultinomialHMMTestCase(TestCase):
         h.emissionprob_ = normalize(
             self.prng.rand(self.n_components, self.n_symbols), axis=1)
 
-        trainll = fit_hmm_and_monitor_log_likelihood(h, train_obs, n_iter)
+        trainll = fit_hmm_and_monitor_log_likelihood(
+            h, X, lengths=lengths, n_iter=n_iter)
 
         # Check that the log-likelihood is always increasing during training.
         diff = np.diff(trainll)
@@ -350,13 +355,13 @@ class MultinomialHMMTestCase(TestCase):
         h = self.h
         learner = hmm.MultinomialHMM(self.n_components)
 
-        # Create training data by sampling from the HMM.
-        train_obs = [h.sample(n=10)[0] for x in range(10)]
+        X, _state_sequence = h.sample(100)
+        lengths = [10] * 10
 
         # use init_function to initialize paramerters
-        learner._init(train_obs, params)
+        learner._init(X, lengths=lengths, params=params)
 
-        trainll = fit_hmm_and_monitor_log_likelihood(learner, train_obs, n_iter)
+        trainll = fit_hmm_and_monitor_log_likelihood(learner, X, n_iter=n_iter)
 
         # Check that the loglik is always increasing during training
         if not np.all(np.diff(trainll) > 0) and verbose:
@@ -440,13 +445,13 @@ class GMMHMMTestMixin(object):
             g.means_ *= 20
 
         refstateseq = np.repeat(np.arange(self.n_components), 5)
-        nobs = len(refstateseq)
+        n_samples = len(refstateseq)
         obs = [h.gmms_[x].sample(1).flatten() for x in refstateseq]
 
         _ll, posteriors = h.score_samples(obs)
 
-        self.assertEqual(posteriors.shape, (nobs, self.n_components))
-        assert_array_almost_equal(posteriors.sum(axis=1), np.ones(nobs))
+        self.assertEqual(posteriors.shape, (n_samples, self.n_components))
+        assert_array_almost_equal(posteriors.sum(axis=1), np.ones(n_samples))
 
         _logprob, stateseq = h.decode(obs)
         assert_array_equal(stateseq, refstateseq)
@@ -455,8 +460,9 @@ class GMMHMMTestMixin(object):
         h = hmm.GMMHMM(self.n_components, self.covariance_type,
                        startprob=self.startprob, transmat=self.transmat,
                        gmms=self.gmms_)
-        samples = h.sample(n)[0]
-        self.assertEqual(samples.shape, (n, self.n_features))
+        X, state_sequence = h.sample(n)
+        self.assertEqual(X.shape, (n, self.n_features))
+        self.assertEqual(len(state_sequence), n)
 
     def test_fit(self, params='stmwc', n_iter=5, verbose=False, **kwargs):
         h = hmm.GMMHMM(self.n_components, covars_prior=1.0)
@@ -465,18 +471,18 @@ class GMMHMMTestMixin(object):
             self.transmat + np.diag(self.prng.rand(self.n_components)), 1)
         h.gmms_ = self.gmms_
 
-        # Create training data by sampling from the HMM.
-        train_obs = [h.sample(n=10, random_state=self.prng)[0]
-                     for x in range(10)]
+        X, _state_sequence = h.sample(100, random_state=self.prng)
+        lengths = [10] * 10
 
         # Mess up the parameters and see if we can re-learn them.
         h.n_iter = 0
-        h.fit(train_obs)
+        h.fit(X, lengths=lengths)
         h.transmat_ = normalize(self.prng.rand(self.n_components,
                                                self.n_components), axis=1)
         h.startprob_ = normalize(self.prng.rand(self.n_components))
 
-        trainll = fit_hmm_and_monitor_log_likelihood(h, train_obs, n_iter)
+        trainll = fit_hmm_and_monitor_log_likelihood(
+            h, X, lengths=lengths, n_iter=n_iter)
         if not np.all(np.diff(trainll) > 0) and verbose:
             print('Test train: (%s)\n  %s\n  %s' % (params, trainll,
                                                     np.diff(trainll)))
@@ -490,14 +496,13 @@ class GMMHMMTestMixin(object):
         self.assertTrue(np.all(np.diff(trainll) > -0.5))
 
     def test_fit_works_on_sequences_of_different_length(self):
-        obs = [self.prng.rand(3, self.n_features),
-               self.prng.rand(4, self.n_features),
-               self.prng.rand(5, self.n_features)]
+        lengths = [3, 4, 5]
+        X = self.prng.rand(sum(lengths), self.n_features)
 
         h = hmm.GMMHMM(self.n_components, covariance_type=self.covariance_type)
         # This shouldn't raise
         # ValueError: setting an array element with a sequence.
-        h.fit(obs)
+        h.fit(X, lengths=lengths)
 
 
 class TestGMMHMMWithDiagCovars(GMMHMMTestMixin, TestCase):

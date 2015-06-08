@@ -12,25 +12,23 @@ The :mod:`hmmlearn.hmm` module implements hidden Markov models.
 import string
 
 import numpy as np
-from sklearn.utils import check_random_state
+from sklearn import cluster
 from sklearn.mixture import (
     GMM, sample_gaussian,
     log_multivariate_normal_density,
     distribute_covar_matrix_to_match_covariance_type, _validate_covars)
-from sklearn import cluster
+from sklearn.utils import check_random_state
 
 from .base import _BaseHMM, decoder_algorithms
-from .utils import normalize
+from .utils import iter_from_X_lengths, normalize
 
 __all__ = ['GMMHMM',
            'GaussianHMM',
            'MultinomialHMM',
 
-           # for compatbility, but we should remove this, really.
+           # for compatibility, but we should remove this, really.
            'decoder_algorithms',
            'normalize']
-
-NEGINF = -np.inf
 
 
 class GaussianHMM(_BaseHMM):
@@ -193,11 +191,10 @@ class GaussianHMM(_BaseHMM):
         return sample_gaussian(self._means_[state], cv, self._covariance_type,
                                random_state=random_state)
 
-    def _init(self, obs, params='stmc'):
-        super(GaussianHMM, self)._init(obs, params=params)
+    def _init(self, X, lengths=None, params='stmc'):
+        super(GaussianHMM, self)._init(X, lengths=lengths, params=params)
 
-        all_obs = np.concatenate(obs)
-        _, n_features = all_obs.shape
+        _, n_features = X.shape
         if hasattr(self, 'n_features') and self.n_features != n_features:
             raise ValueError('Unexpected number of dimensions, got %s but '
                              'expected %s' % (n_features, self.n_features))
@@ -205,10 +202,10 @@ class GaussianHMM(_BaseHMM):
         self.n_features = n_features
         if 'm' in params:
             kmeans = cluster.KMeans(n_clusters=self.n_components)
-            kmeans.fit(all_obs)
+            kmeans.fit(X)
             self._means_ = kmeans.cluster_centers_
         if 'c' in params:
-            cv = np.cov(all_obs.T)
+            cv = np.cov(X.T)
             if not cv.shape:
                 cv.shape = (1, 1)
             self._covars_ = distribute_covar_matrix_to_match_covariance_type(
@@ -295,30 +292,6 @@ class GaussianHMM(_BaseHMM):
                 elif self._covariance_type == 'full':
                     self._covars_ = ((covars_prior + cv_num) /
                                      (cvweight + stats['post'][:, None, None]))
-
-    def fit(self, obs):
-        """Estimate model parameters.
-
-        An initialization step is performed before entering the EM
-        algorithm. If you want to avoid this step, pass proper
-        ``init_params`` keyword argument to estimator's constructor.
-
-        Parameters
-        ----------
-        obs : list
-            List of array-like observation sequences, each of which
-            has shape (n_i, n_features), where n_i is the length of
-            the i_th observation.
-
-        Notes
-        -----
-        In general, `logprob` should be non-decreasing unless
-        aggressive pruning is used.  Decreasing `logprob` is generally
-        a sign of overfitting (e.g. the covariance parameter on one or
-        more components becomminging too small).  You can fix this by getting
-        more training data, or increasing covars_prior.
-        """
-        return super(GaussianHMM, self).fit(obs)
 
 
 class MultinomialHMM(_BaseHMM):
@@ -414,30 +387,32 @@ class MultinomialHMM(_BaseHMM):
 
         self._log_emissionprob = np.log(emissionprob)
         underflow_idx = np.isnan(self._log_emissionprob)
-        self._log_emissionprob[underflow_idx] = NEGINF
+        self._log_emissionprob[underflow_idx] = -np.inf
         self.n_symbols = self._log_emissionprob.shape[1]
 
     emissionprob_ = property(_get_emissionprob, _set_emissionprob)
 
-    def _compute_log_likelihood(self, obs):
-        return self._log_emissionprob[:, obs].T
+    def _compute_log_likelihood(self, X):
+        return self._log_emissionprob[:, np.concatenate(X)].T
 
     def _generate_sample_from_state(self, state, random_state=None):
         cdf = np.cumsum(self.emissionprob_[state, :])
         random_state = check_random_state(random_state)
-        rand = random_state.rand()
-        symbol = (cdf > rand).argmax()
-        return symbol
+        return [(cdf > random_state.rand()).argmax()]
 
-    def _init(self, obs, params='ste'):
-        super(MultinomialHMM, self)._init(obs, params=params)
+    def _init(self, X, lengths=None, params='ste'):
+        if not self._check_input_symbols(X):
+            raise ValueError("expected a sample from "
+                             "a Multinomial distribution.")
+
+        super(MultinomialHMM, self)._init(X, lengths=lengths, params=params)
         self.random_state = check_random_state(self.random_state)
 
         if 'e' in params:
             if not hasattr(self, 'n_symbols'):
                 symbols = set()
-                for o in obs:
-                    symbols = symbols.union(set(o))
+                for i, j in iter_from_X_lengths(X, lengths):
+                    symbols |= set(X[i:j].flatten())
                 self.n_symbols = len(symbols)
             emissionprob = normalize(self.random_state.rand(self.n_components,
                                                             self.n_symbols), 1)
@@ -448,14 +423,14 @@ class MultinomialHMM(_BaseHMM):
         stats['obs'] = np.zeros((self.n_components, self.n_symbols))
         return stats
 
-    def _accumulate_sufficient_statistics(self, stats, obs, framelogprob,
+    def _accumulate_sufficient_statistics(self, stats, X, framelogprob,
                                           posteriors, fwdlattice, bwdlattice,
                                           params):
         super(MultinomialHMM, self)._accumulate_sufficient_statistics(
-            stats, obs, framelogprob, posteriors, fwdlattice, bwdlattice,
+            stats, X, framelogprob, posteriors, fwdlattice, bwdlattice,
             params)
         if 'e' in params:
-            for t, symbol in enumerate(obs):
+            for t, symbol in enumerate(np.concatenate(X)):
                 stats['obs'][:, symbol] += posteriors[t]
 
     def _do_mstep(self, stats, params):
@@ -464,44 +439,24 @@ class MultinomialHMM(_BaseHMM):
             self.emissionprob_ = (stats['obs']
                                   / stats['obs'].sum(1)[:, np.newaxis])
 
-    def _check_input_symbols(self, obs):
-        """Check if ``obs`` is a sample from a Multinomial distribution.
+    def _check_input_symbols(self, X):
+        """Check if ``X`` is a sample from a Multinomial distribution.
 
-        That is ``obs`` should be an array of non-negative integers from
-        range ``[min(obs), max(obs)]``, such that each integer from the range
-        occurs in ``obs`` at least once.
+        That is ``X`` should be an array of non-negative integers from
+        range ``[min(X), max(X)]``, such that each integer from the range
+        occurs in ``X`` at least once.
 
         For example ``[0, 0, 2, 1, 3, 1, 1]`` is a valid sample from a
         Multinomial distribution, while ``[0, 0, 3, 5, 10]`` is not.
         """
-        symbols = np.concatenate(obs)
+        symbols = np.concatenate(X)
         if (len(symbols) == 1 or          # not enough data
             symbols.dtype.kind != 'i' or  # not an integer
-            np.any(symbols < 0)):         # contains negative integers
+            (symbols < 0).any()):         # contains negative integers
             return False
 
         symbols.sort()
         return np.all(np.diff(symbols) <= 1)
-
-    def fit(self, obs, **kwargs):
-        """Estimate model parameters.
-
-        An initialization step is performed before entering the EM
-        algorithm. If you want to avoid this step, pass proper
-        ``init_params`` keyword argument to estimator's constructor.
-
-        Parameters
-        ----------
-        obs : list
-            List of array-like observation sequences. Each observation
-            sequence should consist of two or more integers from
-            range ``[0, n_symbols - 1]``.
-        """
-        if not self._check_input_symbols(obs):
-            raise ValueError("expected a sample from "
-                             "a Multinomial distribution.")
-
-        return _BaseHMM.fit(self, obs, **kwargs)
 
 
 class GMMHMM(_BaseHMM):
@@ -602,19 +557,18 @@ class GMMHMM(_BaseHMM):
         """
         return self._covariance_type
 
-    def _compute_log_likelihood(self, obs):
-        return np.array([g.score(obs) for g in self.gmms_]).T
+    def _compute_log_likelihood(self, X):
+        return np.array([g.score(X) for g in self.gmms_]).T
 
     def _generate_sample_from_state(self, state, random_state=None):
         return self.gmms_[state].sample(1, random_state=random_state).flatten()
 
-    def _init(self, obs, params='stwmc'):
-        super(GMMHMM, self)._init(obs, params=params)
+    def _init(self, X, lengths=None, params='stwmc'):
+        super(GMMHMM, self)._init(X, lengths=lengths, params=params)
 
-        allobs = np.concatenate(obs, 0)
         for g in self.gmms_:
             g.set_params(init_params=params, n_iter=0)
-            g.fit(allobs)
+            g.fit(X)
 
     def _initialize_sufficient_statistics(self):
         stats = super(GMMHMM, self)._initialize_sufficient_statistics()
@@ -623,15 +577,15 @@ class GMMHMM(_BaseHMM):
         stats['covars'] = [np.zeros(np.shape(g.covars_)) for g in self.gmms_]
         return stats
 
-    def _accumulate_sufficient_statistics(self, stats, obs, framelogprob,
+    def _accumulate_sufficient_statistics(self, stats, X, framelogprob,
                                           posteriors, fwdlattice, bwdlattice,
                                           params):
         super(GMMHMM, self)._accumulate_sufficient_statistics(
-            stats, obs, framelogprob, posteriors, fwdlattice, bwdlattice,
+            stats, X, framelogprob, posteriors, fwdlattice, bwdlattice,
             params)
 
         for state, g in enumerate(self.gmms_):
-            _, lgmm_posteriors = g.score_samples(obs)
+            _, lgmm_posteriors = g.score_samples(X)
             lgmm_posteriors += np.log(posteriors[:, state][:, np.newaxis]
                                       + np.finfo(np.float).eps)
             gmm_posteriors = np.exp(lgmm_posteriors)
@@ -641,7 +595,7 @@ class GMMHMM(_BaseHMM):
                 distribute_covar_matrix_to_match_covariance_type(
                     np.eye(n_features), g.covariance_type,
                     g.n_components))
-            norm = tmp_gmm._do_mstep(obs, gmm_posteriors, params)
+            norm = tmp_gmm._do_mstep(X, gmm_posteriors, params)
 
             if np.any(np.isnan(tmp_gmm.covars_)):
                 raise ValueError

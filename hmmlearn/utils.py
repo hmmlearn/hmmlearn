@@ -1,3 +1,5 @@
+import warnings
+
 import numpy as np
 
 
@@ -29,3 +31,14 @@ def normalize(A, axis=None):
     A /= Asum
     # TODO: should return nothing, since the operation is inplace.
     return A
+
+
+def iter_from_X_lengths(X, lengths):
+    if lengths is None:
+        yield 0, len(X)
+    else:
+        n_sequences = len(lengths)
+        end = np.cumsum(lengths)
+        start = end - lengths
+        for i in range(n_sequences):
+            yield start[i], end[i]
