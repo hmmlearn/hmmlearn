@@ -83,23 +83,23 @@ class _BaseHMM(BaseEstimator):
     n_components : int
         Number of states in the model.
 
-    transmat : array, shape (`n_components`, `n_components`)
+    transmat : array, shape (n_components, n_components)
         Matrix of transition probabilities between states.
 
-    startprob : array, shape ('n_components`,)
+    startprob : array, shape (n_components, )
         Initial state occupation distribution.
 
-    transmat_prior : array, shape (`n_components`, `n_components`)
+    transmat_prior : array, shape (n_components, n_components)
         Matrix of prior transition probabilities between states.
 
-    startprob_prior : array, shape ('n_components`,)
+    startprob_prior : array, shape (n_components, )
         Initial state occupation prior distribution.
 
-    algorithm : string, one of the decoder_algorithms
+    algorithm : string, one of the ``decoder_algorithms```
         Decoder algorithm.
 
     random_state: RandomState or an int seed (0 by default)
-        A random number generator instance
+        A random number generator instance.
 
     n_iter : int, optional
         Maximum number of iterations to perform.
@@ -150,8 +150,6 @@ class _BaseHMM(BaseEstimator):
                  init_params=string.ascii_letters):
         # TODO: move all validation from descriptors to 'fit' and 'predict'.
         self.n_components = n_components
-        self.n_iter = n_iter
-        self.thresh = thresh
         self.monitor_ = ConvergenceMonitor(thresh, n_iter, verbose)
         self.params = params
         self.init_params = init_params
@@ -160,6 +158,8 @@ class _BaseHMM(BaseEstimator):
         self.transmat_ = transmat
         self.transmat_prior = transmat_prior
         self.algorithm = algorithm
+        self.n_iter = n_iter
+        self.thresh = thresh
         self.random_state = random_state
 
     def score_samples(self, X, lengths=None):
@@ -247,7 +247,7 @@ class _BaseHMM(BaseEstimator):
         state_sequence = np.argmax(posteriors, axis=1)
         return logprob, state_sequence
 
-    def decode(self, X, lengths=None, algorithm="viterbi"):
+    def decode(self, X, lengths=None, algorithm=None):
         """Find most likely state sequence corresponding to ``X``.
 
         Parameters
@@ -276,10 +276,9 @@ class _BaseHMM(BaseEstimator):
 
         score : Compute the log probability under the model.
         """
-        if self.algorithm in decoder_algorithms:
-            algorithm = self.algorithm
-        elif algorithm in decoder_algorithms:
-            algorithm = algorithm
+        algorithm = algorithm or self.algorithm
+        if algorithm not in decoder_algorithms:
+            raise ValueError("Unknown decoder {0!r}".format(self.decode))
 
         decoder = {
             "viterbi": self._decode_viterbi,
@@ -291,13 +290,14 @@ class _BaseHMM(BaseEstimator):
         logprob = 0
         state_sequence = np.empty(n_samples, dtype=int)
         for i, j in iter_from_X_lengths(X, lengths):
+            # XXX decoder works on a single sample at a time!
             logprobij, state_sequenceij = decoder(X[i:j])
             logprob += logprobij
             state_sequence[i:j] = state_sequenceij
 
         return logprob, state_sequence
 
-    def predict(self, X, lengths=None, algorithm="viterbi"):
+    def predict(self, X, lengths=None):
         """Find most likely state sequence corresponding to ``X``.
 
         Parameters
@@ -313,7 +313,7 @@ class _BaseHMM(BaseEstimator):
         state_sequence : array, shape (n_samples, )
             Labels for each sample from ``X``.
         """
-        _, state_sequence = self.decode(X, lengths, algorithm)
+        _, state_sequence = self.decode(X, lengths)
         return state_sequence
 
     def predict_proba(self, X, lengths=None):
@@ -419,24 +419,13 @@ class _BaseHMM(BaseEstimator):
 
         return self
 
-    def _get_algorithm(self):
-        "decoder algorithm"
-        return self._algorithm
-
-    def _set_algorithm(self, algorithm):
-        if algorithm not in decoder_algorithms:
-            raise ValueError("algorithm must be one of the decoder_algorithms")
-        self._algorithm = algorithm
-
-    algorithm = property(_get_algorithm, _set_algorithm)
-
     def _get_startprob(self):
         """Mixing startprob for each state."""
         return np.exp(self._log_startprob)
 
     def _set_startprob(self, startprob):
         if startprob is None:
-            startprob = np.tile(1.0 / self.n_components, self.n_components)
+            startprob = np.ones(self.n_components) / self.n_components
         else:
             startprob = np.asarray(startprob, dtype=np.float)
 
