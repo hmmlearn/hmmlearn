@@ -34,6 +34,8 @@ class ConvergenceMonitor(object):
         If ``True`` then per-iteration convergence reports are printed,
         otherwise the monitor is mute.
 
+    Attributes
+    ----------
     history : deque
         The log probability of the data for the last two training
         iterations. If the values are not strictly increasing, the
@@ -78,22 +80,16 @@ class _BaseHMM(BaseEstimator):
     See the instance documentation for details specific to a
     particular object.
 
-    Attributes
+    Parameters
     ----------
     n_components : int
         Number of states in the model.
 
-    transmat : array, shape (n_components, n_components)
-        Matrix of transition probabilities between states.
-
-    startprob : array, shape (n_components, )
-        Initial state occupation distribution.
+    startprob_prior : array, shape (n_components, )
+        Initial state occupation prior distribution.
 
     transmat_prior : array, shape (n_components, n_components)
         Matrix of prior transition probabilities between states.
-
-    startprob_prior : array, shape (n_components, )
-        Initial state occupation prior distribution.
 
     algorithm : string, one of the ``decoder_algorithms```
         Decoder algorithm.
@@ -125,9 +121,13 @@ class _BaseHMM(BaseEstimator):
         subclass-specific emmission parameters. Defaults to all
         parameters.
 
-    See Also
-    --------
-    GMM : Gaussian mixture model
+    Attributes
+    ----------
+    startprob_ : array, shape (n_components, )
+        Initial state occupation distribution.
+
+    transmat_ : array, shape (n_components, n_components)
+        Matrix of transition probabilities between states.
     """
 
     # This class implements the public interface to all HMMs that
@@ -142,7 +142,6 @@ class _BaseHMM(BaseEstimator):
     # the emission distribution parameters to expose them publicly.
 
     def __init__(self, n_components=1,
-                 startprob=None, transmat=None,
                  startprob_prior=None, transmat_prior=None,
                  algorithm="viterbi", random_state=None,
                  n_iter=10, thresh=1e-2, verbose=False,
@@ -153,14 +152,12 @@ class _BaseHMM(BaseEstimator):
         self.monitor_ = ConvergenceMonitor(thresh, n_iter, verbose)
         self.params = params
         self.init_params = init_params
-        self.startprob_ = startprob
         self.startprob_prior = startprob_prior
-        self.transmat_ = transmat
         self.transmat_prior = transmat_prior
         self.algorithm = algorithm
+        self.random_state = random_state
         self.n_iter = n_iter
         self.thresh = thresh
-        self.random_state = random_state
 
     def score_samples(self, X, lengths=None):
         """Compute the log probability under the model and compute posteriors.
@@ -317,7 +314,7 @@ class _BaseHMM(BaseEstimator):
         return state_sequence
 
     def predict_proba(self, X, lengths=None):
-        """Compute the posterior probability for each state in the model
+        """Compute the posterior probability for each state in the model.
 
         X : array-like, shape (n_samples, n_features)
             Feature matrix of individual samples.
