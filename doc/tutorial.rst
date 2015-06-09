@@ -93,7 +93,7 @@ This time, the input is a single sequence of observed values.  Note, the states
 in model2 will have a different order than those in the generating model.::
 
     >>> model2 = hmm.GaussianHMM(3, "full")
-    >>> model2.fit([X]) # doctest: +ELLIPSIS, +NORMALIZE_WHITESPACE
+    >>> model2.fit(X) # doctest: +ELLIPSIS, +NORMALIZE_WHITESPACE
     GaussianHMM(algorithm='viterbi',...
     >>> Z2 = model2.predict(X)
 

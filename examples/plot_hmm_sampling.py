@@ -32,8 +32,7 @@ trans_mat = np.array([[0.7, 0.2, 0.0, 0.1],
 means = np.array([[0.0,  0.0],
                   [0.0, 11.0],
                   [9.0, 10.0],
-                  [11.0, -1.0],
-                  ])
+                  [11.0, -1.0]])
 # The covariance of each component
 covars = .5 * np.tile(np.identity(2), (4, 1, 1))
 
