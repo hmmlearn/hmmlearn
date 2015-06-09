@@ -105,7 +105,7 @@ class TestBaseHMM(TestCase):
         h, framelogprob = self.setup_example_hmm()
         nobs = len(framelogprob)
 
-        logprob, posteriors = h.score_samples([])
+        logprob, posteriors = h.score_samples(framelogprob)
 
         assert_array_almost_equal(posteriors.sum(axis=1), np.ones(nobs))
 
@@ -132,7 +132,7 @@ class TestBaseHMM(TestCase):
         # default), the transitions are uninformative - the model
         # reduces to a GMM with uniform mixing weights (in terms of
         # posteriors, not likelihoods).
-        logprob, hmmposteriors = h.score_samples([])
+        logprob, hmmposteriors = h.score_samples(framelogprob)
 
         assert_array_almost_equal(hmmposteriors.sum(axis=1), np.ones(nobs))
 
@@ -153,7 +153,7 @@ class TestBaseHMM(TestCase):
         # default), the transitions are uninformative - the model
         # reduces to a GMM with uniform mixing weights (in terms of
         # posteriors, not likelihoods).
-        viterbi_ll, state_sequence = h.decode([])
+        viterbi_ll, state_sequence = h.decode(framelogprob)
 
         norm = logsumexp(framelogprob, axis=1)[:, np.newaxis]
         gmmposteriors = np.exp(framelogprob - np.tile(norm, (1, n_components)))
