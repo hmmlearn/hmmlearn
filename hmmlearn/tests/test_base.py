@@ -8,29 +8,27 @@ from sklearn.utils.extmath import logsumexp
 
 from hmmlearn import hmm
 
-rng = np.random.RandomState(0)
 np.seterr(all='warn')
 
 
+class StubHMM(hmm._BaseHMM):
+    def _compute_log_likelihood(self, X):
+        return self.framelogprob
+
+    def _generate_sample_from_state(self):
+        pass
+
+    def _init(self):
+        pass
+
+
 class TestBaseHMM(TestCase):
-
     def setUp(self):
-        self.prng = np.random.RandomState(9)
-
-    class StubHMM(hmm._BaseHMM):
-
-        def _compute_log_likelihood(self, X):
-            return self.framelogprob
-
-        def _generate_sample_from_state(self):
-            pass
-
-        def _init(self):
-            pass
+        self.prng = np.random.RandomState(10)
 
     def setup_example_hmm(self):
         # Example from http://en.wikipedia.org/wiki/Forward-backward_algorithm
-        h = self.StubHMM(2)
+        h = StubHMM(2)
         h.transmat_ = [[0.7, 0.3], [0.3, 0.7]]
         h.startprob_ = [0.5, 0.5]
         framelogprob = np.log([[0.9, 0.2],
@@ -46,7 +44,7 @@ class TestBaseHMM(TestCase):
         h, framelogprob = self.setup_example_hmm()
         for params in [('transmat_',), ('startprob_', 'transmat_')]:
             d = dict((x[:-1], getattr(h, x)) for x in params)
-            h2 = self.StubHMM(h.n_components, **d)
+            h2 = StubHMM(h.n_components, **d)
             self.assertEqual(h.n_components, h2.n_components)
             for p in params:
                 assert_array_almost_equal(getattr(h, p), getattr(h2, p))
@@ -122,7 +120,7 @@ class TestBaseHMM(TestCase):
     def test_hmm_score_samples_consistent_with_gmm(self):
         n_components = 8
         nobs = 10
-        h = self.StubHMM(n_components)
+        h = StubHMM(n_components)
 
         # Add dummy observations to stub.
         framelogprob = np.log(self.prng.rand(nobs, n_components))
@@ -143,7 +141,7 @@ class TestBaseHMM(TestCase):
     def test_hmm_decode_consistent_with_gmm(self):
         n_components = 8
         nobs = 10
-        h = self.StubHMM(n_components)
+        h = StubHMM(n_components)
 
         # Add dummy observations to stub.
         framelogprob = np.log(self.prng.rand(nobs, n_components))
@@ -168,7 +166,7 @@ class TestBaseHMM(TestCase):
         transmat /= np.tile(transmat.sum(axis=1)
                             [:, np.newaxis], (1, n_components))
 
-        h = self.StubHMM(n_components)
+        h = StubHMM(n_components)
 
         self.assertEqual(h.n_components, n_components)
 

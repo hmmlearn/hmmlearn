@@ -12,7 +12,6 @@ from sklearn.utils import check_random_state
 from hmmlearn import hmm
 from hmmlearn.utils import normalize
 
-rng = np.random.RandomState(0)
 np.seterr(all='warn')
 
 
@@ -90,7 +89,7 @@ class GaussianHMMTestMixin(object):
         h.covars_ = np.maximum(self.covars[self.covariance_type], 0.1)
         h.startprob_ = self.startprob
 
-        X, state_sequence = h.sample(n)
+        X, state_sequence = h.sample(n, random_state=self.prng)
         self.assertEqual(X.shape, (n, self.n_features))
         self.assertEqual(len(state_sequence), n)
 
@@ -102,8 +101,8 @@ class GaussianHMMTestMixin(object):
         h.means_ = 20 * self.means
         h.covars_ = self.covars[self.covariance_type]
 
-        X, _state_sequence = h.sample(100)
         lengths = [10] * 10
+        X, _state_sequence = h.sample(sum(lengths), random_state=self.prng)
 
         # Mess up the parameters and see if we can re-learn them.
         h.n_iter = 0
@@ -160,8 +159,8 @@ class GaussianHMMTestMixin(object):
         h.covars_prior = covars_prior
         h.covars_weight = covars_weight
 
-        X, _state_sequence = h.sample(1000)
         lengths = [100] * 10
+        X, _state_sequence = h.sample(sum(lengths), random_state=self.prng)
 
         # Re-initialize the parameters and check that we can converge to the
         # original parameter values.
@@ -199,8 +198,8 @@ class GaussianHMMTestMixin(object):
         h.means_ = np.zeros((5, 10))
         h.covars_ = np.tile(np.identity(10), (5, 1, 1))
 
-        X, _state_sequence = h.sample(100)
         lengths = [10] * 10
+        X, _state_sequence = h.sample(sum(lengths), random_state=self.prng)
         h.fit(X, lengths=lengths)
         # TODO: write the actual test
 
@@ -319,7 +318,7 @@ class MultinomialHMMTestCase(TestCase):
         assert_array_almost_equal(posteriors.sum(axis=1), np.ones(n_samples))
 
     def test_sample(self, n=1000):
-        X, state_sequence = self.h.sample(n)
+        X, state_sequence = self.h.sample(n, random_state=self.prng)
         self.assertEqual(X.ndim, 2)
         self.assertEqual(len(X), n)
         self.assertEqual(len(state_sequence), n)
@@ -329,8 +328,8 @@ class MultinomialHMMTestCase(TestCase):
         h = self.h
         h.params = params
 
-        X, _state_sequence = h.sample(100)
         lengths = [10] * 10
+        X, _state_sequence = h.sample(sum(lengths), random_state=self.prng)
 
         # Mess up the parameters and see if we can re-learn them.
         h.startprob_ = normalize(self.prng.rand(self.n_components))
@@ -355,8 +354,8 @@ class MultinomialHMMTestCase(TestCase):
         h = self.h
         learner = hmm.MultinomialHMM(self.n_components)
 
-        X, _state_sequence = h.sample(100)
         lengths = [10] * 10
+        X, _state_sequence = h.sample(sum(lengths), random_state=self.prng)
 
         # use init_function to initialize paramerters
         learner._init(X, lengths=lengths, params=params)
@@ -446,7 +445,8 @@ class GMMHMMTestMixin(object):
 
         refstateseq = np.repeat(np.arange(self.n_components), 5)
         n_samples = len(refstateseq)
-        obs = [h.gmms_[x].sample(1).flatten() for x in refstateseq]
+        obs = [h.gmms_[x].sample(1, random_state=self.prng).flatten()
+               for x in refstateseq]
 
         _ll, posteriors = h.score_samples(obs)
 
@@ -460,7 +460,7 @@ class GMMHMMTestMixin(object):
         h = hmm.GMMHMM(self.n_components, self.covariance_type,
                        startprob=self.startprob, transmat=self.transmat,
                        gmms=self.gmms_)
-        X, state_sequence = h.sample(n)
+        X, state_sequence = h.sample(n, random_state=self.prng)
         self.assertEqual(X.shape, (n, self.n_features))
         self.assertEqual(len(state_sequence), n)
 
@@ -471,8 +471,8 @@ class GMMHMMTestMixin(object):
             self.transmat + np.diag(self.prng.rand(self.n_components)), 1)
         h.gmms_ = self.gmms_
 
-        X, _state_sequence = h.sample(100, random_state=self.prng)
         lengths = [10] * 10
+        X, _state_sequence = h.sample(sum(lengths), random_state=self.prng)
 
         # Mess up the parameters and see if we can re-learn them.
         h.n_iter = 0
