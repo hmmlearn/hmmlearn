@@ -53,7 +53,7 @@ setup_options = dict(
     packages=["hmmlearn"],
     classifiers=CLASSIFIERS,
     ext_modules=[
-        Extension("hmmlearn.hmmc", ["hmmlearn/hmmc.c"]),
+        Extension("hmmlearn._hmmc", ["hmmlearn/_hmmc.c"]),
         Extension("hmmlearn.fhmmc", ["hmmlearn/fhmmc.c"])
     ],
     requires=["sklearn"]
