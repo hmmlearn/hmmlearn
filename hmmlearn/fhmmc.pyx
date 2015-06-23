@@ -36,14 +36,12 @@ def _forward(int n_observations, int n_chains, int n_states, state_combinations,
         np.ndarray[dtype_t, ndim=2] log_startprob,
         np.ndarray[dtype_t, ndim=3] log_transmat,
         np.ndarray[dtype_t, ndim=2] framelogprob,
-        np.ndarray[dtype_t, ndim=3] fwdlattice):
-    # TODO: this currently only works for 2 chains since fwdlattice is typed to dim 3!
-    #cdef np.ndarray[dtype_t, ndim=n_chains] fwdlattice
-    # TODO: make this typed!
-    #state_combination_shape = tuple([n_states for _ in xrange(n_chains)])
-    #fwdlattice = np.zeros((n_observations,) + state_combination_shape)
-
-    cdef int t, chain_idx, idx, state, k
+        np.ndarray[dtype_t, ndim=2] out_fwdlattice):
+    # Local variables
+    cdef int t, chain_idx, idx, work_idx, state, k
+    cdef int n_state_combinations = n_states ** n_chains
+    state_combination_shape = tuple([n_states for _ in xrange(n_chains)])
+    fwdlattice = np.zeros((n_observations,) + state_combination_shape)
 
     # Allocate buffers
     cdef np.ndarray[dtype_t, ndim=1] init_buffer
@@ -75,9 +73,12 @@ def _forward(int n_observations, int n_chains, int n_states, state_combinations,
 
                     # previous probability for the current chain and state k * transition probability from state k
                     # to current state. Since all probabilities are logarithmic, addition is the correct operation.
-                    prev_logprob = fwdlattice[t - 1][previous_state_combination]
-                    trans_logprob = log_transmat[chain_idx][k][state]
-                    work_buffer[chain_idx * n_states + k] = prev_logprob + trans_logprob
+                    work_idx = chain_idx * n_states + k
+                    work_buffer[work_idx] = fwdlattice[t - 1][previous_state_combination] + log_transmat[chain_idx][k][state]
 
             # Emission probability
             fwdlattice[t][state_combination] = _logsumexp(work_buffer) + framelogprob[t][idx]
+
+    # Flatten lattice
+    for t in range(n_observations):
+        out_fwdlattice[t] = fwdlattice[t].reshape(1, n_state_combinations)
