@@ -50,23 +50,27 @@ def _forward(int n_observations, int n_chains, int n_states, state_combinations,
     work_buffer = np.zeros(n_chains * n_states)
 
     # Initialize
-    for idx, state_combination in enumerate(state_combinations):
+    for idx in xrange(n_state_combinations):
+        state_combination = state_combinations[idx]
         # State probabilities
-        for chain_idx, state in enumerate(state_combination):
+        for chain_idx in xrange(n_chains):
+            state = state_combination[chain_idx]
             init_buffer[chain_idx] = log_startprob[chain_idx][state]
 
         # Emission probability
         fwdlattice[0][state_combination] = _logsumexp(init_buffer) + framelogprob[0][idx]
 
     # Forward recursion (naive implementation)
-    for t in range(1, n_observations):
-        for idx, state_combination in enumerate(state_combinations):
+    for t in xrange(1, n_observations):
+        for idx in xrange(n_state_combinations):
+            state_combination = state_combinations[idx]
             # State probabilities
-            for chain_idx, state in enumerate(state_combination):
+            for chain_idx in xrange(n_chains):
+                state = state_combination[chain_idx]
                 # Here we calculate all previous state combinations that are possible for this specific chain.
                 # Since the chains evolve independently, this means that we only have to vary the state
                 # of the current chain, hence the chain_index-th entry in the state_combination tuple.
-                for k in range(n_states):
+                for k in xrange(n_states):
                     previous_state_combination = list(state_combination)
                     previous_state_combination[chain_idx] = k
                     previous_state_combination = tuple(previous_state_combination)
@@ -80,5 +84,5 @@ def _forward(int n_observations, int n_chains, int n_states, state_combinations,
             fwdlattice[t][state_combination] = _logsumexp(work_buffer) + framelogprob[t][idx]
 
     # Flatten lattice
-    for t in range(n_observations):
+    for t in xrange(n_observations):
         out_fwdlattice[t] = fwdlattice[t].reshape(1, n_state_combinations)
