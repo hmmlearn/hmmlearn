@@ -62,7 +62,7 @@ def _forward(int n_observations, int n_chains, int n_states, state_combinations,
         # Emission probability
         fwdlattice[0][state_combination] = _logsumexp(init_buffer) + framelogprob[0][idx]
 
-    # Forward recursion (naive implementation)
+    # Forward recursion
     for t in xrange(1, n_observations):
         for idx in xrange(n_state_combinations):
             state_combination = state_combinations[idx]
@@ -84,3 +84,51 @@ def _forward(int n_observations, int n_chains, int n_states, state_combinations,
 
             # Emission probability
             fwdlattice[t][state_combination] = _logsumexp(work_buffer) + framelogprob[t][idx]
+
+
+@cython.boundscheck(False)
+def _backward(int n_observations, int n_chains, int n_states, state_combinations,
+        np.ndarray[dtype_t, ndim=2] log_startprob,
+        np.ndarray[dtype_t, ndim=3] log_transmat,
+        np.ndarray[dtype_t, ndim=2] framelogprob,
+        np.ndarray[dtype_t, ndim=2] out_bwdlattice):
+    # Local variables
+    cdef int t, chain_idx, idx, work_idx, state, k
+    cdef int n_state_combinations = n_states ** n_chains
+    state_combination_shape = tuple([n_states for _ in xrange(n_chains)])
+
+    bwdlattice = out_bwdlattice.view()
+    bwdlattice.shape = (n_observations,) + state_combination_shape
+
+    framelogprob_reshaped = framelogprob.view()
+    framelogprob_reshaped.shape = (n_observations,) + state_combination_shape
+
+    # Allocate buffers
+    cdef np.ndarray[dtype_t, ndim=1] work_buffer
+    work_buffer = np.zeros(n_chains * n_states)
+
+    # Initialize
+    bwdlattice[n_observations - 1] = 0.0
+
+    # Backward recursion
+    for t in xrange(n_observations - 2, -1, -1):
+        for idx in xrange(n_state_combinations):
+            state_combination = state_combinations[idx]
+            # State probabilities
+            for chain_idx in xrange(n_chains):
+                state = state_combination[chain_idx]
+                # Here we calculate all previous state combinations that are possible for this specific chain.
+                # Since the chains evolve independently, this means that we only have to vary the state
+                # of the current chain, hence the chain_index-th entry in the state_combination tuple.
+                for k in xrange(n_states):
+                    previous_state_combination = list(state_combination)
+                    previous_state_combination[chain_idx] = k
+                    previous_state_combination = tuple(previous_state_combination)
+
+                    # previous probability for the current chain and state k * transition probability from state k
+                    # to current state. Since all probabilities are logarithmic, addition is the correct operation.
+                    work_idx = chain_idx * n_states + k
+                    work_buffer[work_idx] = bwdlattice[t + 1][previous_state_combination] + log_transmat[chain_idx][state][k] + framelogprob[t + 1][previous_state_combination]
+
+            # Emission probability
+            bwdlattice[t][state_combination] = _logsumexp(work_buffer)
