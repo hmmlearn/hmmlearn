@@ -41,7 +41,9 @@ def _forward(int n_observations, int n_chains, int n_states, state_combinations,
     cdef int t, chain_idx, idx, work_idx, state, k
     cdef int n_state_combinations = n_states ** n_chains
     state_combination_shape = tuple([n_states for _ in xrange(n_chains)])
-    fwdlattice = np.zeros((n_observations,) + state_combination_shape)
+
+    fwdlattice = out_fwdlattice.view()
+    fwdlattice.shape = (n_observations,) + state_combination_shape
 
     # Allocate buffers
     cdef np.ndarray[dtype_t, ndim=1] init_buffer
@@ -82,7 +84,3 @@ def _forward(int n_observations, int n_chains, int n_states, state_combinations,
 
             # Emission probability
             fwdlattice[t][state_combination] = _logsumexp(work_buffer) + framelogprob[t][idx]
-
-    # Flatten lattice
-    for t in xrange(n_observations):
-        out_fwdlattice[t] = fwdlattice[t].reshape(1, n_state_combinations)
