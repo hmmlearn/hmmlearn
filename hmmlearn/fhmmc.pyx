@@ -90,7 +90,7 @@ def _forward(int n_observations, int n_chains, int n_states, state_combinations,
 def _backward(int n_observations, int n_chains, int n_states, state_combinations,
         np.ndarray[dtype_t, ndim=2] log_startprob,
         np.ndarray[dtype_t, ndim=3] log_transmat,
-        np.ndarray[dtype_t, ndim=2] framelogprob,
+        np.ndarray[dtype_t, ndim=2] in_framelogprob,
         np.ndarray[dtype_t, ndim=2] out_bwdlattice):
     # Local variables
     cdef int t, chain_idx, idx, work_idx, state, k
@@ -100,8 +100,8 @@ def _backward(int n_observations, int n_chains, int n_states, state_combinations
     bwdlattice = out_bwdlattice.view()
     bwdlattice.shape = (n_observations,) + state_combination_shape
 
-    framelogprob_reshaped = framelogprob.view()
-    framelogprob_reshaped.shape = (n_observations,) + state_combination_shape
+    framelogprob = in_framelogprob.view()
+    framelogprob.shape = (n_observations,) + state_combination_shape
 
     # Allocate buffers
     cdef np.ndarray[dtype_t, ndim=1] work_buffer
