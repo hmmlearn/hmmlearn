@@ -166,6 +166,8 @@ class _BaseHMM(BaseEstimator):
         self.algorithm = algorithm
         self.random_state = random_state
 
+        self.transmat_mask = None
+        self.startprob_mask = None
         if transmat is not None:
             self.transmat_mask = (transmat > np.finfo(float).eps)
         if startprob is not None:
