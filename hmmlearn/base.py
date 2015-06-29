@@ -166,6 +166,11 @@ class _BaseHMM(BaseEstimator):
         self.algorithm = algorithm
         self.random_state = random_state
 
+        if transmat is not None:
+            self.transmat_mask = (transmat > np.finfo(float).eps)
+        if startprob is not None:
+            self.startprob_mask = (startprob > np.finfo(float).eps)
+
     def eval(self, X):
         return self.score_samples(X)
 
@@ -575,10 +580,7 @@ class _BaseHMM(BaseEstimator):
             self.transmat_prior = 1.0
 
         if 's' in params:
-            self.startprob_ = normalize(
-                np.maximum(self.startprob_prior - 1.0 + stats['start'], 1e-20))
+            self.startprob_ = normalize(self.startprob_prior - 1.0 + stats['start'], mask=self.startprob_mask)
         if 't' in params:
-            transmat_ = normalize(
-                np.maximum(self.transmat_prior - 1.0 + stats['trans'], 1e-20),
-                axis=1)
+            transmat_ = normalize(self.transmat_prior - 1.0 + stats['trans'], axis=1, mask=self.transmat_mask)
             self.transmat_ = transmat_
