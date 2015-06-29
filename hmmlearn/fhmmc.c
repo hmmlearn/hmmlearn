@@ -2907,7 +2907,7 @@ static PyObject *__pyx_pf_8hmmlearn_5fhmmc__compute_logeta(CYTHON_UNUSED PyObjec
  *                                   + framelogprob[t + 1][j_state_combination]
  *                                   + bwdlattice[t + 1][j_state_combination])             # <<<<<<<<<<<<<<
  *                         work_buffer[idx] = value
- *                     logeta[chain_idx, t, i, j] = _logsumexp(work_buffer) - logprob
+ *                     logeta[t, chain_idx, i, j] = _logsumexp(work_buffer) - logprob
  */
             __pyx_t_27 = (__pyx_v_t + 1);
             __pyx_t_5 = __Pyx_GetItemInt(__pyx_v_bwdlattice, __pyx_t_27, long, 1, __Pyx_PyInt_From_long, 0, 1, 0); if (unlikely(__pyx_t_5 == NULL)) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 76; __pyx_clineno = __LINE__; goto __pyx_L1_error;};
@@ -2926,7 +2926,7 @@ static PyObject *__pyx_pf_8hmmlearn_5fhmmc__compute_logeta(CYTHON_UNUSED PyObjec
  *                                   + framelogprob[t + 1][j_state_combination]
  *                                   + bwdlattice[t + 1][j_state_combination])
  *                         work_buffer[idx] = value             # <<<<<<<<<<<<<<
- *                     logeta[chain_idx, t, i, j] = _logsumexp(work_buffer) - logprob
+ *                     logeta[t, chain_idx, i, j] = _logsumexp(work_buffer) - logprob
  * 
  */
             __pyx_t_28 = __pyx_PyFloat_AsDouble(__pyx_v_value); if (unlikely((__pyx_t_28 == (npy_float64)-1) && PyErr_Occurred())) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 77; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
@@ -2938,14 +2938,14 @@ static PyObject *__pyx_pf_8hmmlearn_5fhmmc__compute_logeta(CYTHON_UNUSED PyObjec
           /* "hmmlearn/fhmmc.pyx":78
  *                                   + bwdlattice[t + 1][j_state_combination])
  *                         work_buffer[idx] = value
- *                     logeta[chain_idx, t, i, j] = _logsumexp(work_buffer) - logprob             # <<<<<<<<<<<<<<
+ *                     logeta[t, chain_idx, i, j] = _logsumexp(work_buffer) - logprob             # <<<<<<<<<<<<<<
  * 
  * 
  */
           __pyx_t_6 = __Pyx_PyObject_to_MemoryviewSlice_ds_nn___pyx_t_8hmmlearn_5fhmmc_dtype_t(((PyObject *)__pyx_v_work_buffer));
           if (unlikely(!__pyx_t_6.memview)) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 78; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
-          __pyx_t_22 = __pyx_v_chain_idx;
-          __pyx_t_23 = __pyx_v_t;
+          __pyx_t_22 = __pyx_v_t;
+          __pyx_t_23 = __pyx_v_chain_idx;
           __pyx_t_30 = __pyx_v_i;
           __pyx_t_31 = __pyx_v_j;
           if (__pyx_t_22 < 0) __pyx_t_22 += __pyx_pybuffernd_logeta.diminfo[0].shape;

@@ -75,7 +75,7 @@ def _compute_logeta(int n_observations, int n_chains, int n_states, state_combin
                                   + framelogprob[t + 1][j_state_combination]
                                   + bwdlattice[t + 1][j_state_combination])
                         work_buffer[idx] = value
-                    logeta[chain_idx, t, i, j] = _logsumexp(work_buffer) - logprob
+                    logeta[t, chain_idx, i, j] = _logsumexp(work_buffer) - logprob
 
 
 @cython.boundscheck(False)
