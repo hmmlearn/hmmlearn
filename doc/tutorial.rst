@@ -51,7 +51,7 @@ Using HMM
 
 Classes in this module include :class:`MultinomialHMM`, :class:`GaussianHMM`,
 and :class:`GMMHMM`. They implement HMM with emission probabilities
-determined by multimomial distributions, Gaussian distributions
+determined by multinomial distributions, Gaussian distributions
 and mixtures of Gaussian distributions.
 
 
