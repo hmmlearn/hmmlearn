@@ -15,6 +15,8 @@ Version 0.2.0
 - Fixed normalization of emission probabilities in ``MultinomialHMM``, see
   issue #19 on GitHub.
 - ``GaussianHMM`` is now initialized from all observations, see #1 on GitHub.
+- Changed the models to do input validation lazily as suggested by the
+  scikit-learn guidelines.
 
 Version 0.1.1
 -------------

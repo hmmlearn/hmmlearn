@@ -57,9 +57,13 @@ class GaussianHMMTestMixin(object):
         }
 
     def test_bad_covariance_type(self):
-        hmm.GaussianHMM(20, self.covariance_type)
-        self.assertRaises(ValueError, hmm.GaussianHMM, 20,
-                          'badcovariance_type')
+        with self.assertRaises(ValueError):
+            h = hmm.GaussianHMM(20, covariance_type='badcovariance_type')
+            h.means_ = self.means
+            h.covars_ = []
+            h.startprob_ = self.startprob
+            h.transmat_ = self.transmat
+            h._check()
 
     def test_score_samples_and_decode(self):
         h = hmm.GaussianHMM(self.n_components, self.covariance_type)
@@ -73,6 +77,7 @@ class GaussianHMMTestMixin(object):
         gaussidx = np.repeat(np.arange(self.n_components), 5)
         n_samples = len(gaussidx)
         X = self.prng.randn(n_samples, self.n_features) + h.means_[gaussidx]
+        h._init(X, params="st")
         ll, posteriors = h.score_samples(X)
 
         self.assertEqual(posteriors.shape, (n_samples, self.n_components))
@@ -83,11 +88,12 @@ class GaussianHMMTestMixin(object):
 
     def test_sample(self, n=1000):
         h = hmm.GaussianHMM(self.n_components, self.covariance_type)
+        h.startprob_ = self.startprob
+        h.transmat_ = self.transmat
         # Make sure the means are far apart so posteriors.argmax()
         # picks the actual component used to generate the observations.
         h.means_ = 20 * self.means
         h.covars_ = np.maximum(self.covars[self.covariance_type], 0.1)
-        h.startprob_ = self.startprob
 
         X, state_sequence = h.sample(n, random_state=self.prng)
         self.assertEqual(X.shape, (n, self.n_features))
@@ -184,17 +190,14 @@ class GaussianHMMTestMixin(object):
                                     10))
 
     def test_fit_non_ergodic_transmat(self):
-        startprob = np.array([1, 0, 0, 0, 0])
-        transmat = np.array([[0.9, 0.1, 0, 0, 0],
-                             [0, 0.9, 0.1, 0, 0],
-                             [0, 0, 0.9, 0.1, 0],
-                             [0, 0, 0, 0.9, 0.1],
-                             [0, 0, 0, 0, 1.0]])
-
-        h = hmm.GaussianHMM(n_components=5,
-                            covariance_type='full', startprob=startprob,
-                            transmat=transmat, n_iter=100, init_params='st')
-
+        h = hmm.GaussianHMM(n_components=5, covariance_type='full',
+                            n_iter=100, init_params='st')
+        h.startprob_ = np.array([1, 0, 0, 0, 0])
+        h.transmat_ = np.array([[0.9, 0.1, 0, 0, 0],
+                                [0, 0.9, 0.1, 0, 0],
+                                [0, 0, 0.9, 0.1, 0],
+                                [0, 0, 0, 0.9, 0.1],
+                                [0, 0, 0, 0, 1.0]])
         h.means_ = np.zeros((5, 10))
         h.covars_ = np.tile(np.identity(10), (5, 1, 1))
 
@@ -233,14 +236,14 @@ class MultinomialHMMTestCase(TestCase):
     def setUp(self):
         self.prng = np.random.RandomState(9)
         self.n_components = 2   # ('Rainy', 'Sunny')
-        self.n_symbols = 3      # ('walk', 'shop', 'clean')
-        self.emissionprob = [[0.1, 0.4, 0.5], [0.6, 0.3, 0.1]]
-        self.startprob = [0.6, 0.4]
-        self.transmat = [[0.7, 0.3], [0.4, 0.6]]
+        self.n_features = 3      # ('walk', 'shop', 'clean')
+        self.emissionprob = np.array([[0.1, 0.4, 0.5], [0.6, 0.3, 0.1]])
+        self.startprob = np.array([0.6, 0.4])
+        self.transmat = np.array([[0.7, 0.3], [0.4, 0.6]])
 
-        self.h = hmm.MultinomialHMM(self.n_components,
-                                    startprob=self.startprob,
-                                    transmat=self.transmat)
+        self.h = hmm.MultinomialHMM(self.n_components)
+        self.h.startprob_ = self.startprob
+        self.h.transmat_ = self.transmat
         self.h.emissionprob_ = self.emissionprob
 
     def test_set_emissionprob(self):
@@ -261,8 +264,9 @@ class MultinomialHMMTestCase(TestCase):
 
     def test_decode_map_algorithm(self):
         X = [[0], [1], [2]]
-        h = hmm.MultinomialHMM(self.n_components, startprob=self.startprob,
-                               transmat=self.transmat, algorithm="map")
+        h = hmm.MultinomialHMM(self.n_components, algorithm="map")
+        h.startprob_ = self.startprob
+        h.transmat_ = self.transmat
         h.emissionprob_ = self.emissionprob
         _logprob, state_sequence = h.decode(X)
         assert_array_equal(state_sequence, [1, 0, 0])
@@ -284,33 +288,22 @@ class MultinomialHMMTestCase(TestCase):
         self.assertEqual(h.n_components, self.n_components)
 
         h.startprob_ = self.startprob
-        assert_array_almost_equal(h.startprob_, self.startprob)
-        self.assertRaises(ValueError, setattr, h, 'startprob_',
-                          2 * self.startprob)
-        self.assertRaises(ValueError, setattr, h, 'startprob_', [])
-        self.assertRaises(ValueError, setattr, h, 'startprob_',
-                          np.zeros((self.n_components - 2, self.n_symbols)))
-
         h.transmat_ = self.transmat
-        assert_array_almost_equal(h.transmat_, self.transmat)
-        self.assertRaises(ValueError, setattr, h, 'transmat_',
-                          2 * self.transmat)
-        self.assertRaises(ValueError, setattr, h, 'transmat_', [])
-        self.assertRaises(ValueError, setattr, h, 'transmat_',
-                          np.zeros((self.n_components - 2, self.n_components)))
-
         h.emissionprob_ = self.emissionprob
         assert_array_almost_equal(h.emissionprob_, self.emissionprob)
-        self.assertRaises(ValueError, setattr, h, 'emissionprob_', [])
-        self.assertRaises(ValueError, setattr, h, 'emissionprob_',
-                          np.zeros((self.n_components - 2, self.n_symbols)))
-        self.assertEqual(h.n_symbols, self.n_symbols)
+        with self.assertRaises(ValueError):
+            h.emissionprob_ = []
+            h._check()
+        with self.assertRaises(ValueError):
+            h.emissionprob_ = np.zeros((self.n_components - 2,
+                                        self.n_features))
+            h._check()
 
     def test_score_samples(self):
         idx = np.repeat(np.arange(self.n_components), 10)
         n_samples = len(idx)
         X = np.atleast_2d(
-            (self.prng.rand(n_samples) * self.n_symbols).astype(int)).T
+            (self.prng.rand(n_samples) * self.n_features).astype(int)).T
 
         ll, posteriors = self.h.score_samples(X)
 
@@ -322,7 +315,7 @@ class MultinomialHMMTestCase(TestCase):
         self.assertEqual(X.ndim, 2)
         self.assertEqual(len(X), n)
         self.assertEqual(len(state_sequence), n)
-        self.assertEqual(len(np.unique(X)), self.n_symbols)
+        self.assertEqual(len(np.unique(X)), self.n_features)
 
     def test_fit(self, params='ste', n_iter=5, **kwargs):
         h = self.h
@@ -336,7 +329,7 @@ class MultinomialHMMTestCase(TestCase):
         h.transmat_ = normalize(self.prng.rand(self.n_components,
                                                self.n_components), axis=1)
         h.emissionprob_ = normalize(
-            self.prng.rand(self.n_components, self.n_symbols), axis=1)
+            self.prng.rand(self.n_components, self.n_features), axis=1)
 
         trainll = fit_hmm_and_monitor_log_likelihood(
             h, X, lengths=lengths, n_iter=n_iter)
@@ -409,35 +402,18 @@ class GMMHMMTestMixin(object):
         self.transmat /= np.tile(self.transmat.sum(axis=1)[:, np.newaxis],
                                  (1, self.n_components))
 
-        self.gmms_ = []
+        self.gmms = []
         for state in range(self.n_components):
-            self.gmms_.append(create_random_gmm(
+            self.gmms.append(create_random_gmm(
                 self.n_mix, self.n_features, self.covariance_type,
                 prng=self.prng))
 
-    def test_attributes(self):
-        h = hmm.GMMHMM(self.n_components, covariance_type=self.covariance_type)
-
-        self.assertEqual(h.n_components, self.n_components)
-
-        h.startprob_ = self.startprob
-        assert_array_almost_equal(h.startprob_, self.startprob)
-        self.assertRaises(ValueError, setattr, h, 'startprob_',
-                          2 * self.startprob)
-        self.assertRaises(ValueError, setattr, h, 'startprob_', [])
-        self.assertRaises(ValueError, setattr, h, 'startprob_',
-                          np.zeros((self.n_components - 2, self.n_features)))
-
-        h.transmat_ = self.transmat
-        assert_array_almost_equal(h.transmat_, self.transmat)
-        self.assertRaises(ValueError, setattr, h, 'transmat_',
-                          2 * self.transmat)
-        self.assertRaises(ValueError, setattr, h, 'transmat_', [])
-        self.assertRaises(ValueError, setattr, h, 'transmat_',
-                          np.zeros((self.n_components - 2, self.n_components)))
-
     def test_score_samples_and_decode(self):
-        h = hmm.GMMHMM(self.n_components, gmms=self.gmms_)
+        h = hmm.GMMHMM(self.n_components)
+        h.startprob_ = self.startprob
+        h.transmat_ = self.transmat
+        h.gmms_ = self.gmms
+
         # Make sure the means are far apart so posteriors.argmax()
         # picks the actual component used to generate the observations.
         for g in h.gmms_:
@@ -445,21 +421,22 @@ class GMMHMMTestMixin(object):
 
         refstateseq = np.repeat(np.arange(self.n_components), 5)
         n_samples = len(refstateseq)
-        obs = [h.gmms_[x].sample(1, random_state=self.prng).flatten()
-               for x in refstateseq]
+        X = [h.gmms_[x].sample(1, random_state=self.prng).flatten()
+             for x in refstateseq]
 
-        _ll, posteriors = h.score_samples(obs)
+        _ll, posteriors = h.score_samples(X)
 
         self.assertEqual(posteriors.shape, (n_samples, self.n_components))
         assert_array_almost_equal(posteriors.sum(axis=1), np.ones(n_samples))
 
-        _logprob, stateseq = h.decode(obs)
+        _logprob, stateseq = h.decode(X)
         assert_array_equal(stateseq, refstateseq)
 
     def test_sample(self, n=1000):
-        h = hmm.GMMHMM(self.n_components, self.covariance_type,
-                       startprob=self.startprob, transmat=self.transmat,
-                       gmms=self.gmms_)
+        h = hmm.GMMHMM(self.n_components, covariance_type=self.covariance_type)
+        h.startprob_ = self.startprob
+        h.transmat_ = self.transmat
+        h.gmms_ = self.gmms
         X, state_sequence = h.sample(n, random_state=self.prng)
         self.assertEqual(X.shape, (n, self.n_features))
         self.assertEqual(len(state_sequence), n)
@@ -469,7 +446,7 @@ class GMMHMMTestMixin(object):
         h.startprob_ = self.startprob
         h.transmat_ = normalize(
             self.transmat + np.diag(self.prng.rand(self.n_components)), 1)
-        h.gmms_ = self.gmms_
+        h.gmms_ = self.gmms
 
         lengths = [10] * 10
         X, _state_sequence = h.sample(sum(lengths), random_state=self.prng)

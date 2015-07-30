@@ -7,6 +7,7 @@ from collections import deque
 import numpy as np
 from sklearn.base import BaseEstimator
 from sklearn.utils import check_array, check_random_state
+from sklearn.utils.validation import check_is_fitted
 from sklearn.utils.extmath import logsumexp
 
 from . import _hmmc
@@ -183,6 +184,9 @@ class _BaseHMM(BaseEstimator):
         score : Compute the log probability under the model.
         decode : Find most likely state sequence corresponding to ``X``.
         """
+        check_is_fitted(self, "startprob_")
+        self._check()
+
         X = check_array(X)
         n_samples = X.shape[0]
         logprob = 0
@@ -226,6 +230,9 @@ class _BaseHMM(BaseEstimator):
             posteriors.
         decode : Find most likely state sequence corresponding to ``X``.
         """
+        check_is_fitted(self, "startprob_")
+        self._check()
+
         # XXX we can unroll forward pass for speed and memory efficiency.
         logprob = 0
         for i, j in iter_from_X_lengths(X, lengths):
@@ -273,6 +280,9 @@ class _BaseHMM(BaseEstimator):
 
         score : Compute the log probability under the model.
         """
+        check_is_fitted(self, "startprob_")
+        self._check()
+
         algorithm = algorithm or self.algorithm
         if algorithm not in decoder_algorithms:
             raise ValueError("Unknown decoder {0!r}".format(self.decode))
@@ -349,6 +359,8 @@ class _BaseHMM(BaseEstimator):
         state_sequence : array, shape (n_samples, )
             State sequence produced by the model.
         """
+        check_is_fitted(self, "startprob_")
+
         if random_state is None:
             random_state = self.random_state
         random_state = check_random_state(random_state)
@@ -393,6 +405,7 @@ class _BaseHMM(BaseEstimator):
         """
         X = check_array(X)
         self._init(X, lengths=lengths, params=self.init_params)
+        self._check()
 
         for iter in range(self.n_iter):
             stats = self._initialize_sufficient_statistics()
@@ -416,76 +429,25 @@ class _BaseHMM(BaseEstimator):
 
         return self
 
-    def _get_startprob(self):
-        """Mixing startprob for each state."""
-        return np.exp(self._log_startprob)
-
-    def _set_startprob(self, startprob):
-        if startprob is None:
-            startprob = np.ones(self.n_components) / self.n_components
-        else:
-            startprob = np.asarray(startprob, dtype=np.float)
-
-        # check if there exists a component whose value is exactly zero
-        # if so, add a small number and re-normalize
-        if not np.alltrue(startprob):
-            normalize(startprob)
-
-        if len(startprob) != self.n_components:
-            raise ValueError('startprob must have length n_components')
-        if not np.allclose(np.sum(startprob), 1.0):
-            raise ValueError('startprob must sum to 1.0')
-
-        self._log_startprob = np.log(np.asarray(startprob).copy())
-
-    startprob_ = property(_get_startprob, _set_startprob)
-
-    def _get_transmat(self):
-        """Matrix of transition probabilities."""
-        return np.exp(self._log_transmat)
-
-    def _set_transmat(self, transmat):
-        if transmat is None:
-            transmat = np.tile(1.0 / self.n_components,
-                               (self.n_components, self.n_components))
-
-        # check if there exists a component whose value is exactly zero
-        # if so, add a small number and re-normalize
-        if not np.alltrue(transmat):
-            normalize(transmat, axis=1)
-
-        if (np.asarray(transmat).shape
-                != (self.n_components, self.n_components)):
-            raise ValueError('transmat must have shape '
-                             '(n_components, n_components)')
-        if not np.all(np.allclose(np.sum(transmat, axis=1), 1.0)):
-            raise ValueError('Rows of transmat must sum to 1.0')
-
-        self._log_transmat = np.log(np.asarray(transmat).copy())
-        underflow_idx = np.isnan(self._log_transmat)
-        self._log_transmat[underflow_idx] = -np.inf
-
-    transmat_ = property(_get_transmat, _set_transmat)
-
     def _do_viterbi_pass(self, framelogprob):
         n_observations, n_components = framelogprob.shape
         state_sequence, logprob = _hmmc._viterbi(
-            n_observations, n_components, self._log_startprob,
-            self._log_transmat, framelogprob)
+            n_observations, n_components, np.log(self.startprob_),
+            np.log(self.transmat_), framelogprob)
         return logprob, state_sequence
 
     def _do_forward_pass(self, framelogprob):
         n_observations, n_components = framelogprob.shape
         fwdlattice = np.zeros((n_observations, n_components))
-        _hmmc._forward(n_observations, n_components, self._log_startprob,
-                       self._log_transmat, framelogprob, fwdlattice)
+        _hmmc._forward(n_observations, n_components, np.log(self.startprob_),
+                       np.log(self.transmat_), framelogprob, fwdlattice)
         return logsumexp(fwdlattice[-1]), fwdlattice
 
     def _do_backward_pass(self, framelogprob):
         n_observations, n_components = framelogprob.shape
         bwdlattice = np.zeros((n_observations, n_components))
-        _hmmc._backward(n_observations, n_components, self._log_startprob,
-                        self._log_transmat, framelogprob, bwdlattice)
+        _hmmc._backward(n_observations, n_components, np.log(self.startprob_),
+                        np.log(self.transmat_), framelogprob, bwdlattice)
         return bwdlattice
 
     def _compute_log_likelihood(self, X):
@@ -495,10 +457,26 @@ class _BaseHMM(BaseEstimator):
         pass
 
     def _init(self, X, lengths, params):
-        if 's' in params:
-            self.startprob_.fill(1.0 / self.n_components)
-        if 't' in params:
-            self.transmat_.fill(1.0 / self.n_components)
+        init = 1. / self.n_components
+        if 's' in params or not hasattr(self, "startprob_"):
+            self.startprob_ = np.full(self.n_components, init)
+        if 't' in params or not hasattr(self, "transmat_"):
+            self.transmat_ = np.full((self.n_components, self.n_components),
+                                     init)
+
+    def _check(self):
+        self.startprob_ = np.asarray(self.startprob_)
+        if len(self.startprob_) != self.n_components:
+            raise ValueError("startprob_ must have length n_components")
+        if not np.allclose(self.startprob_.sum(), 1.0):
+            raise ValueError("startprob_ must sum to 1.0")
+
+        self.transmat_ = np.asarray(self.transmat_)
+        if self.transmat_.shape != (self.n_components, self.n_components):
+            raise ValueError(
+                "transmat_ must have shape (n_components, n_components)")
+        if not np.allclose(self.transmat_.sum(axis=1), 1.0):
+            raise ValueError('rows of transmat_ must sum to 1.0')
 
     # Methods used by self.fit()
 
@@ -523,8 +501,8 @@ class _BaseHMM(BaseEstimator):
 
             lneta = np.zeros((n_observations - 1, n_components, n_components))
             _hmmc._compute_lneta(n_observations, n_components, fwdlattice,
-                                 self._log_transmat, bwdlattice, framelogprob,
-                                 lneta)
+                                 np.log(self.transmat_),
+                                 bwdlattice, framelogprob, lneta)
             stats['trans'] += np.exp(logsumexp(lneta, axis=0))
 
     def _do_mstep(self, stats, params):

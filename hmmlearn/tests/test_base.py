@@ -40,15 +40,6 @@ class TestBaseHMM(TestCase):
         h.framelogprob = framelogprob
         return h, framelogprob
 
-    def test_init(self):
-        h, framelogprob = self.setup_example_hmm()
-        for params in [('transmat_',), ('startprob_', 'transmat_')]:
-            d = dict((x[:-1], getattr(h, x)) for x in params)
-            h2 = StubHMM(h.n_components, **d)
-            self.assertEqual(h.n_components, h2.n_components)
-            for p in params:
-                assert_array_almost_equal(getattr(h, p), getattr(h2, p))
-
     def test_set_startprob(self):
         h, framelogprob = self.setup_example_hmm()
         startprob = np.array([0.0, 1.0])
@@ -130,6 +121,8 @@ class TestBaseHMM(TestCase):
         # default), the transitions are uninformative - the model
         # reduces to a GMM with uniform mixing weights (in terms of
         # posteriors, not likelihoods).
+        h.startprob_ = np.ones(n_components) / n_components
+        h.transmat_ = np.ones((n_components, n_components)) / n_components
         logprob, hmmposteriors = h.score_samples(framelogprob)
 
         assert_array_almost_equal(hmmposteriors.sum(axis=1), np.ones(nobs))
@@ -151,6 +144,8 @@ class TestBaseHMM(TestCase):
         # default), the transitions are uninformative - the model
         # reduces to a GMM with uniform mixing weights (in terms of
         # posteriors, not likelihoods).
+        h.startprob_ = np.ones(n_components) / n_components
+        h.transmat_ = np.ones((n_components, n_components)) / n_components
         viterbi_ll, state_sequence = h.decode(framelogprob)
 
         norm = logsumexp(framelogprob, axis=1)[:, np.newaxis]
@@ -173,16 +168,25 @@ class TestBaseHMM(TestCase):
         h.startprob_ = startprob
         assert_array_almost_equal(h.startprob_, startprob)
 
-        self.assertRaises(ValueError, setattr, h, 'startprob_',
-                          2 * startprob)
-        self.assertRaises(ValueError, setattr, h, 'startprob_', [])
-        self.assertRaises(ValueError, setattr, h, 'startprob_',
-                          np.zeros((n_components - 2, 2)))
+        with self.assertRaises(ValueError):
+            h.startprob_ = 2 * startprob
+            h._check()
+        with self.assertRaises(ValueError):
+            h.startprob_ = []
+            h._check()
+        with self.assertRaises(ValueError):
+            h.startprob_ = np.zeros((n_components - 2, 2))
+            h._check()
 
+        h.startprob_ = startprob
         h.transmat_ = transmat
         assert_array_almost_equal(h.transmat_, transmat)
-        self.assertRaises(ValueError, setattr, h, 'transmat_',
-                          2 * transmat)
-        self.assertRaises(ValueError, setattr, h, 'transmat_', [])
-        self.assertRaises(ValueError, setattr, h, 'transmat_',
-                          np.zeros((n_components - 2, n_components)))
+        with self.assertRaises(ValueError):
+            h.transmat_ = 2 * transmat
+            h._check()
+        with self.assertRaises(ValueError):
+            h.transmat_ = []
+            h._check()
+        with self.assertRaises(ValueError):
+            h.transmat_ = np.zeros((n_components - 2, n_components))
+            h._check()
