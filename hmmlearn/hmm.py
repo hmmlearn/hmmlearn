@@ -32,11 +32,7 @@ COVARIANCE_TYPES = ['spherical', 'tied', 'diag', 'full']
 
 
 class GaussianHMM(_BaseHMM):
-    """Hidden Markov Model with Gaussian emissions
-
-    Representation of a hidden Markov model probability distribution.
-    This class allows for easy evaluation of, sampling from, and
-    maximum-likelihood estimation of the parameters of a HMM.
+    """Hidden Markov Model with Gaussian emissions.
 
     Parameters
     ----------
@@ -48,53 +44,63 @@ class GaussianHMM(_BaseHMM):
         use.  Must be one of 'spherical', 'tied', 'diag', 'full'.
         Defaults to 'diag'.
 
+    startprob_prior : array, shape (n_components, )
+        Initial state occupation prior distribution.
+
+    transmat_prior : array, shape (n_components, n_components)
+        Matrix of prior transition probabilities between states.
+
+    algorithm : string, one of the ``decoder_algorithms```
+        Decoder algorithm.
+
+    random_state: RandomState or an int seed (0 by default)
+        A random number generator instance.
+
+    n_iter : int, optional
+        Maximum number of iterations to perform.
+
+    thresh : float, optional
+        Convergence threshold.
+
+    verbose : bool, optional
+        When ``True`` per-iteration convergence reports are printed
+        to :data:`sys.stderr`. You can diagnose convergence via the
+        :attr:`monitor_` attribute.
+
+    params : string, optional
+        Controls which parameters are updated in the training
+        process.  Can contain any combination of 's' for startprob,
+        't' for transmat, 'm' for means and 'c' for covars. Defaults
+        to all parameters.
+
+    init_params : string, optional
+        Controls which parameters are initialized prior to
+        training.  Can contain any combination of 's' for
+        startprob, 't' for transmat, 'm' for means and 'c' for covars.
+        Defaults to all parameters.
+
     Attributes
     ----------
     n_features : int
         Dimensionality of the Gaussian emissions.
 
-    n_components : int
-        Number of states in the model.
-
-    transmat : array, shape (`n_components`, `n_components`)
+    transmat_ : array, shape (n_components, n_components)
         Matrix of transition probabilities between states.
 
-    startprob : array, shape ('n_components`,)
+    startprob_ : array, shape (n_components, )
         Initial state occupation distribution.
 
-    means : array, shape (`n_components`, `n_features`)
+    means_ : array, shape (n_components, n_features)
         Mean parameters for each state.
 
-    covars : array
+    covars_ : array
         Covariance parameters for each state.  The shape depends on
-        ``_covariance_type``::
+        ``covariance_type``::
 
-            (`n_components`,)                   if 'spherical',
-            (`n_features`, `n_features`)              if 'tied',
-            (`n_components`, `n_features`)           if 'diag',
-            (`n_components`, `n_features`, `n_features`)  if 'full'
-
-    random_state: RandomState or an int seed (0 by default)
-        A random number generator instance
-
-    n_iter : int, optional
-        Number of iterations to perform.
-
-    thresh : float, optional
-        Convergence threshold.
-
-    params : string, optional
-        Controls which parameters are updated in the training
-        process.  Can contain any combination of 's' for startprob,
-        't' for transmat, 'm' for means, and 'c' for covars.
-        Defaults to all parameters.
-
-    init_params : string, optional
-        Controls which parameters are initialized prior to
-        training.  Can contain any combination of 's' for
-        startprob, 't' for transmat, 'm' for means, and 'c' for
-        covars.  Defaults to all parameters.
-
+            (n_components, )                        if 'spherical',
+            (n_features, n_features)                if 'tied',
+            (n_components, n_features)              if 'diag',
+            (n_components, n_features, n_features)  if 'full'
 
     Examples
     --------
@@ -102,7 +108,6 @@ class GaussianHMM(_BaseHMM):
     >>> GaussianHMM(n_components=2)
     ...                             #doctest: +ELLIPSIS +NORMALIZE_WHITESPACE
     GaussianHMM(algorithm='viterbi',...
-
 
     See Also
     --------
@@ -277,31 +282,39 @@ class GaussianHMM(_BaseHMM):
 class MultinomialHMM(_BaseHMM):
     """Hidden Markov Model with multinomial (discrete) emissions
 
-    Attributes
+    Parameters
     ----------
+
     n_components : int
-        Number of states in the model.
+        Number of states.
 
-    n_features : int
-        Number of possible symbols emitted by the model (in the observations).
+    covariance_type : string
+        String describing the type of covariance parameters to
+        use.  Must be one of 'spherical', 'tied', 'diag', 'full'.
+        Defaults to 'diag'.
 
-    transmat : array, shape (`n_components`, `n_components`)
-        Matrix of transition probabilities between states.
+    startprob_prior : array, shape (n_components, )
+        Initial state occupation prior distribution.
 
-    startprob : array, shape ('n_components`,)
-        Initial state occupation distribution.
+    transmat_prior : array, shape (n_components, n_components)
+        Matrix of prior transition probabilities between states.
 
-    emissionprob : array, shape ('n_components`, 'n_features`)
-        Probability of emitting a given symbol when in each state.
+    algorithm : string, one of the ``decoder_algorithms```
+        Decoder algorithm.
 
     random_state: RandomState or an int seed (0 by default)
-        A random number generator instance
+        A random number generator instance.
 
     n_iter : int, optional
-        Number of iterations to perform.
+        Maximum number of iterations to perform.
 
     thresh : float, optional
         Convergence threshold.
+
+    verbose : bool, optional
+        When ``True`` per-iteration convergence reports are printed
+        to :data:`sys.stderr`. You can diagnose convergence via the
+        :attr:`monitor_` attribute.
 
     params : string, optional
         Controls which parameters are updated in the training
@@ -314,6 +327,20 @@ class MultinomialHMM(_BaseHMM):
         training.  Can contain any combination of 's' for
         startprob, 't' for transmat, 'e' for emmissionprob.
         Defaults to all parameters.
+
+    Attributes
+    ----------
+    n_features : int
+        Number of possible symbols emitted by the model (in the observations).
+
+    transmat_ : array, shape (n_components, n_components)
+        Matrix of transition probabilities between states.
+
+    startprob_ : array, shape (n_components, )
+        Initial state occupation distribution.
+
+    emissionprob_ : array, shape (n_components, n_features)
+        Probability of emitting a given symbol when in each state.
 
     Examples
     --------
@@ -421,28 +448,40 @@ class MultinomialHMM(_BaseHMM):
 class GMMHMM(_BaseHMM):
     """Hidden Markov Model with Gaussin mixture emissions
 
-    Attributes
+    Parameters
     ----------
     n_components : int
         Number of states in the model.
+    n_mix : int
+        Number of states in the GMM.
 
-    transmat : array, shape (`n_components`, `n_components`)
-        Matrix of transition probabilities between states.
+    covariance_type : string
+        String describing the type of covariance parameters for
+        the GMM to use.  Must be one of 'spherical', 'tied', 'diag',
+        'full'. Defaults to 'diag'.
 
-    startprob : array, shape ('n_components`,)
-        Initial state occupation distribution.
+    startprob_prior : array, shape (n_components, )
+        Initial state occupation prior distribution.
 
-    gmms : array of GMM objects, length `n_components`
-        GMM emission distributions for each state.
+    transmat_prior : array, shape (n_components, n_components)
+        Matrix of prior transition probabilities between states.
 
-    random_state : RandomState or an int seed (0 by default)
-        A random number generator instance
+    algorithm : string, one of the ``decoder_algorithms```
+        Decoder algorithm.
+
+    random_state: RandomState or an int seed (0 by default)
+        A random number generator instance.
 
     n_iter : int, optional
-        Number of iterations to perform.
+        Maximum number of iterations to perform.
 
     thresh : float, optional
         Convergence threshold.
+
+    verbose : bool, optional
+        When ``True`` per-iteration convergence reports are printed
+        to :data:`sys.stderr`. You can diagnose convergence via the
+        :attr:`monitor_` attribute.
 
     init_params : string, optional
         Controls which parameters are initialized prior to training. Can
@@ -455,6 +494,17 @@ class GMMHMM(_BaseHMM):
         contain any combination of 's' for startprob, 't' for transmat, 'm' for
         means, and 'c' for covars, and 'w' for GMM mixing weights.
         Defaults to all parameters.
+
+    Attributes
+    ----------
+    startprob_ : array, shape (n_components, )
+        Initial state occupation distribution.
+
+    transmat_ : array, shape (n_components, n_components)
+        Matrix of transition probabilities between states.
+
+    gmms_ : list of GMM objects, length n_components
+        GMM emission distributions for each state.
 
     Examples
     --------
