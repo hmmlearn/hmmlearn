@@ -8,29 +8,27 @@ from sklearn.utils.extmath import logsumexp
 
 from hmmlearn import hmm
 
-rng = np.random.RandomState(0)
 np.seterr(all='warn')
 
 
+class StubHMM(hmm._BaseHMM):
+    def _compute_log_likelihood(self, X):
+        return self.framelogprob
+
+    def _generate_sample_from_state(self):
+        pass
+
+    def _init(self):
+        pass
+
+
 class TestBaseHMM(TestCase):
-
     def setUp(self):
-        self.prng = np.random.RandomState(9)
-
-    class StubHMM(hmm._BaseHMM):
-
-        def _compute_log_likelihood(self, X):
-            return self.framelogprob
-
-        def _generate_sample_from_state(self):
-            pass
-
-        def _init(self):
-            pass
+        self.prng = np.random.RandomState(10)
 
     def setup_example_hmm(self):
         # Example from http://en.wikipedia.org/wiki/Forward-backward_algorithm
-        h = self.StubHMM(2)
+        h = StubHMM(2)
         h.transmat_ = [[0.7, 0.3], [0.3, 0.7]]
         h.startprob_ = [0.5, 0.5]
         framelogprob = np.log([[0.9, 0.2],
@@ -41,15 +39,6 @@ class TestBaseHMM(TestCase):
         # Add dummy observations to stub.
         h.framelogprob = framelogprob
         return h, framelogprob
-
-    def test_init(self):
-        h, framelogprob = self.setup_example_hmm()
-        for params in [('transmat_',), ('startprob_', 'transmat_')]:
-            d = dict((x[:-1], getattr(h, x)) for x in params)
-            h2 = self.StubHMM(h.n_components, **d)
-            self.assertEqual(h.n_components, h2.n_components)
-            for p in params:
-                assert_array_almost_equal(getattr(h, p), getattr(h2, p))
 
     def test_set_startprob(self):
         h, framelogprob = self.setup_example_hmm()
@@ -105,7 +94,7 @@ class TestBaseHMM(TestCase):
         h, framelogprob = self.setup_example_hmm()
         nobs = len(framelogprob)
 
-        logprob, posteriors = h.score_samples([])
+        logprob, posteriors = h.score_samples(framelogprob)
 
         assert_array_almost_equal(posteriors.sum(axis=1), np.ones(nobs))
 
@@ -122,7 +111,7 @@ class TestBaseHMM(TestCase):
     def test_hmm_score_samples_consistent_with_gmm(self):
         n_components = 8
         nobs = 10
-        h = self.StubHMM(n_components)
+        h = StubHMM(n_components)
 
         # Add dummy observations to stub.
         framelogprob = np.log(self.prng.rand(nobs, n_components))
@@ -132,7 +121,9 @@ class TestBaseHMM(TestCase):
         # default), the transitions are uninformative - the model
         # reduces to a GMM with uniform mixing weights (in terms of
         # posteriors, not likelihoods).
-        logprob, hmmposteriors = h.score_samples([])
+        h.startprob_ = np.ones(n_components) / n_components
+        h.transmat_ = np.ones((n_components, n_components)) / n_components
+        logprob, hmmposteriors = h.score_samples(framelogprob)
 
         assert_array_almost_equal(hmmposteriors.sum(axis=1), np.ones(nobs))
 
@@ -143,7 +134,7 @@ class TestBaseHMM(TestCase):
     def test_hmm_decode_consistent_with_gmm(self):
         n_components = 8
         nobs = 10
-        h = self.StubHMM(n_components)
+        h = StubHMM(n_components)
 
         # Add dummy observations to stub.
         framelogprob = np.log(self.prng.rand(nobs, n_components))
@@ -153,7 +144,9 @@ class TestBaseHMM(TestCase):
         # default), the transitions are uninformative - the model
         # reduces to a GMM with uniform mixing weights (in terms of
         # posteriors, not likelihoods).
-        viterbi_ll, state_sequence = h.decode([])
+        h.startprob_ = np.ones(n_components) / n_components
+        h.transmat_ = np.ones((n_components, n_components)) / n_components
+        viterbi_ll, state_sequence = h.decode(framelogprob)
 
         norm = logsumexp(framelogprob, axis=1)[:, np.newaxis]
         gmmposteriors = np.exp(framelogprob - np.tile(norm, (1, n_components)))
@@ -168,23 +161,32 @@ class TestBaseHMM(TestCase):
         transmat /= np.tile(transmat.sum(axis=1)
                             [:, np.newaxis], (1, n_components))
 
-        h = self.StubHMM(n_components)
+        h = StubHMM(n_components)
 
         self.assertEqual(h.n_components, n_components)
 
         h.startprob_ = startprob
         assert_array_almost_equal(h.startprob_, startprob)
 
-        self.assertRaises(ValueError, setattr, h, 'startprob_',
-                          2 * startprob)
-        self.assertRaises(ValueError, setattr, h, 'startprob_', [])
-        self.assertRaises(ValueError, setattr, h, 'startprob_',
-                          np.zeros((n_components - 2, 2)))
+        with self.assertRaises(ValueError):
+            h.startprob_ = 2 * startprob
+            h._check()
+        with self.assertRaises(ValueError):
+            h.startprob_ = []
+            h._check()
+        with self.assertRaises(ValueError):
+            h.startprob_ = np.zeros((n_components - 2, 2))
+            h._check()
 
+        h.startprob_ = startprob
         h.transmat_ = transmat
         assert_array_almost_equal(h.transmat_, transmat)
-        self.assertRaises(ValueError, setattr, h, 'transmat_',
-                          2 * transmat)
-        self.assertRaises(ValueError, setattr, h, 'transmat_', [])
-        self.assertRaises(ValueError, setattr, h, 'transmat_',
-                          np.zeros((n_components - 2, n_components)))
+        with self.assertRaises(ValueError):
+            h.transmat_ = 2 * transmat
+            h._check()
+        with self.assertRaises(ValueError):
+            h.transmat_ = []
+            h._check()
+        with self.assertRaises(ValueError):
+            h.transmat_ = np.zeros((n_components - 2, n_components))
+            h._check()
