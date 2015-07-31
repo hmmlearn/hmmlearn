@@ -17,6 +17,7 @@ Version 0.2.0
 - ``GaussianHMM`` is now initialized from all observations, see #1 on GitHub.
 - Changed the models to do input validation lazily as suggested by the
   scikit-learn guidelines.
+- Removed deprecated re-exports from ``hmmlean.hmm``.
 
 Version 0.1.1
 -------------

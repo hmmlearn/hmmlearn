@@ -17,16 +17,12 @@ from sklearn.mixture import (
     distribute_covar_matrix_to_match_covariance_type, _validate_covars)
 from sklearn.utils import check_random_state
 
-from .base import _BaseHMM, decoder_algorithms
+from .base import _BaseHMM
 from .utils import iter_from_X_lengths, normalize
 
 __all__ = ['GMMHMM',
            'GaussianHMM',
-           'MultinomialHMM',
-
-           # for compatibility, but we should remove this, really.
-           'decoder_algorithms',
-           'normalize']
+           'MultinomialHMM']
 
 COVARIANCE_TYPES = ['spherical', 'tied', 'diag', 'full']
 
@@ -50,7 +46,7 @@ class GaussianHMM(_BaseHMM):
     transmat_prior : array, shape (n_components, n_components)
         Matrix of prior transition probabilities between states.
 
-    algorithm : string, one of the ``decoder_algorithms```
+    algorithm : string, one of the :data:`base.DECODER_ALGORITHMS`
         Decoder algorithm.
 
     random_state: RandomState or an int seed (0 by default)
@@ -299,7 +295,7 @@ class MultinomialHMM(_BaseHMM):
     transmat_prior : array, shape (n_components, n_components)
         Matrix of prior transition probabilities between states.
 
-    algorithm : string, one of the ``decoder_algorithms```
+    algorithm : string, one of the :data:`base.DECODER_ALGORITHMS`
         Decoder algorithm.
 
     random_state: RandomState or an int seed (0 by default)
@@ -446,12 +442,13 @@ class MultinomialHMM(_BaseHMM):
 
 
 class GMMHMM(_BaseHMM):
-    """Hidden Markov Model with Gaussin mixture emissions
+    """Hidden Markov Model with Gaussian mixture emissions.
 
     Parameters
     ----------
     n_components : int
         Number of states in the model.
+
     n_mix : int
         Number of states in the GMM.
 
@@ -466,7 +463,7 @@ class GMMHMM(_BaseHMM):
     transmat_prior : array, shape (n_components, n_components)
         Matrix of prior transition probabilities between states.
 
-    algorithm : string, one of the ``decoder_algorithms```
+    algorithm : string, one of the :data:`base.DECODER_ALGORITHMS`
         Decoder algorithm.
 
     random_state: RandomState or an int seed (0 by default)

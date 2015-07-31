@@ -14,7 +14,7 @@ from . import _hmmc
 from .utils import normalize, iter_from_X_lengths
 
 
-decoder_algorithms = frozenset(("viterbi", "map"))
+DECODER_ALGORITHMS = frozenset(("viterbi", "map"))
 
 
 class ConvergenceMonitor(object):
@@ -92,7 +92,7 @@ class _BaseHMM(BaseEstimator):
     transmat_prior : array, shape (n_components, n_components)
         Matrix of prior transition probabilities between states.
 
-    algorithm : string, one of the ``decoder_algorithms```
+    algorithm : string, one of the ``DECODER_ALGORITHMS```
         Decoder algorithm.
 
     random_state: RandomState or an int seed (0 by default)
@@ -261,7 +261,7 @@ class _BaseHMM(BaseEstimator):
         lengths : array-like of integers, shape (n_sequences, ), optional
             Lengths of the individual sequences in ``X``. The sum of
             these should be ``n_samples``.
-        algorithm : string, one of the ``decoder_algorithms``
+        algorithm : string, one of the ``DECODER_ALGORITHMS``
             decoder algorithm to be used
 
         Returns
@@ -284,8 +284,8 @@ class _BaseHMM(BaseEstimator):
         self._check()
 
         algorithm = algorithm or self.algorithm
-        if algorithm not in decoder_algorithms:
-            raise ValueError("Unknown decoder {0!r}".format(self.decode))
+        if algorithm not in DECODER_ALGORITHMS:
+            raise ValueError("Unknown decoder {0!r}".format(algorithm))
 
         decoder = {
             "viterbi": self._decode_viterbi,
