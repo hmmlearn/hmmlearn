@@ -4,6 +4,7 @@ from unittest import TestCase
 
 import numpy as np
 from nose import SkipTest
+from nose.tools import assert_raises
 from numpy.testing import assert_array_equal, assert_array_almost_equal
 from sklearn.datasets.samples_generator import make_spd_matrix
 from sklearn import mixture
@@ -57,7 +58,7 @@ class GaussianHMMTestMixin(object):
         }
 
     def test_bad_covariance_type(self):
-        with self.assertRaises(ValueError):
+        with assert_raises(ValueError):
             h = hmm.GaussianHMM(20, covariance_type='badcovariance_type')
             h.means_ = self.means
             h.covars_ = []
@@ -291,10 +292,10 @@ class MultinomialHMMTestCase(TestCase):
         h.transmat_ = self.transmat
         h.emissionprob_ = self.emissionprob
         assert_array_almost_equal(h.emissionprob_, self.emissionprob)
-        with self.assertRaises(ValueError):
+        with assert_raises(ValueError):
             h.emissionprob_ = []
             h._check()
-        with self.assertRaises(ValueError):
+        with assert_raises(ValueError):
             h.emissionprob_ = np.zeros((self.n_components - 2,
                                         self.n_features))
             h._check()
