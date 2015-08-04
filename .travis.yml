@@ -7,3 +7,4 @@ env:
     - PYTHON_VERSION="2.7"
     - PYTHON_VERSION="3.3"
     - PYTHON_VERSION="3.4"
+sudo: false
