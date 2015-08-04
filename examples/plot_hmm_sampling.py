@@ -21,13 +21,13 @@ from hmmlearn import hmm
 ##############################################################
 # Prepare parameters for a 3-components HMM
 # Initial population probability
-start_prob = np.array([0.6, 0.3, 0.1, 0.0])
+startprob = np.array([0.6, 0.3, 0.1, 0.0])
 # The transition matrix, note that there are no transitions possible
 # between component 1 and 4
-trans_mat = np.array([[0.7, 0.2, 0.0, 0.1],
-                      [0.3, 0.5, 0.2, 0.0],
-                      [0.0, 0.3, 0.5, 0.2],
-                      [0.2, 0.0, 0.2, 0.6]])
+transmat = np.array([[0.7, 0.2, 0.0, 0.1],
+                     [0.3, 0.5, 0.2, 0.0],
+                     [0.0, 0.3, 0.5, 0.2],
+                     [0.2, 0.0, 0.2, 0.6]])
 # The means of each component
 means = np.array([[0.0,  0.0],
                   [0.0, 11.0],
@@ -37,11 +37,13 @@ means = np.array([[0.0,  0.0],
 covars = .5 * np.tile(np.identity(2), (4, 1, 1))
 
 # Build an HMM instance and set parameters
-model = hmm.GaussianHMM(4, "full", start_prob, trans_mat,
+model = hmm.GaussianHMM(n_components=4, covariance_type="full",
                         random_state=42)
 
 # Instead of fitting it from the data, we directly set the estimated
 # parameters, the means and covariance of the components
+model.startprob_ = startprob
+model.transmat_ = transmat
 model.means_ = means
 model.covars_ = covars
 ###############################################################

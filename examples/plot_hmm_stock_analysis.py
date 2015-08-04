@@ -49,12 +49,9 @@ X = np.column_stack([diff, volume])
 ###############################################################################
 # Run Gaussian HMM
 print("fitting to HMM and decoding ...", end='')
-n_components = 5
 
 # make an HMM instance and execute fit
-model = GaussianHMM(n_components, covariance_type="diag", n_iter=1000)
-
-model.fit(X)
+model = GaussianHMM(n_components=5, covariance_type="diag", n_iter=1000).fit(X)
 
 # predict the optimal sequence of internal hidden state
 hidden_states = model.predict(X)
@@ -68,7 +65,7 @@ print(model.transmat_)
 print()
 
 print("means and vars of each hidden state")
-for i in range(n_components):
+for i in range(model.n_components):
     print("%dth hidden state" % i)
     print("mean = ", model.means_[i])
     print("var = ", np.diag(model.covars_[i]))
@@ -80,7 +77,7 @@ yearsFmt = DateFormatter('%Y')
 fig = pl.figure()
 ax = fig.add_subplot(111)
 
-for i in range(n_components):
+for i in range(model.n_components):
     # use fancy indexing to plot data in each state
     idx = (hidden_states == i)
     ax.plot_date(dates[idx], close_v[idx], 'o', label="%dth hidden state" % i)
