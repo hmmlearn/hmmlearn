@@ -5,6 +5,7 @@ from unittest import TestCase
 import numpy as np
 from numpy.testing import assert_array_equal, assert_array_almost_equal
 from sklearn.utils.extmath import logsumexp
+from sklearn.utils.testing import assert_raises
 
 from hmmlearn import hmm
 
@@ -168,25 +169,25 @@ class TestBaseHMM(TestCase):
         h.startprob_ = startprob
         assert_array_almost_equal(h.startprob_, startprob)
 
-        with self.assertRaises(ValueError):
+        with assert_raises(ValueError):
             h.startprob_ = 2 * startprob
             h._check()
-        with self.assertRaises(ValueError):
+        with assert_raises(ValueError):
             h.startprob_ = []
             h._check()
-        with self.assertRaises(ValueError):
+        with assert_raises(ValueError):
             h.startprob_ = np.zeros((n_components - 2, 2))
             h._check()
 
         h.startprob_ = startprob
         h.transmat_ = transmat
         assert_array_almost_equal(h.transmat_, transmat)
-        with self.assertRaises(ValueError):
+        with assert_raises(ValueError):
             h.transmat_ = 2 * transmat
             h._check()
-        with self.assertRaises(ValueError):
+        with assert_raises(ValueError):
             h.transmat_ = []
             h._check()
-        with self.assertRaises(ValueError):
+        with assert_raises(ValueError):
             h.transmat_ = np.zeros((n_components - 2, n_components))
             h._check()
