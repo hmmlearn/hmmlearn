@@ -2,23 +2,20 @@
 hmmlearn
 ========
 
-``hmmlearn`` is a set of algorithm for learning and inference of Hiden Markov
-Models.
-
-Historically, this code was present in ``scikit-learn``, but unmaintained.
-It has been orphaned and separated as a different package.
+``hmmlearn`` is a set of algorithm for learning and inference of
+Hiden Markov Models.
 """
-__version__ = '0.1.1'
+
+__version__ = "0.2.0"
 
 
 def setup_module(module):
-    """Fixture for the tests to assure globally controllable seeding of RNGs
-    """
+    """Fixture for the tests to assure global seeding of RNGs."""
     import os
     import numpy as np
     import random
 
-    # It could have been provided in the environment
+    # It could have been provided in the environment.
     _random_seed = os.environ.get('HMMLEARN_SEED')
     if _random_seed is None:
         _random_seed = np.random.uniform() * (2 ** 31 - 1)
