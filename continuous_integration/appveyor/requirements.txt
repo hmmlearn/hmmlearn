@@ -8,5 +8,6 @@
 nose
 numpy==1.8.1
 scipy==0.14.1
+scikit-learn
 wheel
 wheelhouse_uploader
