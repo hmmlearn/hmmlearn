@@ -48,6 +48,9 @@ install:
 
   # Install the build and runtime dependencies of the project.
   - "%CMD_IN_ENV% pip install --timeout=60 -r continuous_integration/appveyor/requirements.txt"
+  # Install scikit-learn separately due to a known issue with NumPy dependency.
+  # See #4164 at scikit-learn/scikit-learn.
+  - "%CMD_IN_ENV% pip install --timeout=60 scikit-learn"
   - "%CMD_IN_ENV% python setup.py bdist_wheel bdist_wininst"
 
   # Install the genreated wheel package to test it
