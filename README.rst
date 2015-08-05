@@ -7,29 +7,23 @@ hmmlearn |travis| |appveyor|
 .. |appveyor| image:: https://ci.appveyor.com/api/projects/status/3c70msixtdvvae20/branch/master?svg=true
    :target: https://ci.appveyor.com/project/superbobry/hmmlearn/branch/master
 
-``hmmlearn`` is a set of algorithm for learning and inference of Hidden Markov
-Models.
-
-Historically, this code was present in ``scikit-learn``, but unmaintained. It
-has been orphaned and separated as a different package.
-
-The learning algorithms in this package are **unsupervised**. For supervised
-learning of HMMs and similar models, see `seqlearn
-<https://github.com/larsmans/seqlearn>`_.
+hmmlearn is a set of algorithms for **unsupervised** learning and inference of
+Hidden Markov Models. For supervised learning learning of HMMs and similar models
+see `seqlearn <https://github.com/larsmans/seqlearn>`_.
 
 Getting the latest code
 =======================
 
 To get the latest code using git, simply type::
 
-    $ git clone git://github.com/hmmlearn/hmmlearn.git
+    $ git clone git@github.com/hmmlearn/hmmlearn.git
 
 Installing
 ==========
 
 Make sure you have all the dependencies::
 
-    $ pip install scikit-learn Cython
+    $ pip install numpy scipy scikit-learn
 
 and then install ``hmmlearn`` by running::
 
