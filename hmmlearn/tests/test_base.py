@@ -5,9 +5,9 @@ from unittest import TestCase
 import numpy as np
 from numpy.testing import assert_array_equal, assert_array_almost_equal
 from sklearn.utils.extmath import logsumexp
-from sklearn.utils.testing import assert_raises
 
 from hmmlearn import hmm
+from hmmlearn.utils import assert_raises
 
 np.seterr(all='warn')
 

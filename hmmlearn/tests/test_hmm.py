@@ -8,10 +8,9 @@ from numpy.testing import assert_array_equal, assert_array_almost_equal
 from sklearn.datasets.samples_generator import make_spd_matrix
 from sklearn.mixture import GMM
 from sklearn.utils import check_random_state
-from sklearn.utils.testing import assert_raises
 
 from hmmlearn import hmm
-from hmmlearn.utils import normalize
+from hmmlearn.utils import normalize, assert_raises
 
 np.seterr(all='warn')
 
