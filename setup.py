@@ -3,7 +3,7 @@
 # Copyright (C) 2007-2009 Cournapeau David <cournape@gmail.com>
 #               2010 Fabian Pedregosa <fabian.pedregosa@inria.fr>
 #               2014 Gael Varoquaux
-#               2014 Sergei Lebedev <superbobry@gmail.com>
+#               2014-2015 Sergei Lebedev <superbobry@gmail.com>
 
 """Hidden Markov Models in Python with scikit-learn like API"""
 
@@ -61,11 +61,13 @@ setup_options = dict(
 
 
 # For these actions, NumPy is not required. We want them to succeed without,
-# for example when pip is used to install seqlearn without NumPy present.
-NO_NUMPY_ACTIONS = ('--help-commands', 'egg_info', '--version', 'clean')
-if not ('--help' in sys.argv[1:]
-        or len(sys.argv) > 1 and sys.argv[1] in NO_NUMPY_ACTIONS):
+# for example when pip is used to install hmmlearn without NumPy present.
+NO_NUMPY_ACTIONS = ("--help-commands", "egg_info", "--version", "clean")
+if not ("--help" in sys.argv[1:] or
+        len(sys.argv) > 1 and sys.argv[1] in NO_NUMPY_ACTIONS):
     import numpy as np
-    setup_options['include_dirs'] = [np.get_include()]
+    setup_options["include_dirs"] = [np.get_include()]
 
-setup(**setup_options)
+
+if __name__ == "__main__":
+    setup(**setup_options)
