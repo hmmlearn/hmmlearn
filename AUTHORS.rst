@@ -20,3 +20,4 @@ Authors and contributors, in no particular order:
 * csytracy
 * Alexandre Gramfort
 * Sergei Lebedev
+* Daniela Huppenkothen
