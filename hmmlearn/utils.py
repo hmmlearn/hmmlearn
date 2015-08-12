@@ -34,7 +34,7 @@ def normalize(A, axis=None):
 def iter_from_X_lengths(X, lengths):
     if lengths is None:
         yield 0, len(X)
-    elif lengths:
+    else:
         n_samples = X.shape[0]
         end = np.cumsum(lengths).astype(np.int32)
         start = end - lengths

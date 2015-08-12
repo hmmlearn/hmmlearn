@@ -331,8 +331,8 @@ class MultinomialHMMTestCase(TestCase):
         h = self.h
         h.params = params
 
-        lengths = [10] * 10
-        X, _state_sequence = h.sample(sum(lengths), random_state=self.prng)
+        lengths = np.array([10] * 10)
+        X, _state_sequence = h.sample(lengths.sum(), random_state=self.prng)
 
         # Mess up the parameters and see if we can re-learn them.
         h.startprob_ = normalize(self.prng.rand(self.n_components))
