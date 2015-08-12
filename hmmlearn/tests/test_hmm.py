@@ -217,12 +217,16 @@ class TestGaussianHMMWithSphericalCovars(GaussianHMMTestMixin, TestCase):
 class TestGaussianHMMWithDiagonalCovars(GaussianHMMTestMixin, TestCase):
     covariance_type = 'diag'
 
-    def test_covar_is_writeable(self):        
+    def test_covar_is_writeable(self):
         h = hmm.GaussianHMM(n_components=1, covariance_type='diag')
-        X = np.random.normal(size=(1000,5))
+        X = np.random.normal(size=(1000, 5))
         h._init(X, params="c")
-        assert h._covars_.flags["WRITEABLE"] is True, \
-               "Covars is not writeable due to numpy.diag behaviour in numpy >=1.9"
+
+        # np.diag returns a read-only view of the array in NumPy 1.9.X.
+        # Make sure this doesn't prevent us from fitting an HMM with
+        # diagonal covariance matrix. See PR#44 on GitHub for details
+        # and discussion.
+        assert h._covars_.flags["WRITEABLE"]
 
 class TestGaussianHMMWithTiedCovars(GaussianHMMTestMixin, TestCase):
     covariance_type = 'tied'
