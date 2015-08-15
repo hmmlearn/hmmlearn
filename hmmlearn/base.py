@@ -195,16 +195,7 @@ class _BaseHMM(BaseEstimator):
             logprob += logprobij
 
             bwdlattice = self._do_backward_pass(framelogprob)
-            log_gamma = fwdlattice + bwdlattice
-
-            # gamma is guaranteed to be correctly normalized by logprob at
-            # all frames, unless we do approximate inference using pruning.
-            # So, we will normalize each frame explicitly in case we
-            # pruned too aggressively.
-            log_gamma += np.finfo(float).eps
-            log_gamma -= logsumexp(log_gamma, axis=1)[:, np.newaxis]
-            np.exp(log_gamma, out=posteriors[i:j])
-            normalize(posteriors[i:j], axis=1)
+            posteriors[i:j] = self._compute_posteriors(fwdlattice, bwdlattice)
         return logprob, posteriors
 
     def score(self, X, lengths=None):
@@ -414,8 +405,7 @@ class _BaseHMM(BaseEstimator):
                 logprob, fwdlattice = self._do_forward_pass(framelogprob)
                 curr_logprob += logprob
                 bwdlattice = self._do_backward_pass(framelogprob)
-                gamma = fwdlattice + bwdlattice
-                posteriors = np.exp(gamma.T - logsumexp(gamma, axis=1)).T
+                posteriors = self._compute_posteriors(fwdlattice, bwdlattice)
                 self._accumulate_sufficient_statistics(
                     stats, X[i:j], framelogprob, posteriors, fwdlattice,
                     bwdlattice, self.params)
@@ -448,6 +438,18 @@ class _BaseHMM(BaseEstimator):
         _hmmc._backward(n_observations, n_components, np.log(self.startprob_),
                         np.log(self.transmat_), framelogprob, bwdlattice)
         return bwdlattice
+
+    def _compute_posteriors(self, fwdlattice, bwdlattice):
+        log_gamma = fwdlattice + bwdlattice
+        # gamma is guaranteed to be correctly normalized by logprob at
+        # all frames, unless we do approximate inference using pruning.
+        # So, we will normalize each frame explicitly in case we
+        # pruned too aggressively.
+        log_gamma += np.finfo(float).eps
+        log_gamma -= logsumexp(log_gamma, axis=1)[:, np.newaxis]
+        out = np.exp(log_gamma)
+        normalize(out, axis=1)
+        return out
 
     def _compute_log_likelihood(self, X):
         pass
