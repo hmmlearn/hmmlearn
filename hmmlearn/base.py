@@ -8,10 +8,9 @@ import numpy as np
 from sklearn.base import BaseEstimator
 from sklearn.utils import check_array, check_random_state
 from sklearn.utils.validation import check_is_fitted
-from sklearn.utils.extmath import logsumexp
 
 from . import _hmmc
-from .utils import normalize, iter_from_X_lengths
+from .utils import normalize, logsumexp, iter_from_X_lengths
 
 
 DECODER_ALGORITHMS = frozenset(("viterbi", "map"))
@@ -143,12 +142,11 @@ class _BaseHMM(BaseEstimator):
     # the emission distribution parameters to expose them publicly.
 
     def __init__(self, n_components=1,
-                 startprob_prior=None, transmat_prior=None,
+                 startprob_prior=1.0, transmat_prior=1.0,
                  algorithm="viterbi", random_state=None,
                  n_iter=10, thresh=1e-2, verbose=False,
                  params=string.ascii_letters,
                  init_params=string.ascii_letters):
-        # TODO: move all validation from descriptors to 'fit' and 'predict'.
         self.n_components = n_components
         self.monitor_ = ConvergenceMonitor(thresh, n_iter, verbose)
         self.params = params
@@ -197,15 +195,16 @@ class _BaseHMM(BaseEstimator):
             logprob += logprobij
 
             bwdlattice = self._do_backward_pass(framelogprob)
-            gamma = fwdlattice + bwdlattice
+            log_gamma = fwdlattice + bwdlattice
 
             # gamma is guaranteed to be correctly normalized by logprob at
             # all frames, unless we do approximate inference using pruning.
             # So, we will normalize each frame explicitly in case we
             # pruned too aggressively.
-            posteriors[i:j] = np.exp(gamma.T - logsumexp(gamma, axis=1)).T
-            posteriors[i:j] += np.finfo(np.float64).eps
-            posteriors[i:j] /= np.sum(posteriors, axis=1).reshape((-1, 1))
+            log_gamma += np.finfo(float).eps
+            log_gamma -= logsumexp(log_gamma, axis=1)[:, np.newaxis]
+            np.exp(log_gamma, out=posteriors[i:j])
+            normalize(posteriors[i:j], axis=1)
         return logprob, posteriors
 
     def score(self, X, lengths=None):
@@ -469,14 +468,16 @@ class _BaseHMM(BaseEstimator):
         if len(self.startprob_) != self.n_components:
             raise ValueError("startprob_ must have length n_components")
         if not np.allclose(self.startprob_.sum(), 1.0):
-            raise ValueError("startprob_ must sum to 1.0")
+            raise ValueError("startprob_ must sum to 1.0 (got {0:.4f})"
+                             .format(self.startprob_.sum()))
 
         self.transmat_ = np.asarray(self.transmat_)
         if self.transmat_.shape != (self.n_components, self.n_components):
             raise ValueError(
                 "transmat_ must have shape (n_components, n_components)")
         if not np.allclose(self.transmat_.sum(axis=1), 1.0):
-            raise ValueError('rows of transmat_ must sum to 1.0')
+            raise ValueError("rows of transmat_ must sum to 1.0 (got {0})"
+                             .format(self.transmat_.sum(axis=1)))
 
     # Methods used by self.fit()
 
@@ -508,16 +509,9 @@ class _BaseHMM(BaseEstimator):
     def _do_mstep(self, stats, params):
         # Based on Huang, Acero, Hon, "Spoken Language Processing",
         # p. 443 - 445
-        if self.startprob_prior is None:
-            self.startprob_prior = 1.0
-        if self.transmat_prior is None:
-            self.transmat_prior = 1.0
-
         if 's' in params:
-            self.startprob_ = normalize(
-                np.maximum(self.startprob_prior - 1.0 + stats['start'], 1e-20))
+            self.startprob_ = self.startprob_prior - 1.0 + stats['start']
+            normalize(self.startprob_)
         if 't' in params:
-            transmat_ = normalize(
-                np.maximum(self.transmat_prior - 1.0 + stats['trans'], 1e-20),
-                axis=1)
-            self.transmat_ = transmat_
+            self.transmat_ = self.transmat_prior - 1.0 + stats['trans']
+            normalize(self.transmat_, axis=1)

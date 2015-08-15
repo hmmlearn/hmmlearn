@@ -1,34 +1,66 @@
 import numpy as np
 
 
-def normalize(A, axis=None):
+def normalize(a, axis=None):
     """Normalize the input array so that it sums to 1.
 
     Parameters
     ----------
-    A: array, shape (n_samples, n_features)
+    a: array, shape (n_samples, n_features)
         Non-normalized input data.
     axis: int
         Dimension along which normalization is performed.
 
     Returns
     -------
-    normalized_A: array, shape (n_samples, n_features)
+    res: array, shape (n_samples, n_features)
         A with values normalized (summing to 1) along the prescribed axis
 
     WARNING: Modifies the array inplace.
     """
-    A += np.finfo(float).eps
-    Asum = A.sum(axis)
-    if axis and A.ndim > 1:
+    a += np.finfo(float).eps
+    a_sum = a.sum(axis)
+    if axis and a.ndim > 1:
         # Make sure we don't divide by zero.
-        Asum[Asum == 0] = 1
-        shape = list(A.shape)
+        a_sum[a_sum == 0] = 1
+        shape = list(a.shape)
         shape[axis] = 1
-        Asum.shape = shape
-    A /= Asum
+        a_sum.shape = shape
+    a /= a_sum
     # TODO: should return nothing, since the operation is inplace.
-    return A
+    return a
+
+
+def exp_mask_zero(a):
+    """Computes the exponent of input elements masking underflows."""
+    with np.errstate(under="ignore"):
+        out = np.exp(a)
+    out[out == 0] = np.finfo(float).eps
+    return out
+
+
+def logsumexp(a, axis=0):
+    """Compute the log of the sum of exponentials of input elements.
+
+    Notes
+    -----
+    Unlike the versions implemented in ``scipy.misc`` and
+    ``sklearn.utils.extmath`` this version explicitly masks the underflows
+    occured during ``np.exp``.
+
+    Examples
+    --------
+    >>> a = np.arange(10)
+    >>> np.log(np.sum(np.exp(a)))
+    9.4586297444267107
+    >>> logsumexp(a)
+    9.4586297444267107
+    """
+    a = np.rollaxis(a, axis)
+    a_max = a.max(axis=0)
+    out = np.log(exp_mask_zero(a - a_max).sum(axis=0))
+    out += a_max
+    return out
 
 
 def iter_from_X_lengths(X, lengths):
@@ -39,7 +71,7 @@ def iter_from_X_lengths(X, lengths):
         end = np.cumsum(lengths).astype(np.int32)
         start = end - lengths
         if end[-1] > n_samples:
-            raise ValueError("More than {0:d} samples in lengths array {1!s}"
+            raise ValueError("more than {0:d} samples in lengths array {1!s}"
                              .format(n_samples, lengths))
 
         for i in range(len(lengths)):

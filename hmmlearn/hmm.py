@@ -110,7 +110,7 @@ class GaussianHMM(_BaseHMM):
     GMM : Gaussian mixture model
     """
     def __init__(self, n_components=1, covariance_type='diag',
-                 startprob_prior=None, transmat_prior=None,
+                 startprob_prior=1.0, transmat_prior=1.0,
                  means_prior=0, means_weight=0,
                  covars_prior=1e-2, covars_weight=1,
                  algorithm="viterbi", random_state=None,
@@ -353,7 +353,7 @@ class MultinomialHMM(_BaseHMM):
     """
 
     def __init__(self, n_components=1,
-                 startprob_prior=None, transmat_prior=None,
+                 startprob_prior=1.0, transmat_prior=1.0,
                  algorithm="viterbi", random_state=None,
                  n_iter=10, thresh=1e-2, verbose=False,
                  params="ste", init_params="ste"):
@@ -518,7 +518,7 @@ class GMMHMM(_BaseHMM):
     """
 
     def __init__(self, n_components=1, n_mix=1,
-                 startprob_prior=None, transmat_prior=None,
+                 startprob_prior=1.0, transmat_prior=1.0,
                  covariance_type='diag', covars_prior=1e-2,
                  algorithm="viterbi", random_state=None,
                  n_iter=10, thresh=1e-2, verbose=False,
