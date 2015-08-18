@@ -21,11 +21,11 @@ class ConvergenceMonitor(object):
 
     Parameters
     ----------
-    thresh : double
-        Convergence threshold. The algorithm has converged either if
-        the maximum number of iterations is reached or the log probability
-        improvement between the two consecutive iterations is less than
-        threshold.
+    tol : double
+        Convergence threshold. EM has converged either if the maximum
+        number of iterations is reached or the log probability
+        improvement between the two consecutive iterations is less
+        than threshold.
 
     n_iter : int
         Maximum number of iterations to perform.
@@ -46,8 +46,8 @@ class ConvergenceMonitor(object):
     """
     fmt = "{iter:>10d} {logprob:>16.4f} {delta:>+16.4f}"
 
-    def __init__(self, thresh, n_iter, verbose):
-        self.thresh = thresh
+    def __init__(self, tol, n_iter, verbose):
+        self.tol = tol
         self.n_iter = n_iter
         self.verbose = verbose
         self.history = deque(maxlen=2)
@@ -67,7 +67,7 @@ class ConvergenceMonitor(object):
     def converged(self):
         return (self.iter == self.n_iter or
                 (len(self.history) == 2 and
-                 self.history[1] - self.history[0] < self.thresh))
+                 self.history[1] - self.history[0] < self.tol))
 
 
 class _BaseHMM(BaseEstimator):
@@ -100,8 +100,9 @@ class _BaseHMM(BaseEstimator):
     n_iter : int, optional
         Maximum number of iterations to perform.
 
-    thresh : float, optional
-        Convergence threshold.
+    tol : float, optional
+        Convergence threshold. EM will stop if the gain in log-likelihood
+        is below this value.
 
     verbose : bool, optional
         When ``True`` per-iteration convergence reports are printed
@@ -123,6 +124,9 @@ class _BaseHMM(BaseEstimator):
 
     Attributes
     ----------
+    monitor_ : ConvergenceMonitor
+        Monitor object used to check the convergence of EM.
+
     startprob_ : array, shape (n_components, )
         Initial state occupation distribution.
 
@@ -144,11 +148,10 @@ class _BaseHMM(BaseEstimator):
     def __init__(self, n_components=1,
                  startprob_prior=1.0, transmat_prior=1.0,
                  algorithm="viterbi", random_state=None,
-                 n_iter=10, thresh=1e-2, verbose=False,
+                 n_iter=10, tol=1e-2, verbose=False,
                  params=string.ascii_letters,
                  init_params=string.ascii_letters):
         self.n_components = n_components
-        self.monitor_ = ConvergenceMonitor(thresh, n_iter, verbose)
         self.params = params
         self.init_params = init_params
         self.startprob_prior = startprob_prior
@@ -156,7 +159,8 @@ class _BaseHMM(BaseEstimator):
         self.algorithm = algorithm
         self.random_state = random_state
         self.n_iter = n_iter
-        self.thresh = thresh
+        self.tol = tol
+        self.verbose = verbose
 
     def score_samples(self, X, lengths=None):
         """Compute the log probability under the model and compute posteriors.
@@ -397,6 +401,7 @@ class _BaseHMM(BaseEstimator):
         self._init(X, lengths=lengths, params=self.init_params)
         self._check()
 
+        self.monitor_ = ConvergenceMonitor(self.tol, self.n_iter, self.verbose)
         for iter in range(self.n_iter):
             stats = self._initialize_sufficient_statistics()
             curr_logprob = 0
