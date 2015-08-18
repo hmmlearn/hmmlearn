@@ -55,8 +55,9 @@ class GaussianHMM(_BaseHMM):
     n_iter : int, optional
         Maximum number of iterations to perform.
 
-    thresh : float, optional
-        Convergence threshold.
+    tol : float, optional
+        Convergence threshold. EM will stop if the gain in log-likelihood
+        is below this value.
 
     verbose : bool, optional
         When ``True`` per-iteration convergence reports are printed
@@ -114,13 +115,13 @@ class GaussianHMM(_BaseHMM):
                  means_prior=0, means_weight=0,
                  covars_prior=1e-2, covars_weight=1,
                  algorithm="viterbi", random_state=None,
-                 n_iter=10, thresh=1e-2, verbose=False,
+                 n_iter=10, tol=1e-2, verbose=False,
                  params="stmc", init_params="stmc"):
         _BaseHMM.__init__(self, n_components,
                           startprob_prior=startprob_prior,
                           transmat_prior=transmat_prior, algorithm=algorithm,
                           random_state=random_state, n_iter=n_iter,
-                          thresh=thresh, params=params, verbose=verbose,
+                          tol=tol, params=params, verbose=verbose,
                           init_params=init_params)
 
         self.covariance_type = covariance_type
@@ -306,8 +307,9 @@ class MultinomialHMM(_BaseHMM):
     n_iter : int, optional
         Maximum number of iterations to perform.
 
-    thresh : float, optional
-        Convergence threshold.
+    tol : float, optional
+        Convergence threshold. EM will stop if the gain in log-likelihood
+        is below this value.
 
     verbose : bool, optional
         When ``True`` per-iteration convergence reports are printed
@@ -355,14 +357,14 @@ class MultinomialHMM(_BaseHMM):
     def __init__(self, n_components=1,
                  startprob_prior=1.0, transmat_prior=1.0,
                  algorithm="viterbi", random_state=None,
-                 n_iter=10, thresh=1e-2, verbose=False,
+                 n_iter=10, tol=1e-2, verbose=False,
                  params="ste", init_params="ste"):
         _BaseHMM.__init__(self, n_components,
                           startprob_prior=startprob_prior,
                           transmat_prior=transmat_prior,
                           algorithm=algorithm,
                           random_state=random_state,
-                          n_iter=n_iter, thresh=thresh, verbose=verbose,
+                          n_iter=n_iter, tol=tol, verbose=verbose,
                           params=params, init_params=init_params)
 
     def _compute_log_likelihood(self, X):
@@ -474,8 +476,9 @@ class GMMHMM(_BaseHMM):
     n_iter : int, optional
         Maximum number of iterations to perform.
 
-    thresh : float, optional
-        Convergence threshold.
+    tol : float, optional
+        Convergence threshold. EM will stop if the gain in log-likelihood
+        is below this value.
 
     verbose : bool, optional
         When ``True`` per-iteration convergence reports are printed
@@ -521,13 +524,13 @@ class GMMHMM(_BaseHMM):
                  startprob_prior=1.0, transmat_prior=1.0,
                  covariance_type='diag', covars_prior=1e-2,
                  algorithm="viterbi", random_state=None,
-                 n_iter=10, thresh=1e-2, verbose=False,
+                 n_iter=10, tol=1e-2, verbose=False,
                  params="stmcw", init_params="stmcw"):
         _BaseHMM.__init__(self, n_components,
                           startprob_prior=startprob_prior,
                           transmat_prior=transmat_prior,
                           algorithm=algorithm, random_state=random_state,
-                          n_iter=n_iter, thresh=thresh, verbose=verbose,
+                          n_iter=n_iter, tol=tol, verbose=verbose,
                           params=params, init_params=init_params)
 
         # XXX: Hotfit for n_mix that is incompatible with the scikit's
