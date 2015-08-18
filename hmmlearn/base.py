@@ -22,7 +22,7 @@ class ConvergenceMonitor(object):
     Parameters
     ----------
     thresh : double
-        Convergence threshold. The algorithm has convereged eitehr if
+        Convergence threshold. The algorithm has converged either if
         the maximum number of iterations is reached or the log probability
         improvement between the two consecutive iterations is less than
         threshold.
@@ -324,7 +324,7 @@ class _BaseHMM(BaseEstimator):
 
         Returns
         -------
-        posterios : array, shape (n_samples, n_components)
+        posteriors : array, shape (n_samples, n_components)
             State-membership probabilities for each sample from ``X``.
         """
         _, posteriors = self.score_samples(X, lengths)

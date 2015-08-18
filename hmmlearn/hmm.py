@@ -604,6 +604,7 @@ class GMMHMM(_BaseHMM):
 
     def _do_mstep(self, stats, params):
         super(GMMHMM, self)._do_mstep(stats, params)
+
         # All that is left to do is to apply covars_prior to the
         # parameters updated in _accumulate_sufficient_statistics.
         for state, g in enumerate(self.gmms_):
@@ -623,7 +624,7 @@ class GMMHMM(_BaseHMM):
                     shape = np.ones(g.covars_.ndim)
                     shape[0] = np.shape(g.covars_)[0]
                     cvnorm.shape = shape
-                    if (g.covariance_type in ['spherical', 'diag']):
+                    if g.covariance_type in ['spherical', 'diag']:
                         g.covars_ = (stats['covars'][state] +
                                      self.covars_prior) / cvnorm
                     elif g.covariance_type == 'full':
