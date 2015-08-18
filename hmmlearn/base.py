@@ -113,13 +113,13 @@ class _BaseHMM(BaseEstimator):
         Controls which parameters are updated in the training
         process.  Can contain any combination of 's' for startprob,
         't' for transmat, and other characters for subclass-specific
-        emmission parameters. Defaults to all parameters.
+        emission parameters. Defaults to all parameters.
 
     init_params : string, optional
         Controls which parameters are initialized prior to
         training.  Can contain any combination of 's' for
         startprob, 't' for transmat, and other characters for
-        subclass-specific emmission parameters. Defaults to all
+        subclass-specific emission parameters. Defaults to all
         parameters.
 
     Attributes

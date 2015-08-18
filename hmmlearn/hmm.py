@@ -81,6 +81,9 @@ class GaussianHMM(_BaseHMM):
     n_features : int
         Dimensionality of the Gaussian emissions.
 
+    monitor_ : ConvergenceMonitor
+        Monitor object used to check the convergence of EM.
+
     transmat_ : array, shape (n_components, n_components)
         Matrix of transition probabilities between states.
 
@@ -319,19 +322,22 @@ class MultinomialHMM(_BaseHMM):
     params : string, optional
         Controls which parameters are updated in the training
         process.  Can contain any combination of 's' for startprob,
-        't' for transmat, 'e' for emmissionprob.
+        't' for transmat, 'e' for emissionprob.
         Defaults to all parameters.
 
     init_params : string, optional
         Controls which parameters are initialized prior to
         training.  Can contain any combination of 's' for
-        startprob, 't' for transmat, 'e' for emmissionprob.
+        startprob, 't' for transmat, 'e' for emissionprob.
         Defaults to all parameters.
 
     Attributes
     ----------
     n_features : int
         Number of possible symbols emitted by the model (in the observations).
+
+    monitor_ : ConvergenceMonitor
+        Monitor object used to check the convergence of EM.
 
     transmat_ : array, shape (n_components, n_components)
         Matrix of transition probabilities between states.
@@ -499,6 +505,9 @@ class GMMHMM(_BaseHMM):
 
     Attributes
     ----------
+    monitor_ : ConvergenceMonitor
+        Monitor object used to check the convergence of EM.
+
     startprob_ : array, shape (n_components, )
         Initial state occupation distribution.
 
