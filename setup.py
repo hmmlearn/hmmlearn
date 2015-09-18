@@ -56,7 +56,7 @@ setup_options = dict(
         Extension("hmmlearn._hmmc", ["hmmlearn/_hmmc.c"],
                   extra_compile_args=["-O3"])
     ],
-    requires=["sklearn"]
+    requires=["cython", "sklearn"]
 )
 
 
