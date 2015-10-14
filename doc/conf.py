@@ -34,7 +34,7 @@ extensions = [
 
     'matplotlib.sphinxext.plot_directive',
     'numpydoc',
-    'gen_rst'
+    'sphinxgallery.gen_gallery',
 ]
 
 autosummary_generate = True

@@ -17,5 +17,6 @@ User guide: table of contents
    :titlesonly:
 
    tutorial
+   auto_examples/index
    api
    changelog

@@ -1,6 +1,6 @@
-.. _general_examples:
+.. _examples:
 
-General examples
-----------------
+Examples
+--------
 
-General-purpose and introductory examples for HMMLearn.
+Introductory example for ``hmmlearn``.

@@ -83,7 +83,7 @@ be defined as follows::
 
 .. topic:: Examples:
 
- * :ref:`example_plot_hmm_sampling.py`
+ * :ref:`example_auto_examples_plot_hmm_sampling.py`
 
 Training HMM parameters and inferring the hidden states
 -------------------------------------------------------
@@ -127,7 +127,7 @@ in ``remodel`` will have a different order than those in the generating model.::
 
 .. topic:: Examples:
 
- * :ref:`example_plot_hmm_stock_analysis.py`
+ * :ref:`example_auto_examples_plot_hmm_stock_analysis.py`
 
 Implementing HMMs with custom emission probabilities
 ----------------------------------------------------

@@ -41,6 +41,11 @@ import hmmlearn
 
 VERSION = hmmlearn.__version__
 
+install_requires = ["sklearn"]
+tests_require = install_requires + ["nose"]
+docs_require = install_requires + [
+    "Sphinx", "sphinx-gallery", "numpydoc", "Pillow", "matplotlib"
+]
 
 setup_options = dict(
     name="hmmlearn",
@@ -58,7 +63,11 @@ setup_options = dict(
                   extra_compile_args=["-O3"],
                   include_dirs=[np.get_include()])
     ],
-    requires=["sklearn"]
+    requires=["sklearn"],
+    tests_require=tests_require,
+    extras_require={
+        "tests": tests_require,
+        "docs": docs_require}
 )
 
 
