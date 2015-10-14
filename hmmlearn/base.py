@@ -5,7 +5,7 @@ import sys
 from collections import deque
 
 import numpy as np
-from sklearn.base import BaseEstimator
+from sklearn.base import BaseEstimator, _pprint
 from sklearn.utils import check_array, check_random_state
 from sklearn.utils.validation import check_is_fitted
 
@@ -54,7 +54,14 @@ class ConvergenceMonitor(object):
         self.history = deque(maxlen=2)
         self.iter = 1
 
+    def __repr__(self):
+        class_name = self.__class__.__name__
+        params = dict(vars(self), history=list(self.history))
+        return "{0}({1})".format(
+            class_name, _pprint(params, offset=len(class_name)))
+
     def report(self, logprob):
+        """Reports the log probability of the next iteration."""
         if self.history and self.verbose:
             delta = logprob - self.history[-1]
             message = self.fmt.format(
@@ -66,6 +73,7 @@ class ConvergenceMonitor(object):
 
     @property
     def converged(self):
+        """``True`` if the EM-algorithm converged and ``False`` otherwise."""
         return (self.iter == self.n_iter or
                 (len(self.history) == 2 and
                  self.history[1] - self.history[0] < self.tol))

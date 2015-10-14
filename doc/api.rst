@@ -13,6 +13,9 @@ guidelines on their uses.
 .. autosummary::
    :toctree: generated
 
+   base._BaseHMM
+   base.ConvergenceMonitor
+
    hmm.GaussianHMM
    hmm.MultinomialHMM
    hmm.GMMHMM
