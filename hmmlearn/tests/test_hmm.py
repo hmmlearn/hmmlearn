@@ -123,7 +123,7 @@ class GaussianHMMTestMixin(object):
                    .format(self.covariance_type, diff))
         self.assertTrue(np.all(diff >= -1e-6), message)
 
-    def test_fit_works_on_sequences_of_different_length(self):
+    def test_fit_sequences_of_different_length(self):
         lengths = [3, 4, 5]
         X = self.prng.rand(sum(lengths), self.n_features)
 
@@ -189,23 +189,6 @@ class GaussianHMMTestMixin(object):
                                     sorted(h_learn._covars_.tolist()),
                                     10))
 
-    def test_fit_non_ergodic_transmat(self):
-        h = hmm.GaussianHMM(n_components=5, covariance_type='full',
-                            n_iter=100, init_params='st')
-        h.startprob_ = np.array([1, 0, 0, 0, 0])
-        h.transmat_ = np.array([[0.9, 0.1, 0, 0, 0],
-                                [0, 0.9, 0.1, 0, 0],
-                                [0, 0, 0.9, 0.1, 0],
-                                [0, 0, 0, 0.9, 0.1],
-                                [0, 0, 0, 0, 1.0]])
-        h.means_ = np.zeros((5, 10))
-        h.covars_ = np.tile(np.identity(10), (5, 1, 1))
-
-        lengths = [10] * 10
-        X, _state_sequence = h.sample(sum(lengths), random_state=self.prng)
-        h.fit(X, lengths=lengths)
-        # TODO: write the actual test
-
 
 class TestGaussianHMMWithSphericalCovars(GaussianHMMTestMixin, TestCase):
     covariance_type = 'spherical'
@@ -227,6 +210,34 @@ class TestGaussianHMMWithDiagonalCovars(GaussianHMMTestMixin, TestCase):
         # diagonal covariance matrix. See PR#44 on GitHub for details
         # and discussion.
         assert h._covars_.flags["WRITEABLE"]
+
+    def test_fit_left_right(self):
+        transmat = np.zeros((self.n_components, self.n_components))
+
+        # Left-to-right: each state is connected to itself and its
+        # direct successor.
+        for i in range(self.n_components):
+            if i == self.n_components - 1:
+                transmat[i, i] = 1.0
+            else:
+                transmat[i, i] = transmat[i, i + 1] = 0.5
+
+        # Always start in first state
+        startprob = np.zeros(self.n_components)
+        startprob[0] = 1.0
+
+        lengths = [10, 8, 1]
+        X = self.prng.rand(sum(lengths), self.n_features)
+
+        h = hmm.GaussianHMM(self.n_components, covariance_type="diag",
+                            params="mct", init_params="cm")
+        h.transmat_ = transmat
+        h.startprob_ = startprob
+        h.fit(X)
+
+        assert_array_almost_equal(transmat[transmat == 0.0],
+                                  h.transmat_[transmat == 0.0])
+
 
 class TestGaussianHMMWithTiedCovars(GaussianHMMTestMixin, TestCase):
     covariance_type = 'tied'

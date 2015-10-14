@@ -6,7 +6,7 @@ def normalize(a, axis=None):
 
     Parameters
     ----------
-    a: array, shape (n_samples, n_features)
+    a: array_like
         Non-normalized input data.
     axis: int
         Dimension along which normalization is performed.
@@ -19,6 +19,7 @@ def normalize(a, axis=None):
     WARNING: Modifies the array inplace.
     """
     a += np.finfo(float).eps
+
     a_sum = a.sum(axis)
     if axis and a.ndim > 1:
         # Make sure we don't divide by zero.
@@ -26,7 +27,9 @@ def normalize(a, axis=None):
         shape = list(a.shape)
         shape[axis] = 1
         a_sum.shape = shape
+
     a /= a_sum
+
     # TODO: should return nothing, since the operation is inplace.
     return a
 
@@ -36,6 +39,14 @@ def exp_mask_zero(a):
     with np.errstate(under="ignore"):
         out = np.exp(a)
     out[out == 0] = np.finfo(float).eps
+    return out
+
+
+def log_mask_zero(a):
+    """Computes the log of input elements masking underflows."""
+    with np.errstate(divide="ignore"):
+        out = np.log(a)
+    out[np.isnan(out)] = 0.0
     return out
 
 

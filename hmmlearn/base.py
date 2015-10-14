@@ -10,7 +10,8 @@ from sklearn.utils import check_array, check_random_state
 from sklearn.utils.validation import check_is_fitted
 
 from . import _hmmc
-from .utils import normalize, logsumexp, iter_from_X_lengths
+from .utils import normalize, logsumexp, iter_from_X_lengths, \
+    log_mask_zero, exp_mask_zero
 
 
 DECODER_ALGORITHMS = frozenset(("viterbi", "map"))
@@ -427,22 +428,26 @@ class _BaseHMM(BaseEstimator):
     def _do_viterbi_pass(self, framelogprob):
         n_observations, n_components = framelogprob.shape
         state_sequence, logprob = _hmmc._viterbi(
-            n_observations, n_components, np.log(self.startprob_),
-            np.log(self.transmat_), framelogprob)
+            n_observations, n_components, log_mask_zero(self.startprob_),
+            log_mask_zero(self.transmat_), framelogprob)
         return logprob, state_sequence
 
     def _do_forward_pass(self, framelogprob):
         n_observations, n_components = framelogprob.shape
         fwdlattice = np.zeros((n_observations, n_components))
-        _hmmc._forward(n_observations, n_components, np.log(self.startprob_),
-                       np.log(self.transmat_), framelogprob, fwdlattice)
+        _hmmc._forward(n_observations, n_components,
+                       log_mask_zero(self.startprob_),
+                       log_mask_zero(self.transmat_),
+                       framelogprob, fwdlattice)
         return logsumexp(fwdlattice[-1]), fwdlattice
 
     def _do_backward_pass(self, framelogprob):
         n_observations, n_components = framelogprob.shape
         bwdlattice = np.zeros((n_observations, n_components))
-        _hmmc._backward(n_observations, n_components, np.log(self.startprob_),
-                        np.log(self.transmat_), framelogprob, bwdlattice)
+        _hmmc._backward(n_observations, n_components,
+                        log_mask_zero(self.startprob_),
+                        log_mask_zero(self.transmat_),
+                        framelogprob, bwdlattice)
         return bwdlattice
 
     def _compute_posteriors(self, fwdlattice, bwdlattice):
@@ -453,7 +458,7 @@ class _BaseHMM(BaseEstimator):
         # pruned too aggressively.
         log_gamma += np.finfo(float).eps
         log_gamma -= logsumexp(log_gamma, axis=1)[:, np.newaxis]
-        out = np.exp(log_gamma)
+        out = exp_mask_zero(log_gamma)
         normalize(out, axis=1)
         return out
 
@@ -510,16 +515,20 @@ class _BaseHMM(BaseEstimator):
 
             lneta = np.zeros((n_observations - 1, n_components, n_components))
             _hmmc._compute_lneta(n_observations, n_components, fwdlattice,
-                                 np.log(self.transmat_),
+                                 log_mask_zero(self.transmat_),
                                  bwdlattice, framelogprob, lneta)
-            stats['trans'] += np.exp(logsumexp(lneta, axis=0))
+            stats['trans'] += exp_mask_zero(logsumexp(lneta, axis=0))
 
     def _do_mstep(self, stats, params):
         # Based on Huang, Acero, Hon, "Spoken Language Processing",
         # p. 443 - 445
         if 's' in params:
-            self.startprob_ = self.startprob_prior - 1.0 + stats['start']
-            normalize(self.startprob_)
+            startprob_ = self.startprob_prior - 1.0 + stats['start']
+            normalize(startprob_)
+            self.startprob_ = np.where(self.startprob_ <= np.finfo(float).eps,
+                                       self.startprob_, startprob_)
         if 't' in params:
-            self.transmat_ = self.transmat_prior - 1.0 + stats['trans']
-            normalize(self.transmat_, axis=1)
+            transmat_ = self.transmat_prior - 1.0 + stats['trans']
+            normalize(transmat_, axis=1)
+            self.transmat_ = np.where(self.transmat_ <= np.finfo(float).eps,
+                                      self.transmat_, transmat_)
