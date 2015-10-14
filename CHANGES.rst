@@ -12,6 +12,8 @@ Version 0.2.0
   from ``seqlearn`` package by @larsmans. See issue #29 on GitHub.
 - Implemented ``ConvergenceMonitor``, a class for convergence diagnostics.
   The idea is due to @mvictor212.
+- Added support for non-fully connected architectures, e.g. left-right HMMs.
+  Thanks to @matthiasplappert. See issue #33 and PR#38 on GitHub.
 - Fixed normalization of emission probabilities in ``MultinomialHMM``, see
   issue #19 on GitHub.
 - ``GaussianHMM`` is now initialized from all observations, see #1 on GitHub.
