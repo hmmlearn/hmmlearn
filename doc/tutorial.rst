@@ -119,8 +119,8 @@ in ``remodel`` will have a different order than those in the generating model.::
 
    You can use the ``monitor`` attribute to diagnose convergence::
 
-       >>> remodel.monitor_
-       ConvergenceMonitor(history=[-349.73892879656177, -349.73708049442644],
+       >>> remodel.monitor_  # doctest: +ELLIPSIS
+       ConvergenceMonitor(history=[...],
                  iter=12, n_iter=100, tol=0.01, verbose=False)
        >>> remodel.monitor_.converged
        True
