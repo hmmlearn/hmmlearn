@@ -58,7 +58,7 @@ setup_options = dict(
                   extra_compile_args=["-O3"],
                   include_dirs=[np.get_include()])
     ],
-    requires=["sklearn"]
+    requires=["cython", "sklearn"]
 )
 
 
