@@ -227,6 +227,7 @@ class _BaseHMM(BaseEstimator):
         check_is_fitted(self, "startprob_")
         self._check()
 
+        X = check_array(X)
         # XXX we can unroll forward pass for speed and memory efficiency.
         logprob = 0
         for i, j in iter_from_X_lengths(X, lengths):

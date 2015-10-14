@@ -16,7 +16,7 @@ Getting the latest code
 
 To get the latest code using git, simply type::
 
-    $ git clone git@github.com/hmmlearn/hmmlearn.git
+    $ git clone https://github.com/hmmlearn/hmmlearn.git
 
 Installing
 ==========
