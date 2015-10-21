@@ -46,7 +46,7 @@ Building the docs
 
 To build the docs you need to have the following packages installed::
 
-    $ pip install Pillow matplotlib Sphinx numpydoc
+    $ pip install Pillow matplotlib Sphinx sphinx-gallery sphinx_rtd_theme numpydoc
 
 Run the command::
 
