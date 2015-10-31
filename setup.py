@@ -9,7 +9,18 @@
 
 import sys
 
-import numpy as np
+try:
+    import numpy as np
+except ImportError:
+    import os.path
+    import sys
+
+    # A dirty hack to get RTD running.
+    class np:
+        @staticmethod
+        def get_include():
+            return os.path.join(sys.prefix, "include")
+
 from setuptools import setup, Extension
 
 
