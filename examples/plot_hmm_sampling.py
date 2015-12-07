@@ -19,11 +19,11 @@ import matplotlib.pyplot as plt
 from hmmlearn import hmm
 
 ##############################################################
-# Prepare parameters for a 3-components HMM
+# Prepare parameters for a 4-components HMM
 # Initial population probability
 startprob = np.array([0.6, 0.3, 0.1, 0.0])
 # The transition matrix, note that there are no transitions possible
-# between component 1 and 4
+# between component 1 and 3
 transmat = np.array([[0.7, 0.2, 0.0, 0.1],
                      [0.3, 0.5, 0.2, 0.0],
                      [0.0, 0.3, 0.5, 0.2],
