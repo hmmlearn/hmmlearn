@@ -11,10 +11,8 @@ hmmlearn
 User guide: table of contents
 =============================
 
-.. include:: includes/big_toc_css.rst
-
 .. toctree::
-   :titlesonly:
+   :maxdepth: 2
 
    tutorial
    auto_examples/index

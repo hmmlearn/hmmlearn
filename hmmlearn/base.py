@@ -14,6 +14,7 @@ from .utils import normalize, logsumexp, iter_from_X_lengths, \
     log_mask_zero, exp_mask_zero
 
 
+#: Supported decoder algorithms.
 DECODER_ALGORITHMS = frozenset(("viterbi", "map"))
 
 
@@ -100,10 +101,11 @@ class _BaseHMM(BaseEstimator):
     transmat_prior : array, shape (n_components, n_components)
         Matrix of prior transition probabilities between states.
 
-    algorithm : string, one of the ``DECODER_ALGORITHMS```
-        Decoder algorithm.
+    algorithm : string
+        Decoder algorithm. Must be one of "viterbi" or "map".
+        Defaults to "viterbi".
 
-    random_state: RandomState or an int seed (0 by default)
+    random_state: RandomState or an int seed
         A random number generator instance.
 
     n_iter : int, optional
@@ -133,13 +135,13 @@ class _BaseHMM(BaseEstimator):
 
     Attributes
     ----------
-    monitor_ : ConvergenceMonitor
+    monitor\_ : ConvergenceMonitor
         Monitor object used to check the convergence of EM.
 
-    startprob_ : array, shape (n_components, )
+    startprob\_ : array, shape (n_components, )
         Initial state occupation distribution.
 
-    transmat_ : array, shape (n_components, n_components)
+    transmat\_ : array, shape (n_components, n_components)
         Matrix of transition probabilities between states.
     """
 
@@ -265,8 +267,9 @@ class _BaseHMM(BaseEstimator):
         lengths : array-like of integers, shape (n_sequences, ), optional
             Lengths of the individual sequences in ``X``. The sum of
             these should be ``n_samples``.
-        algorithm : string, one of the ``DECODER_ALGORITHMS``
-            decoder algorithm to be used
+        algorithm : string
+            Decoder algorithm. Must be one of "viterbi" or "map".
+            If not given, :attr:`decoder` is used.
 
         Returns
         -------

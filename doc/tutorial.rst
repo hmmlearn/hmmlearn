@@ -1,11 +1,9 @@
 .. _tutorial:
 
-========
 Tutorial
 ========
 
 .. currentmodule:: hmmlearn
-
 
 ``hmmlearn`` implements the Hidden Markov Models (HMMs).
 The HMM is a generative probabilistic model, in which a sequence of observable
@@ -15,9 +13,9 @@ The transitions between hidden states are assumed to have the form of a
 (first-order) Markov chain. They can be specified by the start probability
 vector :math:`\boldsymbol{\pi}` and a transition probability matrix
 :math:`\mathbf{A}`. The emission probability of an observable can be any
-distribution with parameters :math:`\boldsymbol{{\theta}}` conditioned on the
+distribution with parameters :math:`\boldsymbol{\theta}` conditioned on the
 current hidden state. The HMM is completely determined by
-:math:`\boldsymbol{\pi, \mathbf{A}}` and :math:`\boldsymbol{{\theta}}`.
+:math:`\boldsymbol{\pi}`, :math:`\mathbf{A}` and :math:`\boldsymbol{\theta}`.
 
 There are three fundamental problems for HMMs:
 
@@ -41,9 +39,8 @@ algorithm, known as the Baum-Welch algorithm.
   [Rabiner89] `A tutorial on hidden Markov models and selected applications in speech recognition <http://www.cs.ubc.ca/~murphyk/Bayes/rabiner.pdf>`_
   Lawrence, R. Rabiner, 1989
 
-
-Using HMM
-=========
+Overview
+--------
 
 Classes in this module include :class:`~hmm.MultinomialHMM`,
 :class:`~hmm.GaussianHMM`, and :class:`~hmm.GMMHMM`. They implement HMM with
@@ -52,7 +49,7 @@ distributions and mixtures of Gaussian distributions.
 
 
 Building HMM and generating samples
-------------------------------------
+-----------------------------------
 
 You can build an HMM instance by passing the parameters described above to the
 constructor. Then, you can generate samples from the HMM by calling

@@ -20,11 +20,9 @@ from sklearn.utils import check_random_state
 from .base import _BaseHMM
 from .utils import iter_from_X_lengths, normalize
 
-__all__ = ['GMMHMM',
-           'GaussianHMM',
-           'MultinomialHMM']
+__all__ = ["GMMHMM", "GaussianHMM", "MultinomialHMM"]
 
-COVARIANCE_TYPES = ['spherical', 'tied', 'diag', 'full']
+COVARIANCE_TYPES = frozenset(("spherical", "diag", "full", "tied"))
 
 
 class GaussianHMM(_BaseHMM):
@@ -37,8 +35,16 @@ class GaussianHMM(_BaseHMM):
 
     covariance_type : string
         String describing the type of covariance parameters to
-        use.  Must be one of 'spherical', 'tied', 'diag', 'full'.
-        Defaults to 'diag'.
+        use.  Must be one of
+
+        * "spherical" --- each state uses a single variance value that
+          applies to all features;
+        * "diag" --- each state uses a diagonal covariance matrix;
+        * "full" --- each state uses a full (i.e. unrestricted)
+          covariance matrix;
+        * "tied" --- all states use **the same** full covariance matrix.
+
+        Defaults to "diag".
 
     startprob_prior : array, shape (n_components, )
         Initial state occupation prior distribution.
@@ -46,10 +52,11 @@ class GaussianHMM(_BaseHMM):
     transmat_prior : array, shape (n_components, n_components)
         Matrix of prior transition probabilities between states.
 
-    algorithm : string, one of the :data:`base.DECODER_ALGORITHMS`
-        Decoder algorithm.
+    algorithm : string
+        Decoder algorithm. Must be one of "viterbi" or "map".
+        Defaults to "viterbi".
 
-    random_state: RandomState or an int seed (0 by default)
+    random_state: RandomState or an int seed
         A random number generator instance.
 
     n_iter : int, optional
@@ -81,21 +88,22 @@ class GaussianHMM(_BaseHMM):
     n_features : int
         Dimensionality of the Gaussian emissions.
 
-    monitor_ : ConvergenceMonitor
+    monitor\_ : ConvergenceMonitor
         Monitor object used to check the convergence of EM.
 
-    transmat_ : array, shape (n_components, n_components)
+    transmat\_ : array, shape (n_components, n_components)
         Matrix of transition probabilities between states.
 
-    startprob_ : array, shape (n_components, )
+    startprob\_ : array, shape (n_components, )
         Initial state occupation distribution.
 
-    means_ : array, shape (n_components, n_features)
+    means\_ : array, shape (n_components, n_features)
         Mean parameters for each state.
 
-    covars_ : array
-        Covariance parameters for each state.  The shape depends on
-        ``covariance_type``::
+    covars\_ : array
+        Covariance parameters for each state.
+
+        The shape depends on ``covariance_type``::
 
             (n_components, )                        if 'spherical',
             (n_features, n_features)                if 'tied',
@@ -290,21 +298,17 @@ class MultinomialHMM(_BaseHMM):
     n_components : int
         Number of states.
 
-    covariance_type : string
-        String describing the type of covariance parameters to
-        use.  Must be one of 'spherical', 'tied', 'diag', 'full'.
-        Defaults to 'diag'.
-
     startprob_prior : array, shape (n_components, )
         Initial state occupation prior distribution.
 
     transmat_prior : array, shape (n_components, n_components)
         Matrix of prior transition probabilities between states.
 
-    algorithm : string, one of the :data:`base.DECODER_ALGORITHMS`
-        Decoder algorithm.
+    algorithm : string
+        Decoder algorithm. Must be one of "viterbi" or "map".
+        Defaults to "viterbi".
 
-    random_state: RandomState or an int seed (0 by default)
+    random_state: RandomState or an int seed
         A random number generator instance.
 
     n_iter : int, optional
@@ -336,16 +340,16 @@ class MultinomialHMM(_BaseHMM):
     n_features : int
         Number of possible symbols emitted by the model (in the observations).
 
-    monitor_ : ConvergenceMonitor
+    monitor\_ : ConvergenceMonitor
         Monitor object used to check the convergence of EM.
 
-    transmat_ : array, shape (n_components, n_components)
+    transmat\_ : array, shape (n_components, n_components)
         Matrix of transition probabilities between states.
 
-    startprob_ : array, shape (n_components, )
+    startprob\_ : array, shape (n_components, )
         Initial state occupation distribution.
 
-    emissionprob_ : array, shape (n_components, n_features)
+    emissionprob\_ : array, shape (n_components, n_features)
         Probability of emitting a given symbol when in each state.
 
     Examples
@@ -463,9 +467,17 @@ class GMMHMM(_BaseHMM):
         Number of states in the GMM.
 
     covariance_type : string
-        String describing the type of covariance parameters for
-        the GMM to use.  Must be one of 'spherical', 'tied', 'diag',
-        'full'. Defaults to 'diag'.
+        String describing the type of covariance parameters to
+        use.  Must be one of
+
+        * "spherical" --- each state uses a single variance value that
+          applies to all features;
+        * "diag" --- each state uses a diagonal covariance matrix;
+        * "full" --- each state uses a full (i.e. unrestricted)
+          covariance matrix;
+        * "tied" --- all states use **the same** full covariance matrix.
+
+        Defaults to "diag".
 
     startprob_prior : array, shape (n_components, )
         Initial state occupation prior distribution.
@@ -473,10 +485,11 @@ class GMMHMM(_BaseHMM):
     transmat_prior : array, shape (n_components, n_components)
         Matrix of prior transition probabilities between states.
 
-    algorithm : string, one of the :data:`base.DECODER_ALGORITHMS`
-        Decoder algorithm.
+    algorithm : string
+        Decoder algorithm. Must be one of "viterbi" or "map".
+        Defaults to "viterbi".
 
-    random_state: RandomState or an int seed (0 by default)
+    random_state: RandomState or an int seed
         A random number generator instance.
 
     n_iter : int, optional
@@ -505,16 +518,16 @@ class GMMHMM(_BaseHMM):
 
     Attributes
     ----------
-    monitor_ : ConvergenceMonitor
+    monitor\_ : ConvergenceMonitor
         Monitor object used to check the convergence of EM.
 
-    startprob_ : array, shape (n_components, )
+    startprob\_ : array, shape (n_components, )
         Initial state occupation distribution.
 
-    transmat_ : array, shape (n_components, n_components)
+    transmat\_ : array, shape (n_components, n_components)
         Matrix of transition probabilities between states.
 
-    gmms_ : list of GMM objects, length n_components
+    gmms\_ : list of GMM objects, length n_components
         GMM emission distributions for each state.
 
     Examples
