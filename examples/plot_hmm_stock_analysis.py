@@ -14,7 +14,13 @@ from __future__ import print_function
 import datetime
 import numpy as np
 import pylab as pl
-from matplotlib.finance import quotes_historical_yahoo_ochl
+try:
+    from matplotlib.finance import quotes_historical_yahoo_ochl
+except ImportError:
+    # For Matplotlib prior to 1.5.
+    from matplotlib.finance import (
+        quotes_historical_yahoo as quotes_historical_yahoo_ochl
+    )
 from matplotlib.dates import YearLocator, MonthLocator, DateFormatter
 from hmmlearn.hmm import GaussianHMM
 
