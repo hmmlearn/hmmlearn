@@ -20,6 +20,9 @@ Version 0.2.0
 - Changed the models to do input validation lazily as suggested by the
   scikit-learn guidelines.
 - Removed deprecated re-exports from ``hmmlean.hmm``.
+- Fixed M-step for ``GMMHMM``, which incorrectly expeced ``GMM.score_samples``
+  to return log-probabilities. See PR #4 on GitHub for discussion. Thanks to
+  @mvictor212 and @michcio1234.
 
 Version 0.1.1
 -------------
