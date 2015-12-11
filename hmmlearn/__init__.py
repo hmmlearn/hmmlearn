@@ -6,7 +6,7 @@ hmmlearn
 Hiden Markov Models.
 """
 
-__version__ = "0.2.0"
+__version__ = "0.2.0dev"
 
 
 def setup_module(module):
@@ -16,7 +16,7 @@ def setup_module(module):
     import random
 
     # It could have been provided in the environment.
-    _random_seed = os.environ.get('HMMLEARN_SEED')
+    _random_seed = os.environ.get("HMMLEARN_SEED")
     if _random_seed is None:
         _random_seed = np.random.uniform() * (2 ** 31 - 1)
     _random_seed = int(_random_seed)

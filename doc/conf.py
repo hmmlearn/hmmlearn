@@ -134,7 +134,7 @@ def linkcode_resolve(domain, info):
         filename = 'hmmlearn/%s#L%d-L%d' % find_source()
     except Exception:
         filename = info['module'].replace('.', '/') + '.py'
-    tag = 'master' if 'dev' in release else ('v' + release)
+    tag = 'master' if 'dev' in release else release
     return "https://github.com/hmmlearn/hmmlearn/blob/%s/%s" % (tag, filename)
 
 # -- Options for HTML output -------------------------------------------------
