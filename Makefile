@@ -4,42 +4,25 @@
 
 PYTHON ?= python
 CYTHON ?= cython
-NOSETESTS ?= nosetests
-CTAGS ?= ctags
+PYTEST ?= py.test
 
 all: clean inplace test
 
-clean-ctags:
-	rm -f tags
-
-clean: clean-ctags
+clean:
 	$(PYTHON) setup.py clean
 	rm -rf dist
 
-in: inplace # just a shortcut
 inplace:
 	$(PYTHON) setup.py build_ext -i
 
-test-code: in
-	$(NOSETESTS) -s -v hmmlearn
-test-doc:
-	$(NOSETESTS) -s -v doc/
-test-coverage:
-	rm -rf coverage .coverage
-	$(NOSETESTS) -s -v --with-coverage hmmlearn
-
-test: test-code test-doc
+test: inplace
+	$(PYTEST) -s -v --doctest-modules hmmlearn
 
 trailing-spaces:
 	find hmmlearn -name "*.py" | xargs perl -pi -e 's/[ \t]*$$//'
 
 cython:
 	find hmmlearn -name "*.pyx" | xargs $(CYTHON)
-
-ctags:
-	# make tags for symbol based navigation in emacs and vim
-	# Install with: sudo apt-get install exuberant-ctags
-	$(CTAGS) -R *
 
 doc: inplace
 	$(MAKE) -C doc html

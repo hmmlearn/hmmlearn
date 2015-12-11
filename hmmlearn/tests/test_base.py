@@ -3,10 +3,10 @@ from __future__ import print_function
 from unittest import TestCase
 
 import numpy as np
-from numpy.testing import assert_array_equal, assert_array_almost_equal
+import pytest
 
 from hmmlearn import hmm
-from hmmlearn.utils import assert_raises, logsumexp
+from hmmlearn.utils import logsumexp
 
 np.seterr(all='warn')
 
@@ -65,7 +65,7 @@ class TestBaseHMM(TestCase):
                                   [0.0230, 0.0975],
                                   [0.0408, 0.0150],
                                   [0.0298, 0.0046]])
-        assert_array_almost_equal(np.exp(fwdlattice), reffwdlattice, 4)
+        assert np.allclose(np.exp(fwdlattice), reffwdlattice, 4)
 
     def test_do_backward_pass(self):
         h, framelogprob = self.setup_example_hmm()
@@ -77,7 +77,7 @@ class TestBaseHMM(TestCase):
                                   [0.4593, 0.2437],
                                   [0.6900, 0.4100],
                                   [1.0000, 1.0000]])
-        assert_array_almost_equal(np.exp(bwdlattice), refbwdlattice, 4)
+        assert np.allclose(np.exp(bwdlattice), refbwdlattice, 4)
 
     def test_do_viterbi_pass(self):
         h, framelogprob = self.setup_example_hmm()
@@ -85,7 +85,7 @@ class TestBaseHMM(TestCase):
         logprob, state_sequence = h._do_viterbi_pass(framelogprob)
 
         refstate_sequence = [0, 0, 1, 0, 0]
-        assert_array_equal(state_sequence, refstate_sequence)
+        assert np.allclose(state_sequence, refstate_sequence)
 
         reflogprob = -4.4590
         self.assertAlmostEqual(logprob, reflogprob, places=4)
@@ -96,7 +96,7 @@ class TestBaseHMM(TestCase):
 
         logprob, posteriors = h.score_samples(framelogprob)
 
-        assert_array_almost_equal(posteriors.sum(axis=1), np.ones(nobs))
+        assert np.allclose(posteriors.sum(axis=1), np.ones(nobs))
 
         reflogprob = -3.3725
         self.assertAlmostEqual(logprob, reflogprob, places=4)
@@ -106,7 +106,7 @@ class TestBaseHMM(TestCase):
                                   [0.3075, 0.6925],
                                   [0.8204, 0.1796],
                                   [0.8673, 0.1327]])
-        assert_array_almost_equal(posteriors, refposteriors, decimal=4)
+        assert np.allclose(posteriors, refposteriors, atol=1e-4)
 
     def test_hmm_score_samples_consistent_with_gmm(self):
         n_components = 8
@@ -125,11 +125,11 @@ class TestBaseHMM(TestCase):
         h.transmat_ = np.ones((n_components, n_components)) / n_components
         logprob, hmmposteriors = h.score_samples(framelogprob)
 
-        assert_array_almost_equal(hmmposteriors.sum(axis=1), np.ones(nobs))
+        assert np.allclose(hmmposteriors.sum(axis=1), np.ones(nobs))
 
         norm = logsumexp(framelogprob, axis=1)[:, np.newaxis]
         gmmposteriors = np.exp(framelogprob - np.tile(norm, (1, n_components)))
-        assert_array_almost_equal(hmmposteriors, gmmposteriors)
+        assert np.allclose(hmmposteriors, gmmposteriors)
 
     def test_hmm_decode_consistent_with_gmm(self):
         n_components = 8
@@ -151,7 +151,7 @@ class TestBaseHMM(TestCase):
         norm = logsumexp(framelogprob, axis=1)[:, np.newaxis]
         gmmposteriors = np.exp(framelogprob - np.tile(norm, (1, n_components)))
         gmmstate_sequence = gmmposteriors.argmax(axis=1)
-        assert_array_equal(state_sequence, gmmstate_sequence)
+        assert np.allclose(state_sequence, gmmstate_sequence)
 
     def test_base_hmm_attributes(self):
         n_components = 20
@@ -166,27 +166,27 @@ class TestBaseHMM(TestCase):
         self.assertEqual(h.n_components, n_components)
 
         h.startprob_ = startprob
-        assert_array_almost_equal(h.startprob_, startprob)
+        assert np.allclose(h.startprob_, startprob)
 
-        with assert_raises(ValueError):
+        with pytest.raises(ValueError):
             h.startprob_ = 2 * startprob
             h._check()
-        with assert_raises(ValueError):
+        with pytest.raises(ValueError):
             h.startprob_ = []
             h._check()
-        with assert_raises(ValueError):
+        with pytest.raises(ValueError):
             h.startprob_ = np.zeros((n_components - 2, 2))
             h._check()
 
         h.startprob_ = startprob
         h.transmat_ = transmat
-        assert_array_almost_equal(h.transmat_, transmat)
-        with assert_raises(ValueError):
+        assert np.allclose(h.transmat_, transmat)
+        with pytest.raises(ValueError):
             h.transmat_ = 2 * transmat
             h._check()
-        with assert_raises(ValueError):
+        with pytest.raises(ValueError):
             h.transmat_ = []
             h._check()
-        with assert_raises(ValueError):
+        with pytest.raises(ValueError):
             h.transmat_ = np.zeros((n_components - 2, n_components))
             h._check()

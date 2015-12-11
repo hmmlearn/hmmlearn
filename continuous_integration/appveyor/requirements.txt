@@ -8,7 +8,7 @@
 # fix the versions of numpy to force the use of numpy and scipy to use the whl
 # of the rackspace folder instead of trying to install from more recent
 # source tarball published on PyPI
-nose
+pytest
 numpy==1.9.3
 scipy==0.16.0
 scikit-learn

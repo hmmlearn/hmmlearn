@@ -34,10 +34,10 @@ in the source code directory.
 Running the test suite
 ======================
 
-To run the test suite, you need ``nosetests`` and the ``coverage`` modules.
+To run the test suite, you need ``pytest`` and the ``coverage`` modules.
 Run the test suite using::
 
-    $ python setup.py build_ext --inplace && nosetests
+    $ python setup.py build_ext --inplace && py.test
 
 from the root of the project.
 

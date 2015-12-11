@@ -87,20 +87,3 @@ def iter_from_X_lengths(X, lengths):
 
         for i in range(len(lengths)):
             yield start[i], end[i]
-
-
-class assert_raises(object):
-    """A backport of the ``assert_raises`` context manager for Python2.6."""
-    def __init__(self, expected):
-        self.expected = expected
-
-    def __enter__(self):
-        return self
-
-    def __exit__(self, exc_type, exc_value, tb):
-        if exc_type is None:
-            exc_name = getattr(self.expected, "__name__", str(self.expected))
-            raise AssertionError("{0} is not raised".format(exc_name))
-
-        # propagate the unexpected exception if any.
-        return issubclass(exc_type, self.expected)

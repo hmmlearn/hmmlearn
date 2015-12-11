@@ -27,7 +27,7 @@ conda update --yes conda
 
 # Configure the conda environment and put it in the path using the
 # provided versions
-conda create -n testenv --yes python=$PYTHON_VERSION pip nose \
+conda create -n testenv --yes python=$PYTHON_VERSION pip pytest \
     scikit-learn cython
 source activate testenv
 

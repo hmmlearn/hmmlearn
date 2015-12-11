@@ -3,14 +3,13 @@ from __future__ import print_function
 from unittest import TestCase
 
 import numpy as np
-from nose import SkipTest
-from numpy.testing import assert_array_equal, assert_array_almost_equal
+import pytest
 from sklearn.datasets.samples_generator import make_spd_matrix
 from sklearn.mixture import GMM
 from sklearn.utils import check_random_state
 
 from hmmlearn import hmm
-from hmmlearn.utils import normalize, assert_raises
+from hmmlearn.utils import normalize
 
 np.seterr(all='warn')
 
@@ -57,7 +56,7 @@ class GaussianHMMTestMixin(object):
         }
 
     def test_bad_covariance_type(self):
-        with assert_raises(ValueError):
+        with pytest.raises(ValueError):
             h = hmm.GaussianHMM(20, covariance_type='badcovariance_type')
             h.means_ = self.means
             h.covars_ = []
@@ -81,10 +80,10 @@ class GaussianHMMTestMixin(object):
         ll, posteriors = h.score_samples(X)
 
         self.assertEqual(posteriors.shape, (n_samples, self.n_components))
-        assert_array_almost_equal(posteriors.sum(axis=1), np.ones(n_samples))
+        assert np.allclose(posteriors.sum(axis=1), np.ones(n_samples))
 
         viterbi_ll, stateseq = h.decode(X)
-        assert_array_equal(stateseq, gaussidx)
+        assert np.allclose(stateseq, gaussidx)
 
     def test_sample(self, n=1000):
         h = hmm.GaussianHMM(self.n_components, self.covariance_type)
@@ -235,7 +234,7 @@ class TestGaussianHMMWithDiagonalCovars(GaussianHMMTestMixin, TestCase):
         h.startprob_ = startprob
         h.fit(X)
 
-        assert_array_almost_equal(transmat[transmat == 0.0],
+        assert np.allclose(transmat[transmat == 0.0],
                                   h.transmat_[transmat == 0.0])
 
 
@@ -281,7 +280,7 @@ class MultinomialHMMTestCase(TestCase):
         X = [[0], [1], [2]]
         logprob, state_sequence = self.h.decode(X)
         self.assertAlmostEqual(np.exp(logprob), 0.01344)
-        assert_array_equal(state_sequence, [1, 0, 0])
+        assert np.allclose(state_sequence, [1, 0, 0])
 
     def test_decode_map_algorithm(self):
         X = [[0], [1], [2]]
@@ -290,14 +289,14 @@ class MultinomialHMMTestCase(TestCase):
         h.transmat_ = self.transmat
         h.emissionprob_ = self.emissionprob
         _logprob, state_sequence = h.decode(X)
-        assert_array_equal(state_sequence, [1, 0, 0])
+        assert np.allclose(state_sequence, [1, 0, 0])
 
     def test_predict(self):
         X = [[0], [1], [2]]
         state_sequence = self.h.predict(X)
         posteriors = self.h.predict_proba(X)
-        assert_array_equal(state_sequence, [1, 0, 0])
-        assert_array_almost_equal(posteriors, [
+        assert np.allclose(state_sequence, [1, 0, 0])
+        assert np.allclose(posteriors, [
             [0.23170303, 0.76829697],
             [0.62406281, 0.37593719],
             [0.86397706, 0.13602294],
@@ -311,11 +310,11 @@ class MultinomialHMMTestCase(TestCase):
         h.startprob_ = self.startprob
         h.transmat_ = self.transmat
         h.emissionprob_ = self.emissionprob
-        assert_array_almost_equal(h.emissionprob_, self.emissionprob)
-        with assert_raises(ValueError):
+        assert np.allclose(h.emissionprob_, self.emissionprob)
+        with pytest.raises(ValueError):
             h.emissionprob_ = []
             h._check()
-        with assert_raises(ValueError):
+        with pytest.raises(ValueError):
             h.emissionprob_ = np.zeros((self.n_components - 2,
                                         self.n_features))
             h._check()
@@ -329,7 +328,7 @@ class MultinomialHMMTestCase(TestCase):
         ll, posteriors = self.h.score_samples(X)
 
         self.assertEqual(posteriors.shape, (n_samples, self.n_components))
-        assert_array_almost_equal(posteriors.sum(axis=1), np.ones(n_samples))
+        assert np.allclose(posteriors.sum(axis=1), np.ones(n_samples))
 
     def test_sample(self, n=1000):
         X, state_sequence = self.h.sample(n, random_state=self.prng)
@@ -448,10 +447,10 @@ class GMMHMMTestMixin(object):
         _ll, posteriors = h.score_samples(X)
 
         self.assertEqual(posteriors.shape, (n_samples, self.n_components))
-        assert_array_almost_equal(posteriors.sum(axis=1), np.ones(n_samples))
+        assert np.allclose(posteriors.sum(axis=1), np.ones(n_samples))
 
         _logprob, stateseq = h.decode(X)
-        assert_array_equal(stateseq, refstateseq)
+        assert np.allclose(stateseq, refstateseq)
 
     def test_sample(self, n=1000):
         h = hmm.GMMHMM(self.n_components, covariance_type=self.covariance_type)
@@ -462,6 +461,7 @@ class GMMHMMTestMixin(object):
         self.assertEqual(X.shape, (n, self.n_features))
         self.assertEqual(len(state_sequence), n)
 
+    @pytest.mark.skip
     def test_fit(self, params='stmwc', n_iter=5, verbose=False, **kwargs):
         h = hmm.GMMHMM(self.n_components, covars_prior=1.0)
         h.startprob_ = self.startprob
@@ -488,8 +488,6 @@ class GMMHMMTestMixin(object):
         # XXX: this test appears to check that training log likelihood should
         # never be decreasing (up to a tolerance of 0.5, why?) but this is not
         # the case when the seed changes.
-        raise SkipTest("Unstable test: trainll is not always increasing "
-                       "depending on seed")
 
         self.assertTrue(np.all(np.diff(trainll) > -0.5))
 
