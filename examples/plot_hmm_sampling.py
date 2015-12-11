@@ -1,7 +1,6 @@
 """
-=================
 Sampling from HMM
-=================
+-----------------
 
 This script shows how to sample points from a Hiden Markov Model (HMM):
 we use a 4-components with specified mean and covariance.

@@ -33,12 +33,16 @@ extensions = [
 
     'matplotlib.sphinxext.plot_directive',
     'numpydoc',
-    'sphinxgallery.gen_gallery',
+    'sphinx_gallery.gen_gallery',
 ]
 
 autodoc_default_flags = ['members', 'inherited-members']
 
 numpydoc_show_class_members = False
+
+sphinx_gallery_conf = {
+    'examples_dirs' : '../examples',
+    'gallery_dirs'  : 'auto_examples'}
 
 # Add any paths that contain templates here, relative to this directory.
 templates_path = ['_templates']

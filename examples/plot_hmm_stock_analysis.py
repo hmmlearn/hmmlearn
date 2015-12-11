@@ -1,7 +1,6 @@
 """
-==========================
 Gaussian HMM of stock data
-==========================
+--------------------------
 
 This script shows how to use Gaussian HMM.
 It uses stock price data, which can be obtained from yahoo finance.
