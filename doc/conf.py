@@ -261,3 +261,8 @@ trim_doctests_flags = True
 # examples
 def setup(app):
     app.add_javascript('js/copybutton.js')
+
+# Make sure we can import ``_hmmc`` on RTD.
+import numpy as np
+import pyximport
+pyximport.install(setup_args={"include_dirs": np.get_include()})
