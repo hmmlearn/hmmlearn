@@ -20,6 +20,7 @@ _BaseHMM
 ~~~~~~~~
 
 .. autoclass:: hmmlearn.base._BaseHMM
+   :exclude-members: set_params, get_params
 
 
 hmmlearn.hmm
@@ -29,14 +30,16 @@ GaussianHMM
 ~~~~~~~~~~~
 
 .. autoclass:: hmmlearn.hmm.GaussianHMM
-   :exclude-members: covars_
+   :exclude-members: covars_, set_params, get_params
 
 GMMHMM
 ~~~~~~
 
 .. autoclass:: hmmlearn.hmm.GMMHMM
+   :exclude-members: set_params, get_params
 
 MultinomialHMM
 ~~~~~~~~~~~~~~
 
 .. autoclass:: hmmlearn.hmm.MultinomialHMM
+   :exclude-members: set_params, get_params

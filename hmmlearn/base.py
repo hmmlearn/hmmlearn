@@ -152,9 +152,6 @@ class _BaseHMM(BaseEstimator):
     # _init(), _initialize_sufficient_statistics(),
     # _accumulate_sufficient_statistics(), and _do_mstep(), all of
     # which depend on the specific emission distribution.
-    #
-    # Subclasses will probably also want to implement properties for
-    # the emission distribution parameters to expose them publicly.
 
     def __init__(self, n_components=1,
                  startprob_prior=1.0, transmat_prior=1.0,
@@ -531,8 +528,8 @@ class _BaseHMM(BaseEstimator):
             stats['trans'] += exp_mask_zero(logsumexp(lneta, axis=0))
 
     def _do_mstep(self, stats, params):
-        # Based on Huang, Acero, Hon, "Spoken Language Processing",
-        # p. 443 - 445
+        # The ``np.where`` conditions guard against updating forbidden
+        # states or transitions, which are required by e.g. a left-right HMM.
         if 's' in params:
             startprob_ = self.startprob_prior - 1.0 + stats['start']
             normalize(startprob_)

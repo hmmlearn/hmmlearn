@@ -1,9 +1,10 @@
 # Hidden Markov Models
 #
 # Author: Ron Weiss <ronweiss@gmail.com>
-# and Shiqiao Du <lucidfrontier.45@gmail.com>
+#         Shiqiao Du <lucidfrontier.45@gmail.com>
 # API changes: Jaques Grobler <jaquesgrobler@gmail.com>
 # Modifications to create of the HMMLearn module: Gael Varoquaux
+# More API changes: Sergei Lebedev <superbobry@gmail.com>
 
 """
 The :mod:`hmmlearn.hmm` module implements hidden Markov models.
@@ -116,10 +117,6 @@ class GaussianHMM(_BaseHMM):
     >>> GaussianHMM(n_components=2)
     ...                             #doctest: +ELLIPSIS +NORMALIZE_WHITESPACE
     GaussianHMM(algorithm='viterbi',...
-
-    See Also
-    --------
-    GMM : Gaussian mixture model
     """
     def __init__(self, n_components=1, covariance_type='diag',
                  startprob_prior=1.0, transmat_prior=1.0,
@@ -358,10 +355,6 @@ class MultinomialHMM(_BaseHMM):
     >>> MultinomialHMM(n_components=2)
     ...                             #doctest: +ELLIPSIS +NORMALIZE_WHITESPACE
     MultinomialHMM(algorithm='viterbi',...
-
-    See Also
-    --------
-    GaussianHMM : HMM with Gaussian emissions
     """
 
     def __init__(self, n_components=1,
@@ -536,10 +529,6 @@ class GMMHMM(_BaseHMM):
     >>> GMMHMM(n_components=2, n_mix=10, covariance_type='diag')
     ... # doctest: +ELLIPSIS, +NORMALIZE_WHITESPACE
     GMMHMM(algorithm='viterbi', covariance_type='diag',...
-
-    See Also
-    --------
-    GaussianHMM : HMM with Gaussian emissions
     """
 
     def __init__(self, n_components=1, n_mix=1,

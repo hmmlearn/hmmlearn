@@ -235,7 +235,7 @@ class TestGaussianHMMWithDiagonalCovars(GaussianHMMTestMixin, TestCase):
         h.fit(X)
 
         assert np.allclose(transmat[transmat == 0.0],
-                                  h.transmat_[transmat == 0.0])
+                           h.transmat_[transmat == 0.0])
 
 
 class TestGaussianHMMWithTiedCovars(GaussianHMMTestMixin, TestCase):
