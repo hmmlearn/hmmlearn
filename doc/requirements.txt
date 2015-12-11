@@ -3,3 +3,4 @@ numpydoc
 Pillow
 Sphinx
 sphinx-gallery
+scikit-learn
