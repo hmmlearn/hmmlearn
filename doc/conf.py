@@ -140,7 +140,13 @@ def linkcode_resolve(domain, info):
 # -- Options for HTML output -------------------------------------------------
 
 ## Read the docs style:
-html_theme = 'classic'
+try:
+    import sphinx_rtd_theme
+except ImportError:
+    html_theme = 'classic'
+else:
+    html_theme_path = [sphinx_rtd_theme.get_html_theme_path()]
+    html_theme = 'sphinx_rtd_theme'
 
 # Theme options are theme-specific and customize the look and feel of a theme
 # further.  For a list of options available for each theme, see the
