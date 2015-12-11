@@ -34,10 +34,10 @@ in the source code directory.
 Running the test suite
 ======================
 
-To run the test suite, you need ``pytest`` and the ``coverage`` modules.
-Run the test suite using::
+To run the test suite, you need ``pytest``. Run the test suite using::
 
-    $ python setup.py build_ext --inplace && py.test
+    $ python setup.py build_ext --inplace
+    $ py.test --doctest-modules hmmlearn
 
 from the root of the project.
 
