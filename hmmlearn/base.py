@@ -81,9 +81,8 @@ class ConvergenceMonitor(object):
 
 
 class _BaseHMM(BaseEstimator):
-    """Hidden Markov Model base class.
+    """Base class for Hidden Markov Models.
 
-    Representation of a hidden Markov model probability distribution.
     This class allows for easy evaluation of, sampling from, and
     maximum-likelihood estimation of the parameters of a HMM.
 
@@ -352,9 +351,9 @@ class _BaseHMM(BaseEstimator):
         n_samples : int
             Number of samples to generate.
 
-        random_state: RandomState or an int seed (0 by default)
+        random_state : RandomState or an int seed
             A random number generator instance. If ``None``, the object's
-            random_state is used.
+            ``random_state`` is used.
 
         Returns
         -------
@@ -408,7 +407,7 @@ class _BaseHMM(BaseEstimator):
             Returns self.
         """
         X = check_array(X)
-        self._init(X, lengths=lengths, params=self.init_params)
+        self._init(X, lengths=lengths)
         self._check()
 
         self.monitor_ = ConvergenceMonitor(self.tol, self.n_iter, self.verbose)
@@ -423,13 +422,13 @@ class _BaseHMM(BaseEstimator):
                 posteriors = self._compute_posteriors(fwdlattice, bwdlattice)
                 self._accumulate_sufficient_statistics(
                     stats, X[i:j], framelogprob, posteriors, fwdlattice,
-                    bwdlattice, self.params)
+                    bwdlattice)
 
             self.monitor_.report(curr_logprob)
             if self.monitor_.converged:
                 break
 
-            self._do_mstep(stats, self.params)
+            self._do_mstep(stats)
 
         return self
 
@@ -470,21 +469,34 @@ class _BaseHMM(BaseEstimator):
         normalize(out, axis=1)
         return out
 
-    def _compute_log_likelihood(self, X):
-        pass
+    def _init(self, X, lengths):
+        """Initializes model parameters prior to fitting.
 
-    def _generate_sample_from_state(self, state, random_state=None):
-        pass
-
-    def _init(self, X, lengths, params):
+        Parameters
+        ----------
+        X : array-like, shape (n_samples, n_features)
+            Feature matrix of individual samples.
+        lengths : array-like of integers, shape (n_sequences, )
+            Lengths of the individual sequences in ``X``. The sum of
+            these should be ``n_samples``.
+        """
         init = 1. / self.n_components
-        if 's' in params or not hasattr(self, "startprob_"):
+        if 's' in self.init_params or not hasattr(self, "startprob_"):
             self.startprob_ = np.full(self.n_components, init)
-        if 't' in params or not hasattr(self, "transmat_"):
+        if 't' in self.init_params or not hasattr(self, "transmat_"):
             self.transmat_ = np.full((self.n_components, self.n_components),
                                      init)
 
     def _check(self):
+        """Validates model parameters prior to fitting.
+
+        Raises
+        ------
+
+        ValueError
+            If any of the parameters are invalid, e.g. if :attr:`startprob_`
+            don't sum to 1.
+        """
         self.startprob_ = np.asarray(self.startprob_)
         if len(self.startprob_) != self.n_components:
             raise ValueError("startprob_ must have length n_components")
@@ -500,6 +512,41 @@ class _BaseHMM(BaseEstimator):
             raise ValueError("rows of transmat_ must sum to 1.0 (got {0})"
                              .format(self.transmat_.sum(axis=1)))
 
+    def _compute_log_likelihood(self, X):
+        """Computes per-component log probability under the model.
+
+        Parameters
+        ----------
+        X : array-like, shape (n_samples, n_features)
+            Feature matrix of individual samples.
+
+        Returns
+        -------
+        logprob : array, shape (n_samples, n_components)
+            Log probability of each sample in ``X`` for each of the
+            model states.
+        """
+
+    def _generate_sample_from_state(self, state, random_state=None):
+        """Generates a random sample from a given component.
+
+        Parameters
+        ----------
+
+        state : int
+            Index of the component to condition on.
+        random_state: RandomState or an int seed
+            A random number generator instance. If ``None``, the object's
+            ``random_state`` is used.
+
+        Returns
+        -------
+
+        X : array, shape (n_features, )
+            A random sample from the emission distribution corresponding
+            to a given component.
+        """
+
     # Methods used by self.fit()
 
     def _initialize_sufficient_statistics(self):
@@ -509,12 +556,11 @@ class _BaseHMM(BaseEstimator):
         return stats
 
     def _accumulate_sufficient_statistics(self, stats, seq, framelogprob,
-                                          posteriors, fwdlattice, bwdlattice,
-                                          params):
+                                          posteriors, fwdlattice, bwdlattice):
         stats['nobs'] += 1
-        if 's' in params:
+        if 's' in self.params:
             stats['start'] += posteriors[0]
-        if 't' in params:
+        if 't' in self.params:
             n_observations, n_components = framelogprob.shape
             # when the sample is of length 1, it contains no transitions
             # so there is no reason to update our trans. matrix estimate
@@ -527,15 +573,15 @@ class _BaseHMM(BaseEstimator):
                                  bwdlattice, framelogprob, lneta)
             stats['trans'] += exp_mask_zero(logsumexp(lneta, axis=0))
 
-    def _do_mstep(self, stats, params):
+    def _do_mstep(self, stats):
         # The ``np.where`` conditions guard against updating forbidden
         # states or transitions, which are required by e.g. a left-right HMM.
-        if 's' in params:
+        if 's' in self.params:
             startprob_ = self.startprob_prior - 1.0 + stats['start']
             normalize(startprob_)
             self.startprob_ = np.where(self.startprob_ <= np.finfo(float).eps,
                                        self.startprob_, startprob_)
-        if 't' in params:
+        if 't' in self.params:
             transmat_ = self.transmat_prior - 1.0 + stats['trans']
             normalize(transmat_, axis=1)
             self.transmat_ = np.where(self.transmat_ <= np.finfo(float).eps,

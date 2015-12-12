@@ -10,6 +10,9 @@ Version 0.2.0
   ``X`` and an array of sequence ``lengths``. This allowed to use the HMMs
   as part of scikit-learn ``Pipeline``. The idea was shamelessly plugged
   from ``seqlearn`` package by @larsmans. See issue #29 on GitHub.
+- Removed ``params`` and ``init_params`` from internal methods. Accepting
+  these as arguments was redundant and confusing, because both available
+  as instance attributes.
 - Implemented ``ConvergenceMonitor``, a class for convergence diagnostics.
   The idea is due to @mvictor212.
 - Added support for non-fully connected architectures, e.g. left-right HMMs.

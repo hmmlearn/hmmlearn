@@ -65,7 +65,8 @@ class GaussianHMMTestMixin(object):
             h._check()
 
     def test_score_samples_and_decode(self):
-        h = hmm.GaussianHMM(self.n_components, self.covariance_type)
+        h = hmm.GaussianHMM(self.n_components, self.covariance_type,
+                            init_params="st")
         h.means_ = self.means
         h.covars_ = self.covars[self.covariance_type]
 
@@ -76,7 +77,7 @@ class GaussianHMMTestMixin(object):
         gaussidx = np.repeat(np.arange(self.n_components), 5)
         n_samples = len(gaussidx)
         X = self.prng.randn(n_samples, self.n_features) + h.means_[gaussidx]
-        h._init(X, params="st")
+        h._init(X)
         ll, posteriors = h.score_samples(X)
 
         self.assertEqual(posteriors.shape, (n_samples, self.n_components))
@@ -200,9 +201,10 @@ class TestGaussianHMMWithDiagonalCovars(GaussianHMMTestMixin, TestCase):
     covariance_type = 'diag'
 
     def test_covar_is_writeable(self):
-        h = hmm.GaussianHMM(n_components=1, covariance_type='diag')
+        h = hmm.GaussianHMM(n_components=1, covariance_type="diag",
+                            init_params="c")
         X = np.random.normal(size=(1000, 5))
-        h._init(X, params="c")
+        h._init(X)
 
         # np.diag returns a read-only view of the array in NumPy 1.9.X.
         # Make sure this doesn't prevent us from fitting an HMM with
@@ -365,13 +367,14 @@ class MultinomialHMMTestCase(TestCase):
     def test_fit_with_init(self, params='ste', n_iter=5, verbose=False,
                            **kwargs):
         h = self.h
-        learner = hmm.MultinomialHMM(self.n_components)
+        learner = hmm.MultinomialHMM(self.n_components, params=params,
+                                     init_params=params)
 
         lengths = [10] * 10
         X, _state_sequence = h.sample(sum(lengths), random_state=self.prng)
 
         # use init_function to initialize paramerters
-        learner._init(X, lengths=lengths, params=params)
+        learner._init(X, lengths=lengths)
 
         trainll = fit_hmm_and_monitor_log_likelihood(learner, X, n_iter=n_iter)
 

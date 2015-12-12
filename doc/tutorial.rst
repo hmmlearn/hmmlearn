@@ -46,16 +46,15 @@ algorithm, known as the Baum-Welch algorithm.
 Available models
 ----------------
 
-Currently ``hmmlearn`` implements
-
 .. autosummary::
+   :nosignatures:
 
    hmm.GaussianHMM
    hmm.GMMHMM
    hmm.MultinomialHMM
 
-:ref:`Read on <customizing>` for an explanation of how to implement an HMM
-with a custom emission probability.
+:ref:`Read on <customizing>` for details on how to implement an HMM with a
+custom emission probability.
 
 
 Building HMM and generating samples
@@ -146,6 +145,8 @@ subclass :class:`~base._BaseHMM` and override the following methods
 
 .. autosummary::
 
+   base._BaseHMM._init
+   base._BaseHMM._check
    base._BaseHMM._generate_sample_from_state
    base._BaseHMM._compute_log_likelihood
    base._BaseHMM._initialize_sufficient_statistics
