@@ -2,9 +2,6 @@ import numpy as np
 
 from hmmlearn.utils import normalize, logsumexp
 
-rng = np.random.RandomState(0)
-np.seterr(all='warn')
-
 
 def test_normalize():
     A = np.random.normal((128, 4), 42.)
