@@ -24,10 +24,9 @@ class GaussianHMMTestMixin(object):
         self.transmat /= np.tile(self.transmat.sum(axis=1)[:, np.newaxis],
                                  (1, n_components))
         self.means = prng.randint(-20, 20, (n_components, n_features))
-        self.covars = {
-            cv_type: make_covar_matrix(cv_type, n_components, n_features)
-            for cv_type in ["spherical", "tied", "diag", "full"]
-        }
+        self.covars = dict(
+            (cv_type, make_covar_matrix(cv_type, n_components, n_features))
+            for cv_type in ["spherical", "tied", "diag", "full"])
         self.expanded_covars = {
             'spherical': [np.eye(n_features) * cov
                           for cov in self.covars['spherical']],
