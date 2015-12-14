@@ -3,11 +3,30 @@ from __future__ import print_function
 import numpy as np
 import pytest
 
-from hmmlearn import hmm
+from hmmlearn.base import _BaseHMM, ConvergenceMonitor
 from hmmlearn.utils import logsumexp
 
 
-class StubHMM(hmm._BaseHMM):
+class TestMonitor(object):
+    def test_converged_by_iterations(self):
+        m = ConvergenceMonitor(tol=1e-3, n_iter=2, verbose=False)
+        assert not m.converged
+        m.report(-0.01)
+        assert not m.converged
+        m.report(-0.1)
+        assert m.converged
+
+    def test_converged_by_logprob(self):
+        m = ConvergenceMonitor(tol=1e-3, n_iter=10, verbose=False)
+        for logprob in [-0.03, -0.02, -0.01]:
+            m.report(logprob)
+            assert not m.converged
+
+        m.report(-0.0101)
+        assert m.converged
+
+
+class StubHMM(_BaseHMM):
     """An HMM with hardcoded observation probabilities."""
     def _compute_log_likelihood(self, X):
         return self.framelogprob

@@ -53,7 +53,7 @@ class ConvergenceMonitor(object):
         self.n_iter = n_iter
         self.verbose = verbose
         self.history = deque(maxlen=2)
-        self.iter = 1
+        self.iter = 0
 
     def __repr__(self):
         class_name = self.__class__.__name__
@@ -75,6 +75,7 @@ class ConvergenceMonitor(object):
     @property
     def converged(self):
         """``True`` if the EM algorithm converged and ``False`` otherwise."""
+        # XXX we might want to check that ``logprob`` is non-decreasing.
         return (self.iter == self.n_iter or
                 (len(self.history) == 2 and
                  self.history[1] - self.history[0] < self.tol))
