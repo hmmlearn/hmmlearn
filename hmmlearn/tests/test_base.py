@@ -13,7 +13,7 @@ class StubHMM(hmm._BaseHMM):
         return self.framelogprob
 
 
-class TestAgainstWikipedia:
+class TestAgainstWikipedia(object):
     def setup_method(self, method):
         # Example from http://en.wikipedia.org/wiki/Forward-backward_algorithm
         self.framelogprob = np.log([[0.9, 0.2],
@@ -76,7 +76,7 @@ class TestAgainstWikipedia:
         assert np.allclose(posteriors, refposteriors, atol=1e-4)
 
 
-class TestConsistentWithGMM:
+class TestConsistentWithGMM(object):
     def setup_method(self, method):
         n_components = 8
         n_samples = 10
