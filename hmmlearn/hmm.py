@@ -334,7 +334,7 @@ class MultinomialHMM(_BaseHMM):
     Attributes
     ----------
     n_features : int
-        Number of possible symbols emitted by the model (in the observations).
+        Number of possible symbols emitted by the model (in the samples).
 
     monitor\_ : ConvergenceMonitor
         Monitor object used to check the convergence of EM.

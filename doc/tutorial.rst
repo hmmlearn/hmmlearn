@@ -62,7 +62,9 @@ Building HMM and generating samples
 
 You can build an HMM instance by passing the parameters described above to the
 constructor. Then, you can generate samples from the HMM by calling
-:meth:`~base._BaseHMM.sample`.::
+:meth:`~base._BaseHMM.sample`.
+
+::
 
     >>> import numpy as np
     >>> from hmmlearn import hmm
@@ -77,15 +79,43 @@ constructor. Then, you can generate samples from the HMM by calling
     >>> model.covars_ = np.tile(np.identity(2), (3, 1, 1))
     >>> X, Z = model.sample(100)
 
-The transition matrix need not to be ergodic. For instance, a left-right HMM can
-be defined as follows::
+   .. TODO: make this an example?
 
-    >>> lr = hmm.GaussianHMM(n_components=3, covariance_type="diag",
-    ...                      init_params="cm", params="cmt")
-    >>> lr.startprob_ = np.array([1.0, 0.0, 0.0])
-    >>> lr.transmat_ = np.array([[0.5, 0.5, 0.0],
-    ...                          [0.0, 0.5, 0.5],
-    ...                          [0.0, 0.0, 1.0]])
+   The transition probability matrix need not to be ergodic. For instance, a
+   left-right HMM can be defined as follows
+
+   ::
+
+       >>> lr = hmm.GaussianHMM(n_components=3, covariance_type="diag",
+       ...                      init_params="cm", params="cmt")
+       >>> lr.startprob_ = np.array([1.0, 0.0, 0.0])
+       >>> lr.transmat_ = np.array([[0.5, 0.5, 0.0],
+       ...                          [0.0, 0.5, 0.5],
+       ...                          [0.0, 0.0, 1.0]])
+
+.. topic:: Fixing parameters
+
+   Each HMM parameter has a character code which can be used to customize its
+   initialization and estimation.  EM algorithm needs a starting point to
+   proceed, thus prior to training each parameter is assigned a value
+   either random or computed from the data. It is possible to hook into this
+   process and provide a starting point explicitly. To do so
+
+     1. ensure that the character code for the parameter is missing from
+        :attr:`~base._BaseHMM.init_params` and then
+     2. set the parameter to the desired value.
+
+   For example, consider an HMM with explicitly initialized transition
+   probability matrix
+
+      >>> model = hmm.GaussianHMM(n_components=3, n_iter=100, init_params="mcs")
+      >>> model.transmat_ = np.array([[0.7, 0.2, 0.1],
+      ...                             [0.3, 0.5, 0.2],
+      ...                             [0.3, 0.3, 0.4]])
+
+   A similar trick applies to parameter estimation. If you want to fix some
+   parameter at a specific value, remove the corresponding character from
+   :attr:`~base._BaseHMM.params` and set the parameter value before training.
 
 .. topic:: Examples:
 
@@ -95,9 +125,9 @@ Training HMM parameters and inferring the hidden states
 -------------------------------------------------------
 
 You can train an HMM by calling the :meth:`~base._BaseHMM.fit` method. The input
-is a matrix of concatenated sequences of observations along with the lengths of
-the sequences. Note, since the EM-algorithm is a gradient-based optimization
-method, it will generally get stuck in local optima. You should in general try
+is a matrix of concatenated sequences of observations (*aka* samples) along with
+the lengths of the sequences. Note, since the EM algorithm is a gradient-based
+optimization method, it will generally get stuck in local optima. You should in general try
 to run ``fit`` with various initializations and select the highest scored model.
 
 The score of the model can be calculated by the :meth:`~base._BaseHMM.score` method.
@@ -108,7 +138,9 @@ specified with decoder algorithm. Currently the Viterbi algorithm
 (``"viterbi"``), and maximum a posteriori estimation (``"map"``) are supported.
 
 This time, the input is a single sequence of observed values.  Note, the states
-in ``remodel`` will have a different order than those in the generating model.::
+in ``remodel`` will have a different order than those in the generating model.
+
+::
 
     >>> remodel = hmm.GaussianHMM(n_components=3, covariance_type="full", n_iter=100)
     >>> remodel.fit(X)  # doctest: +ELLIPSIS, +NORMALIZE_WHITESPACE
@@ -117,13 +149,14 @@ in ``remodel`` will have a different order than those in the generating model.::
 
 .. topic:: Monitoring convergence
 
-   The number of EM-algorithm iteration is upper bounded by the ``n_iter``
+   The number of EM algorithm iteration is upper bounded by the ``n_iter``
    parameter. The training proceeds until ``n_iter`` steps were performed or the
    change in score is lower than the specified threshold ``tol``. Note, that
-   depending on the data EM-algorithm may or may not achieve convergence in the
+   depending on the data EM algorithm may or may not achieve convergence in the
    given number of steps.
 
-   You can use the ``monitor`` attribute to diagnose convergence::
+   You can use the :attr:`~base._BaseHMM.monitor_` attribute to diagnose
+   convergence::
 
        >>> remodel.monitor_  # doctest: +ELLIPSIS
        ConvergenceMonitor(history=[...],
