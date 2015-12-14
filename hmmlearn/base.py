@@ -143,15 +143,6 @@ class _BaseHMM(BaseEstimator):
     transmat\_ : array, shape (n_components, n_components)
         Matrix of transition probabilities between states.
     """
-
-    # This class implements the public interface to all HMMs that
-    # derive from it, including all of the machinery for the
-    # forward-backward and Viterbi algorithms.  Subclasses need only
-    # implement _generate_sample_from_state(), _compute_log_likelihood(),
-    # _init(), _initialize_sufficient_statistics(),
-    # _accumulate_sufficient_statistics(), and _do_mstep(), all of
-    # which depend on the specific emission distribution.
-
     def __init__(self, n_components=1,
                  startprob_prior=1.0, transmat_prior=1.0,
                  algorithm="viterbi", random_state=None,
