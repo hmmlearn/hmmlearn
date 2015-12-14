@@ -4,12 +4,11 @@ from unittest import TestCase
 
 import numpy as np
 import pytest
-from sklearn.datasets.samples_generator import make_spd_matrix
 
 from hmmlearn import hmm
 from hmmlearn.utils import normalize
 
-from ._test_common import fit_hmm_and_monitor_log_likelihood
+from ._test_common import fit_hmm_and_monitor_log_likelihood, make_covar_matrix
 
 
 class GaussianHMMTestMixin(object):
@@ -26,14 +25,8 @@ class GaussianHMMTestMixin(object):
                                  (1, n_components))
         self.means = prng.randint(-20, 20, (n_components, n_features))
         self.covars = {
-            'spherical': (1.0 + 2 * np.dot(prng.rand(n_components, 1),
-                                           np.ones((1, n_features)))) ** 2,
-            'tied': (make_spd_matrix(n_features, random_state=0)
-                     + np.eye(n_features)),
-            'diag': (1.0 + 2 * prng.rand(n_components, n_features)) ** 2,
-            'full': np.array([make_spd_matrix(n_features, random_state=0)
-                              + np.eye(n_features)
-                              for x in range(n_components)]),
+            cv_type: make_covar_matrix(cv_type, n_components, n_features)
+            for cv_type in ["spherical", "tied", "diag", "full"]
         }
         self.expanded_covars = {
             'spherical': [np.eye(n_features) * cov

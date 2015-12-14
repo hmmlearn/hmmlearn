@@ -1,31 +1,20 @@
 from __future__ import absolute_import
 
 import numpy as np
-from sklearn.datasets.samples_generator import make_spd_matrix
 from sklearn.mixture import GMM
 from sklearn.utils import check_random_state
 
 from hmmlearn import hmm
 from hmmlearn.utils import normalize
 
-from ._test_common import fit_hmm_and_monitor_log_likelihood
+from ._test_common import fit_hmm_and_monitor_log_likelihood, make_covar_matrix
 
 
 def create_random_gmm(n_mix, n_features, covariance_type, prng=0):
     prng = check_random_state(prng)
     g = GMM(n_mix, covariance_type=covariance_type)
     g.means_ = prng.randint(-20, 20, (n_mix, n_features))
-    mincv = 0.1
-    g.covars_ = {
-        'spherical': (mincv + mincv * np.dot(prng.rand(n_mix, 1),
-                                             np.ones((1, n_features)))) ** 2,
-        'tied': (make_spd_matrix(n_features, random_state=prng)
-                 + mincv * np.eye(n_features)),
-        'diag': (mincv + mincv * prng.rand(n_mix, n_features)) ** 2,
-        'full': np.array(
-            [make_spd_matrix(n_features, random_state=prng)
-             + mincv * np.eye(n_features) for x in range(n_mix)])
-    }[covariance_type]
+    g.covars_ = make_covar_matrix(covariance_type, n_mix, n_features)
     g.weights_ = normalize(prng.rand(n_mix))
     return g
 
