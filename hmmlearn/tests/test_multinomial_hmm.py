@@ -6,7 +6,7 @@ import pytest
 from hmmlearn import hmm
 from hmmlearn.utils import normalize
 
-from .test_hmm import fit_hmm_and_monitor_log_likelihood
+from ._test_common import fit_hmm_and_monitor_log_likelihood
 
 
 class TestMultinomialHMM(object):
@@ -134,11 +134,7 @@ class TestMultinomialHMM(object):
         trainll = fit_hmm_and_monitor_log_likelihood(learner, X, n_iter=n_iter)
 
         # Check that the loglik is always increasing during training
-        if not np.all(np.diff(trainll) > 0) and verbose:
-            print()
-            print('Test train: (%s)\n  %s\n  %s' % (params, trainll,
-                                                    np.diff(trainll)))
-        assert np.all(np.diff(trainll) > -1.e-3)
+        assert np.all(np.diff(trainll) <= 0)
 
     def test__check_input_symbols(self):
         assert self.h._check_input_symbols([[0, 0, 2, 1, 3, 1, 1]])
