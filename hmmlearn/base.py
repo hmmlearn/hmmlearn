@@ -46,7 +46,7 @@ class ConvergenceMonitor(object):
     iter : int
         Number of iterations performed while training the model.
     """
-    fmt = "{iter:>10d} {logprob:>16.4f} {delta:>+16.4f}"
+    _template = "{iter:>10d} {logprob:>16.4f} {delta:>+16.4f}"
 
     def __init__(self, tol, n_iter, verbose):
         self.tol = tol
@@ -62,11 +62,23 @@ class ConvergenceMonitor(object):
             class_name, _pprint(params, offset=len(class_name)))
 
     def report(self, logprob):
-        """Reports the log probability of the next iteration."""
-        if self.history and self.verbose:
-            delta = logprob - self.history[-1]
-            message = self.fmt.format(
-                iter=self.iter, logprob=logprob, delta=delta)
+        """Reports convergence to :data:`sys.stderr`.
+
+        The output consists of three columns: iteration number, log
+        probability of the data at the current iteration and convergence
+        rate.  At the first iteration convergence rate is unknown and
+        is thus denoted by NaN.
+
+        Parameters
+        ----------
+        logprob : float
+            The log probability of the data as computed by EM algorithm
+            in the current iteration.
+        """
+        if self.verbose:
+            delta = logprob - self.history[-1] if self.history else np.nan
+            message = self._template.format(
+                iter=self.iter + 1, logprob=logprob, delta=delta)
             print(message, file=sys.stderr)
 
         self.history.append(logprob)
@@ -168,6 +180,7 @@ class _BaseHMM(BaseEstimator):
         ----------
         X : array-like, shape (n_samples, n_features)
             Feature matrix of individual samples.
+
         lengths : array-like of integers, shape (n_sequences, ), optional
             Lengths of the individual sequences in ``X``. The sum of
             these should be ``n_samples``.
@@ -208,6 +221,7 @@ class _BaseHMM(BaseEstimator):
         ----------
         X : array-like, shape (n_samples, n_features)
             Feature matrix of individual samples.
+
         lengths : array-like of integers, shape (n_sequences, ), optional
             Lengths of the individual sequences in ``X``. The sum of
             these should be ``n_samples``.
@@ -252,9 +266,11 @@ class _BaseHMM(BaseEstimator):
         ----------
         X : array-like, shape (n_samples, n_features)
             Feature matrix of individual samples.
+
         lengths : array-like of integers, shape (n_sequences, ), optional
             Lengths of the individual sequences in ``X``. The sum of
             these should be ``n_samples``.
+
         algorithm : string
             Decoder algorithm. Must be one of "viterbi" or "map".
             If not given, :attr:`decoder` is used.
@@ -272,7 +288,6 @@ class _BaseHMM(BaseEstimator):
         --------
         score_samples : Compute the log probability under the model and
             posteriors.
-
         score : Compute the log probability under the model.
         """
         check_is_fitted(self, "startprob_")
@@ -306,6 +321,7 @@ class _BaseHMM(BaseEstimator):
         ----------
         X : array-like, shape (n_samples, n_features)
             Feature matrix of individual samples.
+
         lengths : array-like of integers, shape (n_sequences, ), optional
             Lengths of the individual sequences in ``X``. The sum of
             these should be ``n_samples``.
@@ -323,6 +339,7 @@ class _BaseHMM(BaseEstimator):
 
         X : array-like, shape (n_samples, n_features)
             Feature matrix of individual samples.
+
         lengths : array-like of integers, shape (n_sequences, ), optional
             Lengths of the individual sequences in ``X``. The sum of
             these should be ``n_samples``.
@@ -351,6 +368,7 @@ class _BaseHMM(BaseEstimator):
         -------
         X : array, shape (n_samples, n_features)
             Feature matrix.
+
         state_sequence : array, shape (n_samples, )
             State sequence produced by the model.
         """
@@ -389,6 +407,7 @@ class _BaseHMM(BaseEstimator):
         ----------
         X : array-like, shape (n_samples, n_features)
             Feature matrix of individual samples.
+
         lengths : array-like of integers, shape (n_sequences, )
             Lengths of the individual sequences in ``X``. The sum of
             these should be ``n_samples``.
@@ -468,6 +487,7 @@ class _BaseHMM(BaseEstimator):
         ----------
         X : array-like, shape (n_samples, n_features)
             Feature matrix of individual samples.
+
         lengths : array-like of integers, shape (n_sequences, )
             Lengths of the individual sequences in ``X``. The sum of
             these should be ``n_samples``.
@@ -524,16 +544,15 @@ class _BaseHMM(BaseEstimator):
 
         Parameters
         ----------
-
         state : int
             Index of the component to condition on.
+
         random_state: RandomState or an int seed
             A random number generator instance. If ``None``, the object's
             ``random_state`` is used.
 
         Returns
         -------
-
         X : array, shape (n_features, )
             A random sample from the emission distribution corresponding
             to a given component.
@@ -550,13 +569,14 @@ class _BaseHMM(BaseEstimator):
 
         Returns
         -------
-
         nobs : int
             Number of samples in the data.
+
         start : array, shape (n_components, )
             An array where the i-th element corresponds to the posterior
             probability of the first sample being generated by the i-th
             state.
+
         trans : array, shape (n_components, n_components)
             An array where the (i, j)-th element corresponds to the
             posterior probability of transitioning between the i-th to j-th
@@ -576,17 +596,19 @@ class _BaseHMM(BaseEstimator):
         stats : dict
             Sufficient statistics as returned by
             :meth:`~base._BaseHMM._initialize_sufficient_statistics`.
+
         X : array, shape (n_samples, n_features)
             Sample sequence.
+
         framelogprob : array, shape (n_samples, n_components)
             Log-probabilities of each sample under each of the model states.
+
         posteriors : array, shape (n_samples, n_components)
             Posterior probabilities of each sample being generated by each
             of the model states.
-        fwdlattice : array, shape (n_samples, n_components)
-            Log-forward probabilities.
-        bwflattice : array, shape (n_samples, n_components)
-            Log-backward probabilities.
+
+        fwdlattice, bwdlattice : array, shape (n_samples, n_components)
+            Log-forward and log-backward probabilities.
         """
         stats['nobs'] += 1
         if 's' in self.params:

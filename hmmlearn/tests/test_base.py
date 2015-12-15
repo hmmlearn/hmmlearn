@@ -23,6 +23,24 @@ class TestMonitor(object):
         m.report(-0.0101)
         assert m.converged
 
+    def test_report_first_iteration(self, capsys):
+        m = ConvergenceMonitor(tol=1e-3, n_iter=10, verbose=True)
+        m.report(-0.01)
+        out, err = capsys.readouterr()
+        assert not out
+        expected = m._template.format(iter=1, logprob=-0.01, delta=float("nan"))
+        assert err.splitlines() == [expected]
+
+    def test_report(self, capsys):
+        n_iter = 10
+        m = ConvergenceMonitor(tol=1e-3, n_iter=n_iter, verbose=True)
+        for i in reversed(range(n_iter)):
+            m.report(-0.01 * i)
+
+        out, err = capsys.readouterr()
+        assert not out
+        assert len(err.splitlines()) == n_iter
+
 
 class StubHMM(_BaseHMM):
     """An HMM with hardcoded observation probabilities."""
@@ -30,7 +48,7 @@ class StubHMM(_BaseHMM):
         return self.framelogprob
 
 
-class TestAgainstWikipedia(object):
+class TestBaseAgainstWikipedia(object):
     def setup_method(self, method):
         # Example from http://en.wikipedia.org/wiki/Forward-backward_algorithm
         self.framelogprob = np.log([[0.9, 0.2],
@@ -93,7 +111,7 @@ class TestAgainstWikipedia(object):
         assert np.allclose(posteriors, refposteriors, atol=1e-4)
 
 
-class TestConsistentWithGMM(object):
+class TestBaseConsistentWithGMM(object):
     def setup_method(self, method):
         n_components = 8
         n_samples = 10
