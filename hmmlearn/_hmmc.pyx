@@ -1,4 +1,4 @@
-# cython: boundscheck=False
+# cython: boundscheck=False, wraparound=False
 
 cimport cython
 cimport numpy as np
@@ -9,7 +9,7 @@ import numpy as np
 ctypedef np.float64_t dtype_t
 
 
-cdef dtype_t _logsumexp(dtype_t[:] X) nogil:
+cdef inline dtype_t _logsumexp(dtype_t[:] X) nogil:
     # Builtin 'max' is unrolled for speed.
     cdef dtype_t X_max = -INFINITY
     for i in range(X.shape[0]):
@@ -33,18 +33,18 @@ def _forward(int n_samples, int n_components,
         np.ndarray[dtype_t, ndim=2] fwdlattice):
 
     cdef int t, i, j
-    cdef np.ndarray[dtype_t, ndim=1] work_buffer
-    work_buffer = np.zeros(n_components)
+    cdef dtype_t[:] work_buffer = np.zeros(n_components)
 
-    for i in range(n_components):
-        fwdlattice[0, i] = log_startprob[i] + framelogprob[0, i]
+    with nogil:
+        for i in range(n_components):
+            fwdlattice[0, i] = log_startprob[i] + framelogprob[0, i]
 
-    for t in range(1, n_samples):
-        for j in range(n_components):
-            for i in range(n_components):
-                work_buffer[i] = fwdlattice[t - 1, i] + log_transmat[i, j]
+        for t in range(1, n_samples):
+            for j in range(n_components):
+                for i in range(n_components):
+                    work_buffer[i] = fwdlattice[t - 1, i] + log_transmat[i, j]
 
-            fwdlattice[t, j] = _logsumexp(work_buffer) + framelogprob[t, j]
+                fwdlattice[t, j] = _logsumexp(work_buffer) + framelogprob[t, j]
 
 
 def _backward(int n_samples, int n_components,
@@ -55,19 +55,19 @@ def _backward(int n_samples, int n_components,
 
     cdef int t, i, j
     cdef double logprob
-    cdef np.ndarray[dtype_t, ndim = 1] work_buffer
-    work_buffer = np.zeros(n_components)
+    cdef dtype_t[:] work_buffer = np.zeros(n_components)
 
-    for i in range(n_components):
-        bwdlattice[n_samples - 1, i] = 0.0
-
-    for t in range(n_samples - 2, -1, -1):
+    with nogil:
         for i in range(n_components):
-            for j in range(n_components):
-                work_buffer[j] = (log_transmat[i, j]
-                                  + framelogprob[t + 1, j]
-                                  + bwdlattice[t + 1, j])
-            bwdlattice[t, i] = _logsumexp(work_buffer)
+            bwdlattice[n_samples - 1, i] = 0.0
+
+        for t in range(n_samples - 2, -1, -1):
+            for i in range(n_components):
+                for j in range(n_components):
+                    work_buffer[j] = (log_transmat[i, j]
+                                      + framelogprob[t + 1, j]
+                                      + bwdlattice[t + 1, j])
+                bwdlattice[t, i] = _logsumexp(work_buffer)
 
 
 def _compute_lneta(int n_samples, int n_components,
@@ -77,17 +77,18 @@ def _compute_lneta(int n_samples, int n_components,
         np.ndarray[dtype_t, ndim=2] framelogprob,
         np.ndarray[dtype_t, ndim=3] lneta):
 
-    cdef dtype_t logprob = _logsumexp(fwdlattice[-1])
+    cdef dtype_t logprob = _logsumexp(fwdlattice[n_samples - 1])
     cdef int t, i, j
 
-    for t in range(n_samples - 1):
-        for i in range(n_components):
-            for j in range(n_components):
-                lneta[t, i, j] = (fwdlattice[t, i]
-                                  + log_transmat[i, j]
-                                  + framelogprob[t + 1, j]
-                                  + bwdlattice[t + 1, j]
-                                  - logprob)
+    with nogil:
+        for t in range(n_samples - 1):
+            for i in range(n_components):
+                for j in range(n_components):
+                    lneta[t, i, j] = (fwdlattice[t, i]
+                                      + log_transmat[i, j]
+                                      + framelogprob[t + 1, j]
+                                      + bwdlattice[t + 1, j]
+                                      - logprob)
 
 
 def _viterbi(int n_samples, int n_components,

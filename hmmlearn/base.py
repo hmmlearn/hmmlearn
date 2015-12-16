@@ -629,7 +629,7 @@ class _BaseHMM(BaseEstimator):
         Parameters
         ----------
         stats : dict
-            Sufficient statistics updates from all available samples.
+            Sufficient statistics updated from all available samples.
         """
         # The ``np.where`` calls guard against updating forbidden states
         # or transitions in e.g. a left-right HMM.
