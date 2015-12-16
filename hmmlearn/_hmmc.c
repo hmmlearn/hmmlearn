@@ -241,7 +241,7 @@ static CYTHON_INLINE float __PYX_NAN() {
 #include "stdlib.h"
 #include "numpy/arrayobject.h"
 #include "numpy/ufuncobject.h"
-#include "math.h"
+#include "numpy/npy_math.h"
 #include "pythread.h"
 #include "pystate.h"
 #ifdef _OPENMP
@@ -761,7 +761,7 @@ typedef npy_double __pyx_t_5numpy_double_t;
 typedef npy_longdouble __pyx_t_5numpy_longdouble_t;
 
 /* "hmmlearn/_hmmc.pyx":9
- * from libc.math cimport exp, log, isinf, INFINITY
+ * import numpy as np
  * 
  * ctypedef np.float64_t dtype_t             # <<<<<<<<<<<<<<
  * 
@@ -1497,7 +1497,7 @@ static PyTypeObject *__pyx_ptype_5numpy_ndarray = 0;
 static PyTypeObject *__pyx_ptype_5numpy_ufunc = 0;
 static CYTHON_INLINE char *__pyx_f_5numpy__util_dtypestring(PyArray_Descr *, char *, char *, int *); /*proto*/
 
-/* Module declarations from 'libc.math' */
+/* Module declarations from 'numpy.math' */
 
 /* Module declarations from 'hmmlearn._hmmc' */
 static PyTypeObject *__pyx_array_type = 0;
@@ -1886,7 +1886,7 @@ static __pyx_t_8hmmlearn_5_hmmc_dtype_t __pyx_f_8hmmlearn_5_hmmc__logsumexp(__Py
  *     for i in range(X.shape[0]):
  *         if X[i] > X_max:
  */
-  __pyx_v_X_max = (-INFINITY);
+  __pyx_v_X_max = (-NPY_INFINITY);
 
   /* "hmmlearn/_hmmc.pyx":15
  *     # Builtin 'max' is unrolled for speed.
@@ -1939,7 +1939,7 @@ static __pyx_t_8hmmlearn_5_hmmc_dtype_t __pyx_f_8hmmlearn_5_hmmc__logsumexp(__Py
  *         return -INFINITY
  * 
  */
-  __pyx_t_4 = (isinf(__pyx_v_X_max) != 0);
+  __pyx_t_4 = (npy_isinf(__pyx_v_X_max) != 0);
   if (__pyx_t_4) {
 
     /* "hmmlearn/_hmmc.pyx":20
@@ -1949,7 +1949,7 @@ static __pyx_t_8hmmlearn_5_hmmc_dtype_t __pyx_f_8hmmlearn_5_hmmc__logsumexp(__Py
  * 
  *     cdef dtype_t acc = 0
  */
-    __pyx_r = (-INFINITY);
+    __pyx_r = (-NPY_INFINITY);
     goto __pyx_L0;
 
     /* "hmmlearn/_hmmc.pyx":19
@@ -1966,7 +1966,7 @@ static __pyx_t_8hmmlearn_5_hmmc_dtype_t __pyx_f_8hmmlearn_5_hmmc__logsumexp(__Py
  * 
  *     cdef dtype_t acc = 0             # <<<<<<<<<<<<<<
  *     for i in range(X.shape[0]):
- *         acc += exp(X[i] - X_max)
+ *         acc += expl(X[i] - X_max)
  */
   __pyx_v_acc = 0.0;
 
@@ -1974,7 +1974,7 @@ static __pyx_t_8hmmlearn_5_hmmc_dtype_t __pyx_f_8hmmlearn_5_hmmc__logsumexp(__Py
  * 
  *     cdef dtype_t acc = 0
  *     for i in range(X.shape[0]):             # <<<<<<<<<<<<<<
- *         acc += exp(X[i] - X_max)
+ *         acc += expl(X[i] - X_max)
  * 
  */
   __pyx_t_1 = (__pyx_v_X.shape[0]);
@@ -1984,23 +1984,23 @@ static __pyx_t_8hmmlearn_5_hmmc_dtype_t __pyx_f_8hmmlearn_5_hmmc__logsumexp(__Py
     /* "hmmlearn/_hmmc.pyx":24
  *     cdef dtype_t acc = 0
  *     for i in range(X.shape[0]):
- *         acc += exp(X[i] - X_max)             # <<<<<<<<<<<<<<
+ *         acc += expl(X[i] - X_max)             # <<<<<<<<<<<<<<
  * 
- *     return log(acc) + X_max
+ *     return logl(acc) + X_max
  */
     __pyx_t_6 = __pyx_v_i;
     if (__pyx_t_6 < 0) __pyx_t_6 += __pyx_v_X.shape[0];
-    __pyx_v_acc = (__pyx_v_acc + exp(((*((__pyx_t_8hmmlearn_5_hmmc_dtype_t *) ( /* dim=0 */ (__pyx_v_X.data + __pyx_t_6 * __pyx_v_X.strides[0]) ))) - __pyx_v_X_max)));
+    __pyx_v_acc = (__pyx_v_acc + npy_expl(((*((__pyx_t_8hmmlearn_5_hmmc_dtype_t *) ( /* dim=0 */ (__pyx_v_X.data + __pyx_t_6 * __pyx_v_X.strides[0]) ))) - __pyx_v_X_max)));
   }
 
   /* "hmmlearn/_hmmc.pyx":26
- *         acc += exp(X[i] - X_max)
+ *         acc += expl(X[i] - X_max)
  * 
- *     return log(acc) + X_max             # <<<<<<<<<<<<<<
+ *     return logl(acc) + X_max             # <<<<<<<<<<<<<<
  * 
  * 
  */
-  __pyx_r = (log(__pyx_v_acc) + __pyx_v_X_max);
+  __pyx_r = (npy_logl(__pyx_v_acc) + __pyx_v_X_max);
   goto __pyx_L0;
 
   /* "hmmlearn/_hmmc.pyx":12
@@ -18861,16 +18861,16 @@ PyMODINIT_FUNC PyInit__hmmc(void)
   if (__Pyx_patch_abc() < 0) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 1; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
   #endif
 
-  /* "hmmlearn/_hmmc.pyx":6
- * cimport numpy as np
+  /* "hmmlearn/_hmmc.pyx":7
+ * from numpy.math cimport expl, logl, isinf, INFINITY
  * 
  * import numpy as np             # <<<<<<<<<<<<<<
- * from libc.math cimport exp, log, isinf, INFINITY
  * 
+ * ctypedef np.float64_t dtype_t
  */
-  __pyx_t_1 = __Pyx_Import(__pyx_n_s_numpy, 0, -1); if (unlikely(!__pyx_t_1)) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 6; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
+  __pyx_t_1 = __Pyx_Import(__pyx_n_s_numpy, 0, -1); if (unlikely(!__pyx_t_1)) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 7; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
   __Pyx_GOTREF(__pyx_t_1);
-  if (PyDict_SetItem(__pyx_d, __pyx_n_s_np, __pyx_t_1) < 0) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 6; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
+  if (PyDict_SetItem(__pyx_d, __pyx_n_s_np, __pyx_t_1) < 0) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 7; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
   __Pyx_DECREF(__pyx_t_1); __pyx_t_1 = 0;
 
   /* "hmmlearn/_hmmc.pyx":29

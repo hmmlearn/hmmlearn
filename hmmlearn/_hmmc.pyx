@@ -2,9 +2,9 @@
 
 cimport cython
 cimport numpy as np
+from numpy.math cimport expl, logl, isinf, INFINITY
 
 import numpy as np
-from libc.math cimport exp, log, isinf, INFINITY
 
 ctypedef np.float64_t dtype_t
 
@@ -21,9 +21,9 @@ cdef dtype_t _logsumexp(dtype_t[:] X) nogil:
 
     cdef dtype_t acc = 0
     for i in range(X.shape[0]):
-        acc += exp(X[i] - X_max)
+        acc += expl(X[i] - X_max)
 
-    return log(acc) + X_max
+    return logl(acc) + X_max
 
 
 def _forward(int n_samples, int n_components,
