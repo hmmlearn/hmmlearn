@@ -221,9 +221,12 @@ class TestGaussianHMMWithDiagonalCovars(GaussianHMMTestMixin, TestCase):
         assert np.allclose(transmat[transmat == 0.0],
                            h.transmat_[transmat == 0.0])
 
-        assert not np.isnan(h.predict_proba(X)).any()
+        posteriors = h.predict_proba(X)
+        assert not np.isnan(posteriors).any()
+        assert np.allclose(posteriors.sum(axis=1), 1.)
+
         score, state_sequence = h.decode(X, algorithm="viterbi")
-        assert not np.isnan(score)
+        assert np.isfinite(score)
 
 
 class TestGaussianHMMWithTiedCovars(GaussianHMMTestMixin, TestCase):
