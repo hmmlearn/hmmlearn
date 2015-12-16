@@ -10,16 +10,11 @@
 import sys
 
 try:
-    import numpy as np
+    from numpy.distutils.misc_util import get_info
 except ImportError:
-    import os.path
-    import sys
-
     # A dirty hack to get RTD running.
-    class np:
-        @staticmethod
-        def get_include():
-            return os.path.join(sys.prefix, "include")
+    def get_info(name):
+        return {}
 
 from setuptools import setup, Extension
 
@@ -72,7 +67,7 @@ setup_options = dict(
     ext_modules=[
         Extension("hmmlearn._hmmc", ["hmmlearn/_hmmc.c"],
                   extra_compile_args=["-O3"],
-                  include_dirs=[np.get_include()])
+                  **get_info("npymath"))
     ],
     requires=["sklearn"],
     tests_require=tests_require,
