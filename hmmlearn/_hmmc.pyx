@@ -1,36 +1,28 @@
+# cython: boundscheck=False
+
 cimport cython
 cimport numpy as np
 
 import numpy as np
-from libc.math cimport exp, log
+from libc.math cimport exp, log, INFINITY
 
 ctypedef np.float64_t dtype_t
 
-cdef dtype_t _NINF = -np.inf
 
-@cython.boundscheck(False)
-cdef inline dtype_t _max(dtype_t[:] values):
-    # find maximum value (builtin 'max' is unrolled for speed)
-    cdef dtype_t value
-    cdef dtype_t vmax = _NINF
-    for i in range(values.shape[0]):
-        value = values[i]
-        if value > vmax:
-            vmax = value
-    return vmax
-
-@cython.boundscheck(False)
-cdef dtype_t _logsumexp(dtype_t[:] X):
-    cdef dtype_t vmax = _max(X)
-    cdef dtype_t power_sum = 0
-
+cdef dtype_t _logsumexp(dtype_t[:] X) nogil:
+    # Builtin 'max' is unrolled for speed.
+    cdef dtype_t X_max = -INFINITY
     for i in range(X.shape[0]):
-        power_sum += exp(X[i] - vmax)
+        if X[i] > X_max:
+            X_max = X[i]
 
-    return log(power_sum) + vmax
+    cdef dtype_t acc = 0
+    for i in range(X.shape[0]):
+        acc += exp(X[i] - X_max)
+
+    return log(acc) + X_max
 
 
-@cython.boundscheck(False)
 def _forward(int n_observations, int n_components,
         np.ndarray[dtype_t, ndim=1] log_startprob,
         np.ndarray[dtype_t, ndim=2] log_transmat,
@@ -48,10 +40,10 @@ def _forward(int n_observations, int n_components,
         for j in range(n_components):
             for i in range(n_components):
                 work_buffer[i] = fwdlattice[t - 1, i] + log_transmat[i, j]
+
             fwdlattice[t, j] = _logsumexp(work_buffer) + framelogprob[t, j]
 
 
-@cython.boundscheck(False)
 def _backward(int n_observations, int n_components,
         np.ndarray[dtype_t, ndim=1] log_startprob,
         np.ndarray[dtype_t, ndim=2] log_transmat,
@@ -69,12 +61,12 @@ def _backward(int n_observations, int n_components,
     for t in range(n_observations - 2, -1, -1):
         for i in range(n_components):
             for j in range(n_components):
-                work_buffer[j] = log_transmat[i, j] + framelogprob[t + 1, j] \
-                    + bwdlattice[t + 1, j]
+                work_buffer[j] = (log_transmat[i, j]
+                                  + framelogprob[t + 1, j]
+                                  + bwdlattice[t + 1, j])
             bwdlattice[t, i] = _logsumexp(work_buffer)
 
 
-@cython.boundscheck(False)
 def _compute_lneta(int n_observations, int n_components,
         np.ndarray[dtype_t, ndim=2] fwdlattice,
         np.ndarray[dtype_t, ndim=2] log_transmat,
@@ -84,16 +76,17 @@ def _compute_lneta(int n_observations, int n_components,
 
     cdef dtype_t logprob = _logsumexp(fwdlattice[-1])
     cdef int t, i, j
+
     for t in range(n_observations - 1):
         for i in range(n_components):
             for j in range(n_components):
-                lneta[t, i, j] = (fwdlattice[t, i] + log_transmat[i, j]
+                lneta[t, i, j] = (fwdlattice[t, i]
+                                  + log_transmat[i, j]
                                   + framelogprob[t + 1, j]
                                   + bwdlattice[t + 1, j]
                                   - logprob)
 
 
-@cython.boundscheck(False)
 def _viterbi(int n_observations, int n_components,
         np.ndarray[dtype_t, ndim=1] log_startprob,
         np.ndarray[dtype_t, ndim=2] log_transmat,
