@@ -7,7 +7,7 @@ from sklearn.utils import check_random_state
 from hmmlearn import hmm
 from hmmlearn.utils import normalize
 
-from ._test_common import fit_hmm_and_monitor_log_likelihood, make_covar_matrix
+from . import fit_hmm_and_monitor_log_likelihood, make_covar_matrix
 
 
 def create_random_gmm(n_mix, n_features, covariance_type, prng=0):

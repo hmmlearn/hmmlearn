@@ -8,7 +8,7 @@ import pytest
 from hmmlearn import hmm
 from hmmlearn.utils import normalize
 
-from ._test_common import fit_hmm_and_monitor_log_likelihood, make_covar_matrix
+from . import fit_hmm_and_monitor_log_likelihood, make_covar_matrix
 
 
 class GaussianHMMTestMixin(object):
