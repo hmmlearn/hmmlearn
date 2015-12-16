@@ -5,13 +5,13 @@ import sys
 from collections import deque
 
 import numpy as np
+from scipy.misc import logsumexp
 from sklearn.base import BaseEstimator, _pprint
 from sklearn.utils import check_array, check_random_state
 from sklearn.utils.validation import check_is_fitted
 
 from . import _hmmc
-from .utils import normalize, logsumexp, iter_from_X_lengths, \
-    log_mask_zero, exp_mask_zero
+from .utils import normalize, log_normalize, iter_from_X_lengths
 
 
 #: Supported decoder algorithms.
@@ -446,16 +446,16 @@ class _BaseHMM(BaseEstimator):
     def _do_viterbi_pass(self, framelogprob):
         n_samples, n_components = framelogprob.shape
         state_sequence, logprob = _hmmc._viterbi(
-            n_samples, n_components, log_mask_zero(self.startprob_),
-            log_mask_zero(self.transmat_), framelogprob)
+            n_samples, n_components, np.log(self.startprob_),
+            np.log(self.transmat_), framelogprob)
         return logprob, state_sequence
 
     def _do_forward_pass(self, framelogprob):
         n_samples, n_components = framelogprob.shape
         fwdlattice = np.zeros((n_samples, n_components))
         _hmmc._forward(n_samples, n_components,
-                       log_mask_zero(self.startprob_),
-                       log_mask_zero(self.transmat_),
+                       np.log(self.startprob_),
+                       np.log(self.transmat_),
                        framelogprob, fwdlattice)
         return logsumexp(fwdlattice[-1]), fwdlattice
 
@@ -463,22 +463,19 @@ class _BaseHMM(BaseEstimator):
         n_samples, n_components = framelogprob.shape
         bwdlattice = np.zeros((n_samples, n_components))
         _hmmc._backward(n_samples, n_components,
-                        log_mask_zero(self.startprob_),
-                        log_mask_zero(self.transmat_),
+                        np.log(self.startprob_),
+                        np.log(self.transmat_),
                         framelogprob, bwdlattice)
         return bwdlattice
 
     def _compute_posteriors(self, fwdlattice, bwdlattice):
-        log_gamma = fwdlattice + bwdlattice
         # gamma is guaranteed to be correctly normalized by logprob at
         # all frames, unless we do approximate inference using pruning.
         # So, we will normalize each frame explicitly in case we
         # pruned too aggressively.
-        log_gamma += np.finfo(float).eps
-        log_gamma -= logsumexp(log_gamma, axis=1)[:, np.newaxis]
-        out = exp_mask_zero(log_gamma)
-        normalize(out, axis=1)
-        return out
+        log_gamma = fwdlattice + bwdlattice
+        log_normalize(log_gamma, axis=1)
+        return np.exp(log_gamma)
 
     def _init(self, X, lengths):
         """Initializes model parameters prior to fitting.
@@ -622,9 +619,9 @@ class _BaseHMM(BaseEstimator):
 
             lneta = np.zeros((n_samples - 1, n_components, n_components))
             _hmmc._compute_lneta(n_samples, n_components, fwdlattice,
-                                 log_mask_zero(self.transmat_),
+                                 np.log(self.transmat_),
                                  bwdlattice, framelogprob, lneta)
-            stats['trans'] += exp_mask_zero(logsumexp(lneta, axis=0))
+            stats['trans'] += np.exp(logsumexp(lneta, axis=0))
 
     def _do_mstep(self, stats):
         """Performs the M-step of EM algorithm.
@@ -634,15 +631,15 @@ class _BaseHMM(BaseEstimator):
         stats : dict
             Sufficient statistics updates from all available samples.
         """
-        # The ``np.where`` conditions guard against updating forbidden
-        # states or transitions, which are required by e.g. a left-right HMM.
+        # The ``np.where`` calls guard against updating forbidden states
+        # or transitions in e.g. a left-right HMM.
         if 's' in self.params:
             startprob_ = self.startprob_prior - 1.0 + stats['start']
-            normalize(startprob_)
-            self.startprob_ = np.where(self.startprob_ <= np.finfo(float).eps,
+            self.startprob_ = np.where(self.startprob_ == 0.0,
                                        self.startprob_, startprob_)
+            normalize(self.startprob_)
         if 't' in self.params:
             transmat_ = self.transmat_prior - 1.0 + stats['trans']
-            normalize(transmat_, axis=1)
-            self.transmat_ = np.where(self.transmat_ <= np.finfo(float).eps,
+            self.transmat_ = np.where(self.transmat_ == 0.0,
                                       self.transmat_, transmat_)
+            normalize(self.transmat_, axis=1)

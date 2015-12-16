@@ -1,22 +1,26 @@
 import numpy as np
+from scipy.misc import logsumexp
 
 
 def normalize(a, axis=None):
-    """Normalize the input array so that it sums to 1.
+    """Normalizes the input array so that it sums to 1.
 
     Parameters
     ----------
-    a: array_like
+    a : array_like
         Non-normalized input data.
-    axis: int
+
+    axis : int
         Dimension along which normalization is performed.
 
     Returns
     -------
-    res: array, shape (n_samples, n_features)
-        A with values normalized (summing to 1) along the prescribed axis
+    res : array
+        A with values normalized (summing to 1) along the prescribed axis.
 
-    WARNING: Modifies the array inplace.
+    Notes
+    -----
+    Modifies the input **inplace**.
     """
     a += np.finfo(float).eps
 
@@ -34,44 +38,23 @@ def normalize(a, axis=None):
     return a
 
 
-def exp_mask_zero(a):
-    """Computes the exponent of input elements masking underflows."""
-    with np.errstate(under="ignore"):
-        out = np.exp(a)
-    out[out == 0] = np.finfo(float).eps
-    return out
+def log_normalize(a, axis=None):
+    """Normalizes the input array so that the exponent of the sum is 1.
 
+    Parameters
+    ----------
+    a : array_like
+        Non-normalized input data.
 
-def log_mask_zero(a):
-    """Computes the log of input elements masking underflows."""
-    with np.errstate(divide="ignore"):
-        out = np.log(a)
-    out[np.isnan(out)] = 0.0
-    return out
-
-
-def logsumexp(a, axis=0):
-    """Compute the log of the sum of exponentials of input elements.
+    axis : int
+        Dimension along which normalization is performed.
 
     Notes
     -----
-    Unlike the versions implemented in ``scipy.misc`` and
-    ``sklearn.utils.extmath`` this version explicitly masks the underflows
-    occured during ``np.exp``.
-
-    Examples
-    --------
-    >>> a = np.arange(10)
-    >>> np.log(np.sum(np.exp(a)))
-    9.4586297444267107
-    >>> logsumexp(a)
-    9.4586297444267107
+    Modifies the input **inplace**.
     """
-    a = np.rollaxis(a, axis)
-    a_max = a.max(axis=0)
-    out = np.log(exp_mask_zero(a - a_max).sum(axis=0))
-    out += a_max
-    return out
+    a_lse = logsumexp(a, axis)
+    a -= a_lse[:, np.newaxis]
 
 
 def iter_from_X_lengths(X, lengths):
