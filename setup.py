@@ -48,7 +48,7 @@ import hmmlearn
 VERSION = hmmlearn.__version__
 
 install_requires = ["sklearn"]
-tests_require = install_requires + ["nose"]
+tests_require = install_requires + ["pytest"]
 docs_require = install_requires + [
     "Sphinx", "sphinx-gallery", "numpydoc", "Pillow", "matplotlib"
 ]
