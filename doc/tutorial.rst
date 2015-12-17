@@ -79,19 +79,17 @@ constructor. Then, you can generate samples from the HMM by calling
     >>> model.covars_ = np.tile(np.identity(2), (3, 1, 1))
     >>> X, Z = model.sample(100)
 
-   .. TODO: make this an example?
+The transition probability matrix need not to be ergodic. For instance, a
+left-right HMM can be defined as follows
 
-   The transition probability matrix need not to be ergodic. For instance, a
-   left-right HMM can be defined as follows
+::
 
-   ::
-
-       >>> lr = hmm.GaussianHMM(n_components=3, covariance_type="diag",
-       ...                      init_params="cm", params="cmt")
-       >>> lr.startprob_ = np.array([1.0, 0.0, 0.0])
-       >>> lr.transmat_ = np.array([[0.5, 0.5, 0.0],
-       ...                          [0.0, 0.5, 0.5],
-       ...                          [0.0, 0.0, 1.0]])
+    >>> lr = hmm.GaussianHMM(n_components=3, covariance_type="diag",
+    ...                      init_params="cm", params="cmt")
+    >>> lr.startprob_ = np.array([1.0, 0.0, 0.0])
+    >>> lr.transmat_ = np.array([[0.5, 0.5, 0.0],
+    ...                          [0.0, 0.5, 0.5],
+    ...                          [0.0, 0.0, 1.0]])
 
 .. topic:: Fixing parameters
 
