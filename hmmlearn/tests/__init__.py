@@ -23,7 +23,9 @@ def make_covar_matrix(covariance_type, n_components, n_features):
 
 
 def normalized(X, axis=None):
-    return normalize(X.copy(), axis=axis)
+    X_copy = X.copy()
+    normalize(X_copy, axis=axis)
+    return X_copy
 
 
 def log_likelihood_increasing(h, X, lengths, n_iter):

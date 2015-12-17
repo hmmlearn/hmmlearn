@@ -618,7 +618,8 @@ class GMMHMM(_BaseHMM):
             n_features = g.means_.shape[1]
             norm = stats['norm'][state]
             if 'w' in self.params:
-                g.weights_ = normalize(norm.copy())
+                g.weights_ = norm.copy()
+                normalize(g.weights_)
             if 'm' in self.params:
                 g.means_ = stats['means'][state] / norm[:, np.newaxis]
             if 'c' in self.params:

@@ -13,11 +13,6 @@ def normalize(a, axis=None):
     axis : int
         Dimension along which normalization is performed.
 
-    Returns
-    -------
-    res : array
-        A with values normalized (summing to 1) along the prescribed axis.
-
     Notes
     -----
     Modifies the input **inplace**.
@@ -33,9 +28,6 @@ def normalize(a, axis=None):
         a_sum.shape = shape
 
     a /= a_sum
-
-    # TODO: should return nothing, since the operation is inplace.
-    return a
 
 
 def log_normalize(a, axis=None):

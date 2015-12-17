@@ -6,9 +6,8 @@ import numpy as np
 import pytest
 
 from hmmlearn import hmm
-from hmmlearn.utils import normalize
 
-from . import log_likelihood_increasing, make_covar_matrix
+from . import log_likelihood_increasing, make_covar_matrix, normalized
 
 
 class GaussianHMMTestMixin(object):
@@ -82,7 +81,7 @@ class GaussianHMMTestMixin(object):
     def test_fit(self, params='stmc', n_iter=5, **kwargs):
         h = hmm.GaussianHMM(self.n_components, self.covariance_type)
         h.startprob_ = self.startprob
-        h.transmat_ = normalize(
+        h.transmat_ = normalized(
             self.transmat + np.diag(self.prng.rand(self.n_components)), 1)
         h.means_ = 20 * self.means
         h.covars_ = self.covars[self.covariance_type]
@@ -127,7 +126,7 @@ class GaussianHMMTestMixin(object):
         h = hmm.GaussianHMM(self.n_components, self.covariance_type)
         h.startprob_ = self.startprob
         h.startprob_prior = startprob_prior
-        h.transmat_ = normalize(
+        h.transmat_ = normalized(
             self.transmat + np.diag(self.prng.rand(self.n_components)), 1)
         h.transmat_prior = transmat_prior
         h.means_ = 20 * self.means
