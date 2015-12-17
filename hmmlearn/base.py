@@ -435,11 +435,13 @@ class _BaseHMM(BaseEstimator):
                     stats, X[i:j], framelogprob, posteriors, fwdlattice,
                     bwdlattice)
 
+            # XXX must be before convergence check, because otherwise
+            #     there won't be any updates for the case ``n_iter=1``.
+            self._do_mstep(stats)
+
             self.monitor_.report(curr_logprob)
             if self.monitor_.converged:
                 break
-
-            self._do_mstep(stats)
 
         return self
 

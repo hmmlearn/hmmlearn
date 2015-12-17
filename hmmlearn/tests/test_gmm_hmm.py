@@ -5,9 +5,8 @@ from sklearn.mixture import GMM
 from sklearn.utils import check_random_state
 
 from hmmlearn import hmm
-from hmmlearn.utils import normalize
 
-from . import fit_hmm_and_monitor_log_likelihood, make_covar_matrix
+from . import log_likelihood_increasing, make_covar_matrix, normalized
 
 
 def create_random_gmm(n_mix, n_features, covariance_type, prng=0):
@@ -15,7 +14,7 @@ def create_random_gmm(n_mix, n_features, covariance_type, prng=0):
     g = GMM(n_mix, covariance_type=covariance_type)
     g.means_ = prng.randint(-20, 20, (n_mix, n_features))
     g.covars_ = make_covar_matrix(covariance_type, n_mix, n_features)
-    g.weights_ = normalize(prng.rand(n_mix))
+    g.weights_ = normalized(prng.rand(n_mix))
     return g
 
 
@@ -74,7 +73,7 @@ class GMMHMMTestMixin(object):
     def test_fit(self, params='stmwc', n_iter=5):
         h = hmm.GMMHMM(self.n_components, covars_prior=1.0)
         h.startprob_ = self.startprob
-        h.transmat_ = normalize(
+        h.transmat_ = normalized(
             self.transmat + np.diag(self.prng.rand(self.n_components)), 1)
         h.gmms_ = self.gmms
 
@@ -84,13 +83,11 @@ class GMMHMMTestMixin(object):
         # Mess up the parameters and see if we can re-learn them.
         h.n_iter = 0
         h.fit(X, lengths=lengths)
-        h.transmat_ = normalize(self.prng.rand(self.n_components,
-                                               self.n_components), axis=1)
-        h.startprob_ = normalize(self.prng.rand(self.n_components))
+        h.transmat_ = normalized(self.prng.rand(self.n_components,
+                                                self.n_components), axis=1)
+        h.startprob_ = normalized(self.prng.rand(self.n_components))
 
-        trainll = fit_hmm_and_monitor_log_likelihood(
-            h, X, lengths=lengths, n_iter=n_iter)
-        assert np.all(np.diff(trainll) <= 0)
+        assert log_likelihood_increasing(h, X, lengths, n_iter)
 
     def test_fit_works_on_sequences_of_different_length(self):
         lengths = [3, 4, 5]

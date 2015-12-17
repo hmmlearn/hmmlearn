@@ -101,7 +101,7 @@ class TestMultinomailHMM(object):
             np.random.random((self.n_components, self.n_features)),
             axis=1)
 
-        assert log_likelihood_increasing(h, X, lengths=lengths, n_iter=n_iter)
+        assert log_likelihood_increasing(h, X, lengths, n_iter)
 
     def test_fit_emissionprob(self):
         self.test_fit('e')
@@ -115,7 +115,7 @@ class TestMultinomailHMM(object):
                                init_params=params)
         h._init(X, lengths=lengths)
 
-        assert log_likelihood_increasing(h, X, n_iter=n_iter)
+        assert log_likelihood_increasing(h, X, lengths, n_iter)
 
     def test__check_input_symbols(self):
         assert self.h._check_input_symbols([[0, 0, 2, 1, 3, 1, 1]])

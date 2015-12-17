@@ -26,21 +26,14 @@ def normalized(X, axis=None):
     return normalize(X.copy(), axis=axis)
 
 
-def fit_hmm_and_monitor_log_likelihood(h, X, lengths=None, n_iter=1):
-    h.n_iter = 1        # make sure we do a single iteration at a time
-    h.init_params = ''  # and don't re-init params
-    loglikelihoods = np.empty(n_iter, dtype=float)
-    for i in range(n_iter):
-        h.fit(X, lengths=lengths)
-        loglikelihoods[i] = h.score(X, lengths=lengths)
-    return loglikelihoods
-
-
-def log_likelihood_increasing(h, X, lengths=None, n_iter=1):
+def log_likelihood_increasing(h, X, lengths, n_iter):
     h.n_iter = 1        # make sure we do a single iteration at a time
     h.init_params = ''  # and don't re-init params
     log_likelihoods = np.empty(n_iter, dtype=float)
     for i in range(n_iter):
         h.fit(X, lengths=lengths)
         log_likelihoods[i] = h.score(X, lengths=lengths)
-    return (np.diff(log_likelihoods) >= 0).all()
+
+    # TODO: remove == 0, once all the tests are proper.
+    diff = np.diff(log_likelihoods) >= 0
+    return diff.all()
