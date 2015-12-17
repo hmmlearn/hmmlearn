@@ -1,18 +1,10 @@
 import numpy as np
 from sklearn.datasets.samples_generator import make_spd_matrix
 
+from hmmlearn.utils import normalize
+
 # Make NumPy complain about underflows/overflows etc.
 np.seterr(all="warn")
-
-
-def fit_hmm_and_monitor_log_likelihood(h, X, lengths=None, n_iter=1):
-    h.n_iter = 1        # make sure we do a single iteration at a time
-    h.init_params = ''  # and don't re-init params
-    loglikelihoods = np.empty(n_iter, dtype=float)
-    for i in range(n_iter):
-        h.fit(X, lengths=lengths)
-        loglikelihoods[i] = h.score(X, lengths=lengths)
-    return loglikelihoods
 
 
 def make_covar_matrix(covariance_type, n_components, n_features):
@@ -28,3 +20,27 @@ def make_covar_matrix(covariance_type, n_components, n_features):
                            + mincv * np.eye(n_features))
                           for x in range(n_components)])
     }[covariance_type]
+
+
+def normalized(X, axis=None):
+    return normalize(X.copy(), axis=axis)
+
+
+def fit_hmm_and_monitor_log_likelihood(h, X, lengths=None, n_iter=1):
+    h.n_iter = 1        # make sure we do a single iteration at a time
+    h.init_params = ''  # and don't re-init params
+    loglikelihoods = np.empty(n_iter, dtype=float)
+    for i in range(n_iter):
+        h.fit(X, lengths=lengths)
+        loglikelihoods[i] = h.score(X, lengths=lengths)
+    return loglikelihoods
+
+
+def log_likelihood_increasing(h, X, lengths=None, n_iter=1):
+    h.n_iter = 1        # make sure we do a single iteration at a time
+    h.init_params = ''  # and don't re-init params
+    log_likelihoods = np.empty(n_iter, dtype=float)
+    for i in range(n_iter):
+        h.fit(X, lengths=lengths)
+        log_likelihoods[i] = h.score(X, lengths=lengths)
+    return (np.diff(log_likelihoods) >= 0).all()
