@@ -2,18 +2,18 @@
 Gaussian HMM of stock data
 --------------------------
 
-This script shows how to use Gaussian HMM.
-It uses stock price data, which can be obtained from yahoo finance.
-For more information on how to get stock prices with matplotlib, please refer
-to date_demo1.py of matplotlib.
-
+This script shows how to use Gaussian HMM on stock price data from
+Yahoo! finance. For more information on how to visualize stock prices
+with matplotlib, please refer to ``date_demo1.py`` of matplotlib.
 """
 
 from __future__ import print_function
 
 import datetime
+
 import numpy as np
-import pylab as pl
+from matplotlib import cm, pyplot as plt
+from matplotlib.dates import YearLocator, MonthLocator
 try:
     from matplotlib.finance import quotes_historical_yahoo_ochl
 except ImportError:
@@ -21,83 +21,71 @@ except ImportError:
     from matplotlib.finance import (
         quotes_historical_yahoo as quotes_historical_yahoo_ochl
     )
-from matplotlib.dates import YearLocator, MonthLocator, DateFormatter
+
 from hmmlearn.hmm import GaussianHMM
 
 
 print(__doc__)
 
 ###############################################################################
-# Downloading the data
-date1 = datetime.date(1995, 1, 1)  # start date
-date2 = datetime.date(2012, 1, 6)  # end date
-# get quotes from yahoo finance
-quotes = quotes_historical_yahoo_ochl("INTC", date1, date2)
-if len(quotes) == 0:
-    raise SystemExit
+# Get quotes from Yahoo! finance
+quotes = quotes_historical_yahoo_ochl(
+    "INTC", datetime.date(1995, 1, 1), datetime.date(2012, 1, 6))
 
-# unpack quotes
+# Unpack quotes
 dates = np.array([q[0] for q in quotes], dtype=int)
 close_v = np.array([q[2] for q in quotes])
 volume = np.array([q[5] for q in quotes])[1:]
 
-# take diff of close value
-# this makes len(diff) = len(close_t) - 1
-# therefore, others quantity also need to be shifted
-diff = close_v[1:] - close_v[:-1]
+# Take diff of close value. Note that this makes
+# ``len(diff) = len(close_t) - 1``, therefore, other quantities also
+# need to be shifted by 1.
+diff = np.diff(close_v)
 dates = dates[1:]
 close_v = close_v[1:]
 
-# pack diff and volume for training
+# Pack diff and volume for training.
 X = np.column_stack([diff, volume])
 
 ###############################################################################
 # Run Gaussian HMM
-print("fitting to HMM and decoding ...", end='')
+print("fitting to HMM and decoding ...", end="")
 
-# make an HMM instance and execute fit
-model = GaussianHMM(n_components=5, covariance_type="diag", n_iter=1000).fit(X)
+# Make an HMM instance and execute fit
+model = GaussianHMM(n_components=4, covariance_type="diag", n_iter=1000).fit(X)
 
-# predict the optimal sequence of internal hidden state
+# Predict the optimal sequence of internal hidden state
 hidden_states = model.predict(X)
 
-print("done\n")
+print("done")
 
 ###############################################################################
-# print trained parameters and plot
+# Print trained parameters and plot
 print("Transition matrix")
 print(model.transmat_)
 print()
 
-print("means and vars of each hidden state")
+print("Means and vars of each hidden state")
 for i in range(model.n_components):
-    print("%dth hidden state" % i)
+    print("{0}th hidden state".format(i))
     print("mean = ", model.means_[i])
     print("var = ", np.diag(model.covars_[i]))
     print()
 
-years = YearLocator()   # every year
-months = MonthLocator()  # every month
-yearsFmt = DateFormatter('%Y')
-fig = pl.figure()
-ax = fig.add_subplot(111)
+fig, axs = plt.subplots(model.n_components, sharex=True, sharey=True)
+colours = cm.rainbow(np.linspace(0, 1, model.n_components))
+for i, (ax, colour) in enumerate(zip(axs, colours)):
+    # Use fancy indexing to plot data in each state.
+    mask = hidden_states == i
+    ax.plot_date(dates[mask], close_v[mask], ".-", c=colour)
+    ax.set_title("{0}th hidden state".format(i))
 
-for i in range(model.n_components):
-    # use fancy indexing to plot data in each state
-    idx = (hidden_states == i)
-    ax.plot_date(dates[idx], close_v[idx], 'o', label="%dth hidden state" % i)
-ax.legend()
+    # Format the ticks.
+    ax.xaxis.set_major_locator(YearLocator())
+    ax.xaxis.set_minor_locator(MonthLocator())
 
-# format the ticks
-ax.xaxis.set_major_locator(years)
-ax.xaxis.set_major_formatter(yearsFmt)
-ax.xaxis.set_minor_locator(months)
-ax.autoscale_view()
+    ax.grid(True)
 
-# format the coords message box
-ax.fmt_xdata = DateFormatter('%Y-%m-%d')
-ax.fmt_ydata = lambda x: '$%1.2f' % x
-ax.grid(True)
-
+fig.tight_layout()
 fig.autofmt_xdate()
-pl.show()
+fig.show()

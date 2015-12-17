@@ -35,8 +35,7 @@ means = np.array([[0.0,  0.0],
 covars = .5 * np.tile(np.identity(2), (4, 1, 1))
 
 # Build an HMM instance and set parameters
-model = hmm.GaussianHMM(n_components=4, covariance_type="full",
-                        random_state=42)
+model = hmm.GaussianHMM(n_components=4, covariance_type="full")
 
 # Instead of fitting it from the data, we directly set the estimated
 # parameters, the means and covariance of the components
@@ -50,7 +49,7 @@ model.covars_ = covars
 X, Z = model.sample(500)
 
 # Plot the sampled data
-plt.plot(X[:, 0], X[:, 1], "-o", label="observations", ms=6,
+plt.plot(X[:, 0], X[:, 1], ".-", label="observations", ms=6,
          mfc="orange", alpha=0.7)
 
 # Indicate the component numbers
