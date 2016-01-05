@@ -1,6 +1,7 @@
 from __future__ import absolute_import
 
 import numpy as np
+import pytest
 from sklearn.mixture import GMM
 from sklearn.utils import check_random_state
 
@@ -27,9 +28,9 @@ class GMMHMMTestMixin(object):
         self.covariance_type = 'diag'
         self.startprob = self.prng.rand(self.n_components)
         self.startprob = self.startprob / self.startprob.sum()
-        self.transmat = self.prng.rand(self.n_components, self.n_components)
-        self.transmat /= np.tile(self.transmat.sum(axis=1)[:, np.newaxis],
-                                 (1, self.n_components))
+        self.transmat = normalized(
+            self.prng.rand(self.n_components, self.n_components),
+            axis=1)
 
         self.gmms = []
         for state in range(self.n_components):
@@ -38,7 +39,7 @@ class GMMHMMTestMixin(object):
                 prng=self.prng))
 
     def test_score_samples_and_decode(self):
-        h = hmm.GMMHMM(self.n_components)
+        h = hmm.GMMHMM(self.n_components, covariance_type=self.covariance_type)
         h.startprob_ = self.startprob
         h.transmat_ = self.transmat
         h.gmms_ = self.gmms
@@ -50,8 +51,7 @@ class GMMHMMTestMixin(object):
 
         refstateseq = np.repeat(np.arange(self.n_components), 5)
         n_samples = len(refstateseq)
-        X = [h.gmms_[x].sample(1, random_state=self.prng).flatten()
-             for x in refstateseq]
+        X = [h.gmms_[x].sample(1).flatten() for x in refstateseq]
 
         _ll, posteriors = h.score_samples(X)
 
@@ -61,17 +61,19 @@ class GMMHMMTestMixin(object):
         _logprob, stateseq = h.decode(X)
         assert np.allclose(stateseq, refstateseq)
 
-    def test_sample(self, n=1000):
+    def test_sample(self, n_samples=1000):
         h = hmm.GMMHMM(self.n_components, covariance_type=self.covariance_type)
         h.startprob_ = self.startprob
         h.transmat_ = self.transmat
         h.gmms_ = self.gmms
-        X, state_sequence = h.sample(n, random_state=self.prng)
-        assert X.shape == (n, self.n_features)
-        assert len(state_sequence) == n
+        X, state_sequence = h.sample(n_samples)
+        assert X.shape == (n_samples, self.n_features)
+        assert len(state_sequence) == n_samples
 
-    def test_fit(self, params='stmwc', n_iter=5):
-        h = hmm.GMMHMM(self.n_components, covars_prior=1.0)
+    @pytest.mark.parametrize("params", ["stmwc", "wt", "m"])
+    def test_fit(self, params, n_iter=5):
+        h = hmm.GMMHMM(self.n_components, covariance_type=self.covariance_type,
+                       covars_prior=1.0)
         h.startprob_ = self.startprob
         h.transmat_ = normalized(
             self.transmat + np.diag(self.prng.rand(self.n_components)), 1)
@@ -101,12 +103,6 @@ class GMMHMMTestMixin(object):
 
 class TestGMMHMMWithDiagCovars(GMMHMMTestMixin):
     covariance_type = 'diag'
-
-    def test_fit_startprob_and_transmat(self):
-        self.test_fit('st')
-
-    def test_fit_means(self):
-        self.test_fit('m')
 
 
 class TestGMMHMMWithTiedCovars(GMMHMMTestMixin):
