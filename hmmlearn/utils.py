@@ -7,7 +7,7 @@ def normalize(a, axis=None):
 
     Parameters
     ----------
-    a : array_like
+    a : array
         Non-normalized input data.
 
     axis : int
@@ -17,8 +17,6 @@ def normalize(a, axis=None):
     -----
     Modifies the input **inplace**.
     """
-    a += np.finfo(float).eps
-
     a_sum = a.sum(axis)
     if axis and a.ndim > 1:
         # Make sure we don't divide by zero.
@@ -35,7 +33,7 @@ def log_normalize(a, axis=None):
 
     Parameters
     ----------
-    a : array_like
+    a : array
         Non-normalized input data.
 
     axis : int

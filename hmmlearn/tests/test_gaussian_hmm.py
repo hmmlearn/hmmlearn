@@ -207,10 +207,8 @@ class TestGaussianHMMWithDiagonalCovars(GaussianHMMTestMixin, TestCase):
         h.transmat_ = transmat.copy()
         h.fit(X)
 
-        assert np.allclose(startprob[startprob == 0.0],
-                           h.startprob_[startprob == 0.0])
-        assert np.allclose(transmat[transmat == 0.0],
-                           h.transmat_[transmat == 0.0])
+        assert (h.startprob_[startprob == 0.0] == 0.0).all()
+        assert (h.transmat_[transmat == 0.0] == 0.0).all()
 
         posteriors = h.predict_proba(X)
         assert not np.isnan(posteriors).any()
