@@ -42,8 +42,9 @@ autodoc_default_flags = ['members', 'inherited-members']
 numpydoc_show_class_members = False
 
 sphinx_gallery_conf = {
-    'examples_dirs' : '../examples',
-    'gallery_dirs'  : 'auto_examples'}
+    'examples_dirs': '../examples',
+    'gallery_dirs': 'auto_examples'
+}
 
 # Add any paths that contain templates here, relative to this directory.
 templates_path = ['_templates']
@@ -65,7 +66,7 @@ master_doc = 'index'
 
 # General information about the project.
 project = 'hmmlearn'
-copyright = '2010 - 2015, hmmlearn developers (BSD License)'
+copyright = '2010-2016, hmmlearn developers (BSD License)'
 
 # The version info for the project you're documenting, acts as replacement for
 # |version| and |release|, also used in various other places throughout the
@@ -114,6 +115,22 @@ pygments_style = 'sphinx'
 # A list of ignored prefixes for module index sorting.
 #modindex_common_prefix = []
 
+linkcode_base_url = "https://github.com/hmmlearn/hmmlearn/tree/"
+
+def resolve_tag():
+    from urllib.request import urlopen
+    from urllib.error import HTTPError
+    try:
+        urlopen(linkcode_base_url + release)
+    except HTTPError:
+        return "master"
+    else:
+        return release
+
+
+tag = resolve_tag()
+
+
 # Resolve function for the linkcode extension.
 def linkcode_resolve(domain, info):
     def find_source():
@@ -122,21 +139,20 @@ def linkcode_resolve(domain, info):
         obj = sys.modules[info['module']]
         for part in info['fullname'].split('.'):
             obj = getattr(obj, part)
+
         import inspect
         import os
         fn = inspect.getsourcefile(obj)
-        fn = os.path.relpath(fn, start=os.path.dirname(hmmlearn.__file__))
+        fn = os.path.relpath(fn, os.path.dirname(hmmlearn.__file__))
         source, lineno = inspect.getsourcelines(obj)
         return fn, lineno, lineno + len(source) - 1
 
-    if domain != 'py' or not info['module']:
-        return None
     try:
         filename = 'hmmlearn/%s#L%d-L%d' % find_source()
     except Exception:
-        filename = info['module'].replace('.', '/') + '.py'
-    tag = 'master' if 'dev' in release else release
-    return "https://github.com/hmmlearn/hmmlearn/blob/%s/%s" % (tag, filename)
+        return None  # Failed to resolve source or line numbers.
+
+    return linkcode_base_url + "%s/%s" % (tag, filename)
 
 # -- Options for HTML output -------------------------------------------------
 
