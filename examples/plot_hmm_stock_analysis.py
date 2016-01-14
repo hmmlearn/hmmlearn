@@ -89,3 +89,4 @@ for i, (ax, colour) in enumerate(zip(axs, colours)):
 fig.tight_layout()
 fig.autofmt_xdate()
 fig.show()
+plt.show()
