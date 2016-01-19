@@ -1151,8 +1151,6 @@ static char __pyx_k_c[] = "c";
 static char __pyx_k_i[] = "i";
 static char __pyx_k_j[] = "j";
 static char __pyx_k_t[] = "t";
-static char __pyx_k_c0[] = "c0";
-static char __pyx_k_c1[] = "c1";
 static char __pyx_k_id[] = "id";
 static char __pyx_k_np[] = "np";
 static char __pyx_k_buf[] = "buf";
@@ -1268,8 +1266,6 @@ static PyObject *__pyx_n_s_buf;
 static PyObject *__pyx_n_s_bwdlattice;
 static PyObject *__pyx_n_s_c;
 static PyObject *__pyx_n_u_c;
-static PyObject *__pyx_n_s_c0;
-static PyObject *__pyx_n_s_c1;
 static PyObject *__pyx_n_s_class;
 static PyObject *__pyx_n_s_compute_lneta;
 static PyObject *__pyx_kp_s_contiguous_and_direct;
@@ -2625,8 +2621,8 @@ static PyObject *__pyx_pw_8hmmlearn_5_hmmc_7_viterbi(PyObject *__pyx_self, PyObj
 }
 
 static PyObject *__pyx_pf_8hmmlearn_5_hmmc_6_viterbi(CYTHON_UNUSED PyObject *__pyx_self, int __pyx_v_n_samples, int __pyx_v_n_components, __Pyx_memviewslice __pyx_v_log_startprob, __Pyx_memviewslice __pyx_v_log_transmat, __Pyx_memviewslice __pyx_v_framelogprob) {
-  int __pyx_v_c0;
-  int __pyx_v_c1;
+  int __pyx_v_i;
+  int __pyx_v_j;
   int __pyx_v_t;
   int __pyx_v_max_pos;
   __Pyx_memviewslice __pyx_v_viterbi_lattice = { 0, 0, { 0 }, { 0 }, { 0 } };
@@ -2846,8 +2842,8 @@ static PyObject *__pyx_pf_8hmmlearn_5_hmmc_6_viterbi(CYTHON_UNUSED PyObject *__p
  *     work_buffer = np.empty((n_components, n_components))
  * 
  *     with nogil:             # <<<<<<<<<<<<<<
- *         for c1 in range(n_components):
- *             viterbi_lattice[0, c1] = log_startprob[c1] + framelogprob[0, c1]
+ *         for j in range(n_components):
+ *             viterbi_lattice[0, j] = log_startprob[j] + framelogprob[0, j]
  */
   {
       #ifdef WITH_THREAD
@@ -2859,26 +2855,26 @@ static PyObject *__pyx_pf_8hmmlearn_5_hmmc_6_viterbi(CYTHON_UNUSED PyObject *__p
         /* "hmmlearn/_hmmc.pyx":113
  * 
  *     with nogil:
- *         for c1 in range(n_components):             # <<<<<<<<<<<<<<
- *             viterbi_lattice[0, c1] = log_startprob[c1] + framelogprob[0, c1]
+ *         for j in range(n_components):             # <<<<<<<<<<<<<<
+ *             viterbi_lattice[0, j] = log_startprob[j] + framelogprob[0, j]
  * 
  */
         __pyx_t_8 = __pyx_v_n_components;
         for (__pyx_t_9 = 0; __pyx_t_9 < __pyx_t_8; __pyx_t_9+=1) {
-          __pyx_v_c1 = __pyx_t_9;
+          __pyx_v_j = __pyx_t_9;
 
           /* "hmmlearn/_hmmc.pyx":114
  *     with nogil:
- *         for c1 in range(n_components):
- *             viterbi_lattice[0, c1] = log_startprob[c1] + framelogprob[0, c1]             # <<<<<<<<<<<<<<
+ *         for j in range(n_components):
+ *             viterbi_lattice[0, j] = log_startprob[j] + framelogprob[0, j]             # <<<<<<<<<<<<<<
  * 
  *         # Induction
  */
-          __pyx_t_10 = __pyx_v_c1;
+          __pyx_t_10 = __pyx_v_j;
           __pyx_t_11 = 0;
-          __pyx_t_12 = __pyx_v_c1;
+          __pyx_t_12 = __pyx_v_j;
           __pyx_t_13 = 0;
-          __pyx_t_14 = __pyx_v_c1;
+          __pyx_t_14 = __pyx_v_j;
           *((__pyx_t_8hmmlearn_5_hmmc_dtype_t *) ( /* dim=1 */ ((char *) (((__pyx_t_8hmmlearn_5_hmmc_dtype_t *) ( /* dim=0 */ (__pyx_v_viterbi_lattice.data + __pyx_t_13 * __pyx_v_viterbi_lattice.strides[0]) )) + __pyx_t_14)) )) = ((*((__pyx_t_8hmmlearn_5_hmmc_dtype_t *) ( /* dim=0 */ (__pyx_v_log_startprob.data + __pyx_t_10 * __pyx_v_log_startprob.strides[0]) ))) + (*((__pyx_t_8hmmlearn_5_hmmc_dtype_t *) ( /* dim=1 */ (( /* dim=0 */ (__pyx_v_framelogprob.data + __pyx_t_11 * __pyx_v_framelogprob.strides[0]) ) + __pyx_t_12 * __pyx_v_framelogprob.strides[1]) ))));
         }
 
@@ -2886,7 +2882,7 @@ static PyObject *__pyx_pf_8hmmlearn_5_hmmc_6_viterbi(CYTHON_UNUSED PyObject *__p
  * 
  *         # Induction
  *         for t in range(1, n_samples):             # <<<<<<<<<<<<<<
- *             for c0 in range(n_components):
+ *             for i in range(n_components):
  *                 maxbuf = -INFINITY
  */
         __pyx_t_8 = __pyx_v_n_samples;
@@ -2896,61 +2892,61 @@ static PyObject *__pyx_pf_8hmmlearn_5_hmmc_6_viterbi(CYTHON_UNUSED PyObject *__p
           /* "hmmlearn/_hmmc.pyx":118
  *         # Induction
  *         for t in range(1, n_samples):
- *             for c0 in range(n_components):             # <<<<<<<<<<<<<<
+ *             for i in range(n_components):             # <<<<<<<<<<<<<<
  *                 maxbuf = -INFINITY
- *                 for c1 in range(n_components):
+ *                 for j in range(n_components):
  */
           __pyx_t_15 = __pyx_v_n_components;
           for (__pyx_t_16 = 0; __pyx_t_16 < __pyx_t_15; __pyx_t_16+=1) {
-            __pyx_v_c0 = __pyx_t_16;
+            __pyx_v_i = __pyx_t_16;
 
             /* "hmmlearn/_hmmc.pyx":119
  *         for t in range(1, n_samples):
- *             for c0 in range(n_components):
+ *             for i in range(n_components):
  *                 maxbuf = -INFINITY             # <<<<<<<<<<<<<<
- *                 for c1 in range(n_components):
- *                     buf = log_transmat[c1, c0] + viterbi_lattice[t-1, c1]
+ *                 for j in range(n_components):
+ *                     buf = log_transmat[j, i] + viterbi_lattice[t-1, j]
  */
             __pyx_v_maxbuf = (-NPY_INFINITY);
 
             /* "hmmlearn/_hmmc.pyx":120
- *             for c0 in range(n_components):
+ *             for i in range(n_components):
  *                 maxbuf = -INFINITY
- *                 for c1 in range(n_components):             # <<<<<<<<<<<<<<
- *                     buf = log_transmat[c1, c0] + viterbi_lattice[t-1, c1]
- *                     work_buffer[c0, c1] = buf
+ *                 for j in range(n_components):             # <<<<<<<<<<<<<<
+ *                     buf = log_transmat[j, i] + viterbi_lattice[t-1, j]
+ *                     work_buffer[i, j] = buf
  */
             __pyx_t_17 = __pyx_v_n_components;
             for (__pyx_t_18 = 0; __pyx_t_18 < __pyx_t_17; __pyx_t_18+=1) {
-              __pyx_v_c1 = __pyx_t_18;
+              __pyx_v_j = __pyx_t_18;
 
               /* "hmmlearn/_hmmc.pyx":121
  *                 maxbuf = -INFINITY
- *                 for c1 in range(n_components):
- *                     buf = log_transmat[c1, c0] + viterbi_lattice[t-1, c1]             # <<<<<<<<<<<<<<
- *                     work_buffer[c0, c1] = buf
+ *                 for j in range(n_components):
+ *                     buf = log_transmat[j, i] + viterbi_lattice[t-1, j]             # <<<<<<<<<<<<<<
+ *                     work_buffer[i, j] = buf
  *                     if buf > maxbuf:
  */
-              __pyx_t_19 = __pyx_v_c1;
-              __pyx_t_20 = __pyx_v_c0;
+              __pyx_t_19 = __pyx_v_j;
+              __pyx_t_20 = __pyx_v_i;
               __pyx_t_21 = (__pyx_v_t - 1);
-              __pyx_t_22 = __pyx_v_c1;
+              __pyx_t_22 = __pyx_v_j;
               __pyx_v_buf = ((*((__pyx_t_8hmmlearn_5_hmmc_dtype_t *) ( /* dim=1 */ (( /* dim=0 */ (__pyx_v_log_transmat.data + __pyx_t_19 * __pyx_v_log_transmat.strides[0]) ) + __pyx_t_20 * __pyx_v_log_transmat.strides[1]) ))) + (*((__pyx_t_8hmmlearn_5_hmmc_dtype_t *) ( /* dim=1 */ ((char *) (((__pyx_t_8hmmlearn_5_hmmc_dtype_t *) ( /* dim=0 */ (__pyx_v_viterbi_lattice.data + __pyx_t_21 * __pyx_v_viterbi_lattice.strides[0]) )) + __pyx_t_22)) ))));
 
               /* "hmmlearn/_hmmc.pyx":122
- *                 for c1 in range(n_components):
- *                     buf = log_transmat[c1, c0] + viterbi_lattice[t-1, c1]
- *                     work_buffer[c0, c1] = buf             # <<<<<<<<<<<<<<
+ *                 for j in range(n_components):
+ *                     buf = log_transmat[j, i] + viterbi_lattice[t-1, j]
+ *                     work_buffer[i, j] = buf             # <<<<<<<<<<<<<<
  *                     if buf > maxbuf:
  *                         maxbuf = buf
  */
-              __pyx_t_23 = __pyx_v_c0;
-              __pyx_t_24 = __pyx_v_c1;
+              __pyx_t_23 = __pyx_v_i;
+              __pyx_t_24 = __pyx_v_j;
               *((__pyx_t_8hmmlearn_5_hmmc_dtype_t *) ( /* dim=1 */ ((char *) (((__pyx_t_8hmmlearn_5_hmmc_dtype_t *) ( /* dim=0 */ (__pyx_v_work_buffer.data + __pyx_t_23 * __pyx_v_work_buffer.strides[0]) )) + __pyx_t_24)) )) = __pyx_v_buf;
 
               /* "hmmlearn/_hmmc.pyx":123
- *                     buf = log_transmat[c1, c0] + viterbi_lattice[t-1, c1]
- *                     work_buffer[c0, c1] = buf
+ *                     buf = log_transmat[j, i] + viterbi_lattice[t-1, j]
+ *                     work_buffer[i, j] = buf
  *                     if buf > maxbuf:             # <<<<<<<<<<<<<<
  *                         maxbuf = buf
  * 
@@ -2959,11 +2955,11 @@ static PyObject *__pyx_pf_8hmmlearn_5_hmmc_6_viterbi(CYTHON_UNUSED PyObject *__p
               if (__pyx_t_25) {
 
                 /* "hmmlearn/_hmmc.pyx":124
- *                     work_buffer[c0, c1] = buf
+ *                     work_buffer[i, j] = buf
  *                     if buf > maxbuf:
  *                         maxbuf = buf             # <<<<<<<<<<<<<<
  * 
- *                 viterbi_lattice[t, c0] = maxbuf + framelogprob[t, c0]
+ *                 viterbi_lattice[t, i] = maxbuf + framelogprob[t, i]
  */
                 __pyx_v_maxbuf = __pyx_v_buf;
                 goto __pyx_L14;
@@ -2974,14 +2970,14 @@ static PyObject *__pyx_pf_8hmmlearn_5_hmmc_6_viterbi(CYTHON_UNUSED PyObject *__p
             /* "hmmlearn/_hmmc.pyx":126
  *                         maxbuf = buf
  * 
- *                 viterbi_lattice[t, c0] = maxbuf + framelogprob[t, c0]             # <<<<<<<<<<<<<<
+ *                 viterbi_lattice[t, i] = maxbuf + framelogprob[t, i]             # <<<<<<<<<<<<<<
  * 
  *         # Observation traceback
  */
             __pyx_t_17 = __pyx_v_t;
-            __pyx_t_18 = __pyx_v_c0;
+            __pyx_t_18 = __pyx_v_i;
             __pyx_t_26 = __pyx_v_t;
-            __pyx_t_27 = __pyx_v_c0;
+            __pyx_t_27 = __pyx_v_i;
             *((__pyx_t_8hmmlearn_5_hmmc_dtype_t *) ( /* dim=1 */ ((char *) (((__pyx_t_8hmmlearn_5_hmmc_dtype_t *) ( /* dim=0 */ (__pyx_v_viterbi_lattice.data + __pyx_t_26 * __pyx_v_viterbi_lattice.strides[0]) )) + __pyx_t_27)) )) = (__pyx_v_maxbuf + (*((__pyx_t_8hmmlearn_5_hmmc_dtype_t *) ( /* dim=1 */ (( /* dim=0 */ (__pyx_v_framelogprob.data + __pyx_t_17 * __pyx_v_framelogprob.strides[0]) ) + __pyx_t_18 * __pyx_v_framelogprob.strides[1]) ))));
           }
         }
@@ -2990,48 +2986,48 @@ static PyObject *__pyx_pf_8hmmlearn_5_hmmc_6_viterbi(CYTHON_UNUSED PyObject *__p
  * 
  *         # Observation traceback
  *         maxbuf = -INFINITY             # <<<<<<<<<<<<<<
- *         for c1 in range(n_components):
- *             buf = viterbi_lattice[n_samples - 1, c1]
+ *         for j in range(n_components):
+ *             buf = viterbi_lattice[n_samples - 1, j]
  */
         __pyx_v_maxbuf = (-NPY_INFINITY);
 
         /* "hmmlearn/_hmmc.pyx":130
  *         # Observation traceback
  *         maxbuf = -INFINITY
- *         for c1 in range(n_components):             # <<<<<<<<<<<<<<
- *             buf = viterbi_lattice[n_samples - 1, c1]
+ *         for j in range(n_components):             # <<<<<<<<<<<<<<
+ *             buf = viterbi_lattice[n_samples - 1, j]
  *             if buf > maxbuf:
  */
         __pyx_t_8 = __pyx_v_n_components;
         for (__pyx_t_9 = 0; __pyx_t_9 < __pyx_t_8; __pyx_t_9+=1) {
-          __pyx_v_c1 = __pyx_t_9;
+          __pyx_v_j = __pyx_t_9;
 
           /* "hmmlearn/_hmmc.pyx":131
  *         maxbuf = -INFINITY
- *         for c1 in range(n_components):
- *             buf = viterbi_lattice[n_samples - 1, c1]             # <<<<<<<<<<<<<<
+ *         for j in range(n_components):
+ *             buf = viterbi_lattice[n_samples - 1, j]             # <<<<<<<<<<<<<<
  *             if buf > maxbuf:
  *                 maxbuf = buf
  */
           __pyx_t_28 = (__pyx_v_n_samples - 1);
-          __pyx_t_15 = __pyx_v_c1;
+          __pyx_t_15 = __pyx_v_j;
           __pyx_v_buf = (*((__pyx_t_8hmmlearn_5_hmmc_dtype_t *) ( /* dim=1 */ ((char *) (((__pyx_t_8hmmlearn_5_hmmc_dtype_t *) ( /* dim=0 */ (__pyx_v_viterbi_lattice.data + __pyx_t_28 * __pyx_v_viterbi_lattice.strides[0]) )) + __pyx_t_15)) )));
 
           /* "hmmlearn/_hmmc.pyx":132
- *         for c1 in range(n_components):
- *             buf = viterbi_lattice[n_samples - 1, c1]
+ *         for j in range(n_components):
+ *             buf = viterbi_lattice[n_samples - 1, j]
  *             if buf > maxbuf:             # <<<<<<<<<<<<<<
  *                 maxbuf = buf
- *                 max_pos = c1
+ *                 max_pos = j
  */
           __pyx_t_25 = ((__pyx_v_buf > __pyx_v_maxbuf) != 0);
           if (__pyx_t_25) {
 
             /* "hmmlearn/_hmmc.pyx":133
- *             buf = viterbi_lattice[n_samples - 1, c1]
+ *             buf = viterbi_lattice[n_samples - 1, j]
  *             if buf > maxbuf:
  *                 maxbuf = buf             # <<<<<<<<<<<<<<
- *                 max_pos = c1
+ *                 max_pos = j
  * 
  */
             __pyx_v_maxbuf = __pyx_v_buf;
@@ -3039,18 +3035,18 @@ static PyObject *__pyx_pf_8hmmlearn_5_hmmc_6_viterbi(CYTHON_UNUSED PyObject *__p
             /* "hmmlearn/_hmmc.pyx":134
  *             if buf > maxbuf:
  *                 maxbuf = buf
- *                 max_pos = c1             # <<<<<<<<<<<<<<
+ *                 max_pos = j             # <<<<<<<<<<<<<<
  * 
  *         state_sequence[n_samples - 1] = max_pos
  */
-            __pyx_v_max_pos = __pyx_v_c1;
+            __pyx_v_max_pos = __pyx_v_j;
             goto __pyx_L17;
           }
           __pyx_L17:;
         }
 
         /* "hmmlearn/_hmmc.pyx":136
- *                 max_pos = c1
+ *                 max_pos = j
  * 
  *         state_sequence[n_samples - 1] = max_pos             # <<<<<<<<<<<<<<
  *         logprob = viterbi_lattice[n_samples - 1, max_pos]
@@ -3075,7 +3071,7 @@ static PyObject *__pyx_pf_8hmmlearn_5_hmmc_6_viterbi(CYTHON_UNUSED PyObject *__p
  * 
  *         for t in range(n_samples - 2, -1, -1):             # <<<<<<<<<<<<<<
  *             maxbuf = -INFINITY
- *             for c1 in range(n_components):
+ *             for j in range(n_components):
  */
         for (__pyx_t_9 = (__pyx_v_n_samples - 2); __pyx_t_9 > -1; __pyx_t_9-=1) {
           __pyx_v_t = __pyx_t_9;
@@ -3084,59 +3080,59 @@ static PyObject *__pyx_pf_8hmmlearn_5_hmmc_6_viterbi(CYTHON_UNUSED PyObject *__p
  * 
  *         for t in range(n_samples - 2, -1, -1):
  *             maxbuf = -INFINITY             # <<<<<<<<<<<<<<
- *             for c1 in range(n_components):
- *                 buf = viterbi_lattice[t, c1] \
+ *             for j in range(n_components):
+ *                 buf = viterbi_lattice[t, j] \
  */
           __pyx_v_maxbuf = (-NPY_INFINITY);
 
           /* "hmmlearn/_hmmc.pyx":141
  *         for t in range(n_samples - 2, -1, -1):
  *             maxbuf = -INFINITY
- *             for c1 in range(n_components):             # <<<<<<<<<<<<<<
- *                 buf = viterbi_lattice[t, c1] \
- *                     + log_transmat[c1, state_sequence[t + 1]]
+ *             for j in range(n_components):             # <<<<<<<<<<<<<<
+ *                 buf = viterbi_lattice[t, j] \
+ *                     + log_transmat[j, state_sequence[t + 1]]
  */
           __pyx_t_16 = __pyx_v_n_components;
           for (__pyx_t_31 = 0; __pyx_t_31 < __pyx_t_16; __pyx_t_31+=1) {
-            __pyx_v_c1 = __pyx_t_31;
+            __pyx_v_j = __pyx_t_31;
 
             /* "hmmlearn/_hmmc.pyx":142
  *             maxbuf = -INFINITY
- *             for c1 in range(n_components):
- *                 buf = viterbi_lattice[t, c1] \             # <<<<<<<<<<<<<<
- *                     + log_transmat[c1, state_sequence[t + 1]]
+ *             for j in range(n_components):
+ *                 buf = viterbi_lattice[t, j] \             # <<<<<<<<<<<<<<
+ *                     + log_transmat[j, state_sequence[t + 1]]
  *                 if buf > maxbuf:
  */
             __pyx_t_32 = __pyx_v_t;
-            __pyx_t_33 = __pyx_v_c1;
+            __pyx_t_33 = __pyx_v_j;
 
             /* "hmmlearn/_hmmc.pyx":143
- *             for c1 in range(n_components):
- *                 buf = viterbi_lattice[t, c1] \
- *                     + log_transmat[c1, state_sequence[t + 1]]             # <<<<<<<<<<<<<<
+ *             for j in range(n_components):
+ *                 buf = viterbi_lattice[t, j] \
+ *                     + log_transmat[j, state_sequence[t + 1]]             # <<<<<<<<<<<<<<
  *                 if buf > maxbuf:
  *                     maxbuf = buf
  */
             __pyx_t_34 = (__pyx_v_t + 1);
-            __pyx_t_35 = __pyx_v_c1;
+            __pyx_t_35 = __pyx_v_j;
             __pyx_t_36 = (*((int *) ( /* dim=0 */ ((char *) (((int *) __pyx_v_state_sequence.data) + __pyx_t_34)) )));
             __pyx_v_buf = ((*((__pyx_t_8hmmlearn_5_hmmc_dtype_t *) ( /* dim=1 */ ((char *) (((__pyx_t_8hmmlearn_5_hmmc_dtype_t *) ( /* dim=0 */ (__pyx_v_viterbi_lattice.data + __pyx_t_32 * __pyx_v_viterbi_lattice.strides[0]) )) + __pyx_t_33)) ))) + (*((__pyx_t_8hmmlearn_5_hmmc_dtype_t *) ( /* dim=1 */ (( /* dim=0 */ (__pyx_v_log_transmat.data + __pyx_t_35 * __pyx_v_log_transmat.strides[0]) ) + __pyx_t_36 * __pyx_v_log_transmat.strides[1]) ))));
 
             /* "hmmlearn/_hmmc.pyx":144
- *                 buf = viterbi_lattice[t, c1] \
- *                     + log_transmat[c1, state_sequence[t + 1]]
+ *                 buf = viterbi_lattice[t, j] \
+ *                     + log_transmat[j, state_sequence[t + 1]]
  *                 if buf > maxbuf:             # <<<<<<<<<<<<<<
  *                     maxbuf = buf
- *                     max_pos = c1
+ *                     max_pos = j
  */
             __pyx_t_25 = ((__pyx_v_buf > __pyx_v_maxbuf) != 0);
             if (__pyx_t_25) {
 
               /* "hmmlearn/_hmmc.pyx":145
- *                     + log_transmat[c1, state_sequence[t + 1]]
+ *                     + log_transmat[j, state_sequence[t + 1]]
  *                 if buf > maxbuf:
  *                     maxbuf = buf             # <<<<<<<<<<<<<<
- *                     max_pos = c1
+ *                     max_pos = j
  *             state_sequence[t] = max_pos
  */
               __pyx_v_maxbuf = __pyx_v_buf;
@@ -3144,11 +3140,11 @@ static PyObject *__pyx_pf_8hmmlearn_5_hmmc_6_viterbi(CYTHON_UNUSED PyObject *__p
               /* "hmmlearn/_hmmc.pyx":146
  *                 if buf > maxbuf:
  *                     maxbuf = buf
- *                     max_pos = c1             # <<<<<<<<<<<<<<
+ *                     max_pos = j             # <<<<<<<<<<<<<<
  *             state_sequence[t] = max_pos
  * 
  */
-              __pyx_v_max_pos = __pyx_v_c1;
+              __pyx_v_max_pos = __pyx_v_j;
               goto __pyx_L22;
             }
             __pyx_L22:;
@@ -3156,7 +3152,7 @@ static PyObject *__pyx_pf_8hmmlearn_5_hmmc_6_viterbi(CYTHON_UNUSED PyObject *__p
 
           /* "hmmlearn/_hmmc.pyx":147
  *                     maxbuf = buf
- *                     max_pos = c1
+ *                     max_pos = j
  *             state_sequence[t] = max_pos             # <<<<<<<<<<<<<<
  * 
  *     return state_sequence_arr, logprob
@@ -3170,8 +3166,8 @@ static PyObject *__pyx_pf_8hmmlearn_5_hmmc_6_viterbi(CYTHON_UNUSED PyObject *__p
  *     work_buffer = np.empty((n_components, n_components))
  * 
  *     with nogil:             # <<<<<<<<<<<<<<
- *         for c1 in range(n_components):
- *             viterbi_lattice[0, c1] = log_startprob[c1] + framelogprob[0, c1]
+ *         for j in range(n_components):
+ *             viterbi_lattice[0, j] = log_startprob[j] + framelogprob[0, j]
  */
       /*finally:*/ {
         /*normal exit:*/{
@@ -14577,8 +14573,6 @@ static __Pyx_StringTabEntry __pyx_string_tab[] = {
   {&__pyx_n_s_bwdlattice, __pyx_k_bwdlattice, sizeof(__pyx_k_bwdlattice), 0, 0, 1, 1},
   {&__pyx_n_s_c, __pyx_k_c, sizeof(__pyx_k_c), 0, 0, 1, 1},
   {&__pyx_n_u_c, __pyx_k_c, sizeof(__pyx_k_c), 0, 1, 0, 1},
-  {&__pyx_n_s_c0, __pyx_k_c0, sizeof(__pyx_k_c0), 0, 0, 1, 1},
-  {&__pyx_n_s_c1, __pyx_k_c1, sizeof(__pyx_k_c1), 0, 0, 1, 1},
   {&__pyx_n_s_class, __pyx_k_class, sizeof(__pyx_k_class), 0, 0, 1, 1},
   {&__pyx_n_s_compute_lneta, __pyx_k_compute_lneta, sizeof(__pyx_k_compute_lneta), 0, 0, 1, 1},
   {&__pyx_kp_s_contiguous_and_direct, __pyx_k_contiguous_and_direct, sizeof(__pyx_k_contiguous_and_direct), 0, 0, 1, 0},
@@ -14843,7 +14837,7 @@ static int __Pyx_InitCachedConstants(void) {
  *         dtype_t[:] log_startprob,
  *         dtype_t[:, :] log_transmat,
  */
-  __pyx_tuple__19 = PyTuple_Pack(16, __pyx_n_s_n_samples, __pyx_n_s_n_components, __pyx_n_s_log_startprob, __pyx_n_s_log_transmat, __pyx_n_s_framelogprob, __pyx_n_s_c0, __pyx_n_s_c1, __pyx_n_s_t, __pyx_n_s_max_pos, __pyx_n_s_viterbi_lattice, __pyx_n_s_state_sequence, __pyx_n_s_logprob, __pyx_n_s_work_buffer, __pyx_n_s_buf, __pyx_n_s_maxbuf, __pyx_n_s_state_sequence_arr); if (unlikely(!__pyx_tuple__19)) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 94; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
+  __pyx_tuple__19 = PyTuple_Pack(16, __pyx_n_s_n_samples, __pyx_n_s_n_components, __pyx_n_s_log_startprob, __pyx_n_s_log_transmat, __pyx_n_s_framelogprob, __pyx_n_s_i, __pyx_n_s_j, __pyx_n_s_t, __pyx_n_s_max_pos, __pyx_n_s_viterbi_lattice, __pyx_n_s_state_sequence, __pyx_n_s_logprob, __pyx_n_s_work_buffer, __pyx_n_s_buf, __pyx_n_s_maxbuf, __pyx_n_s_state_sequence_arr); if (unlikely(!__pyx_tuple__19)) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 94; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
   __Pyx_GOTREF(__pyx_tuple__19);
   __Pyx_GIVEREF(__pyx_tuple__19);
   __pyx_codeobj__20 = (PyObject*)__Pyx_PyCode_New(5, 0, 16, 0, 0, __pyx_empty_bytes, __pyx_empty_tuple, __pyx_empty_tuple, __pyx_tuple__19, __pyx_empty_tuple, __pyx_empty_tuple, __pyx_kp_s_Users_cfarrow_projects_hmmlearn, __pyx_n_s_viterbi, 94, __pyx_empty_bytes); if (unlikely(!__pyx_codeobj__20)) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 94; __pyx_clineno = __LINE__; goto __pyx_L1_error;}

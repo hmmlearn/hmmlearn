@@ -96,7 +96,7 @@ def _viterbi(int n_samples, int n_components,
         dtype_t[:, :] log_transmat,
         dtype_t[:, :] framelogprob):
 
-    cdef int c0, c1, t, max_pos
+    cdef int i, j, t, max_pos
     cdef dtype_t[:, ::view.contiguous] viterbi_lattice
     cdef int[::view.contiguous] state_sequence
     cdef dtype_t logprob
@@ -110,40 +110,40 @@ def _viterbi(int n_samples, int n_components,
     work_buffer = np.empty((n_components, n_components))
 
     with nogil:
-        for c1 in range(n_components):
-            viterbi_lattice[0, c1] = log_startprob[c1] + framelogprob[0, c1]
+        for j in range(n_components):
+            viterbi_lattice[0, j] = log_startprob[j] + framelogprob[0, j]
 
         # Induction
         for t in range(1, n_samples):
-            for c0 in range(n_components):
+            for i in range(n_components):
                 maxbuf = -INFINITY
-                for c1 in range(n_components):
-                    buf = log_transmat[c1, c0] + viterbi_lattice[t-1, c1]
-                    work_buffer[c0, c1] = buf
+                for j in range(n_components):
+                    buf = log_transmat[j, i] + viterbi_lattice[t-1, j]
+                    work_buffer[i, j] = buf
                     if buf > maxbuf:
                         maxbuf = buf
 
-                viterbi_lattice[t, c0] = maxbuf + framelogprob[t, c0]
+                viterbi_lattice[t, i] = maxbuf + framelogprob[t, i]
 
         # Observation traceback
         maxbuf = -INFINITY
-        for c1 in range(n_components):
-            buf = viterbi_lattice[n_samples - 1, c1]
+        for j in range(n_components):
+            buf = viterbi_lattice[n_samples - 1, j]
             if buf > maxbuf:
                 maxbuf = buf
-                max_pos = c1
+                max_pos = j
 
         state_sequence[n_samples - 1] = max_pos
         logprob = viterbi_lattice[n_samples - 1, max_pos]
 
         for t in range(n_samples - 2, -1, -1):
             maxbuf = -INFINITY
-            for c1 in range(n_components):
-                buf = viterbi_lattice[t, c1] \
-                    + log_transmat[c1, state_sequence[t + 1]]
+            for j in range(n_components):
+                buf = viterbi_lattice[t, j] \
+                    + log_transmat[j, state_sequence[t + 1]]
                 if buf > maxbuf:
                     maxbuf = buf
-                    max_pos = c1
+                    max_pos = j
             state_sequence[t] = max_pos
 
     return state_sequence_arr, logprob
