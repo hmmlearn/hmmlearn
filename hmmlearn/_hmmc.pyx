@@ -1,6 +1,7 @@
 # cython: boundscheck=False, wraparound=False
 
 cimport cython
+from cython cimport view
 from numpy.math cimport expl, logl, isinf, INFINITY
 
 import numpy as np
@@ -32,7 +33,7 @@ def _forward(int n_samples, int n_components,
         dtype_t[:, :] fwdlattice):
 
     cdef int t, i, j
-    cdef dtype_t[::1] work_buffer = np.zeros(n_components)
+    cdef dtype_t[::view.contiguous] work_buffer = np.zeros(n_components)
 
     with nogil:
         for i in range(n_components):
@@ -54,7 +55,7 @@ def _backward(int n_samples, int n_components,
 
     cdef int t, i, j
     cdef dtype_t logprob
-    cdef dtype_t[::1] work_buffer = np.zeros(n_components)
+    cdef dtype_t[::view.contiguous] work_buffer = np.zeros(n_components)
 
     with nogil:
         for i in range(n_components):
@@ -96,10 +97,10 @@ def _viterbi(int n_samples, int n_components,
         dtype_t[:, :] framelogprob):
 
     cdef int c0, c1, t, max_pos
-    cdef dtype_t[:, ::1] viterbi_lattice
-    cdef int[::1] state_sequence
+    cdef dtype_t[:, ::view.contiguous] viterbi_lattice
+    cdef int[::view.contiguous] state_sequence
     cdef dtype_t logprob
-    cdef dtype_t[:, ::1] work_buffer
+    cdef dtype_t[:, ::view.contiguous] work_buffer
     cdef dtype_t buf, maxbuf
 
     # Initialization
