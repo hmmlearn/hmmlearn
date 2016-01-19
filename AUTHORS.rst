@@ -21,3 +21,4 @@ Authors and contributors, in no particular order:
 * Alexandre Gramfort
 * Sergei Lebedev
 * Daniela Huppenkothen
+* Christopher Farrow
