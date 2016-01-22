@@ -26,6 +26,8 @@ Version 0.2.0
 - Fixed M-step for ``GMMHMM``, which incorrectly expeced ``GMM.score_samples``
   to return log-probabilities. See PR #4 on GitHub for discussion. Thanks to
   @mvictor212 and @michcio1234.
+- Speed up forward-backward algorithms and Viterbi decoding by using Cython
+  typed memoryviews. Thanks to @cfarrow. See PR#82 on GitHub.
 
 Version 0.1.1
 -------------
