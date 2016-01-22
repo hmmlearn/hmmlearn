@@ -1,6 +1,5 @@
 # cython: boundscheck=False, wraparound=False
 
-cimport cython
 from cython cimport view
 from numpy.math cimport expl, logl, isinf, INFINITY
 
@@ -9,13 +8,23 @@ import numpy as np
 ctypedef double dtype_t
 
 
-cdef inline dtype_t _logsumexp(dtype_t[:] X) nogil:
-    # Builtin 'max' is unrolled for speed.
+cdef inline int _argmax(dtype_t[:] X) nogil:
     cdef dtype_t X_max = -INFINITY
+    cdef int pos = 0
+    cdef int i
     for i in range(X.shape[0]):
         if X[i] > X_max:
             X_max = X[i]
+            pos = i
+    return pos
 
+
+cdef inline dtype_t _max(dtype_t[:] X) nogil:
+    return X[_argmax(X)]
+
+
+cdef inline dtype_t _logsumexp(dtype_t[:] X) nogil:
+    cdef dtype_t X_max = _max(X)
     if isinf(X_max):
         return -INFINITY
 
@@ -27,10 +36,10 @@ cdef inline dtype_t _logsumexp(dtype_t[:] X) nogil:
 
 
 def _forward(int n_samples, int n_components,
-        dtype_t[:] log_startprob,
-        dtype_t[:, :] log_transmat,
-        dtype_t[:, :] framelogprob,
-        dtype_t[:, :] fwdlattice):
+             dtype_t[:] log_startprob,
+             dtype_t[:, :] log_transmat,
+             dtype_t[:, :] framelogprob,
+             dtype_t[:, :] fwdlattice):
 
     cdef int t, i, j
     cdef dtype_t[::view.contiguous] work_buffer = np.zeros(n_components)
@@ -48,10 +57,10 @@ def _forward(int n_samples, int n_components,
 
 
 def _backward(int n_samples, int n_components,
-        dtype_t[:] log_startprob,
-        dtype_t[:, :] log_transmat,
-        dtype_t[:, :] framelogprob,
-        dtype_t[:, :] bwdlattice):
+              dtype_t[:] log_startprob,
+              dtype_t[:, :] log_transmat,
+              dtype_t[:, :] framelogprob,
+              dtype_t[:, :] bwdlattice):
 
     cdef int t, i, j
     cdef dtype_t logprob
@@ -71,11 +80,11 @@ def _backward(int n_samples, int n_components,
 
 
 def _compute_lneta(int n_samples, int n_components,
-        dtype_t[:, :] fwdlattice,
-        dtype_t[:, :] log_transmat,
-        dtype_t[:, :] bwdlattice,
-        dtype_t[:, :] framelogprob,
-        dtype_t[:, :, :] lneta):
+                   dtype_t[:, :] fwdlattice,
+                   dtype_t[:, :] log_transmat,
+                   dtype_t[:, :] bwdlattice,
+                   dtype_t[:, :] framelogprob,
+                   dtype_t[:, :, :] lneta):
 
     cdef dtype_t logprob = _logsumexp(fwdlattice[n_samples - 1])
     cdef int t, i, j
@@ -92,58 +101,42 @@ def _compute_lneta(int n_samples, int n_components,
 
 
 def _viterbi(int n_samples, int n_components,
-        dtype_t[:] log_startprob,
-        dtype_t[:, :] log_transmat,
-        dtype_t[:, :] framelogprob):
+             dtype_t[:] log_startprob,
+             dtype_t[:, :] log_transmat,
+             dtype_t[:, :] framelogprob):
 
-    cdef int i, j, t, max_pos
-    cdef dtype_t[:, ::view.contiguous] viterbi_lattice
-    cdef int[::view.contiguous] state_sequence
+    cdef int i, j, t, where_from
     cdef dtype_t logprob
-    cdef dtype_t[:, ::view.contiguous] work_buffer
-    cdef dtype_t buf, maxbuf
 
-    # Initialization
-    state_sequence_arr = np.empty(n_samples, dtype=np.int32)
-    state_sequence = state_sequence_arr
-    viterbi_lattice = np.zeros((n_samples, n_components))
-    work_buffer = np.empty((n_components, n_components))
+    cdef int[::view.contiguous] state_sequence = \
+        np.empty(n_samples, dtype=np.int32)
+    cdef dtype_t[:, ::view.contiguous] viterbi_lattice = \
+        np.zeros((n_samples, n_components))
+    cdef dtype_t[::view.contiguous] work_buffer = np.empty(n_components)
 
     with nogil:
-        for j in range(n_components):
-            viterbi_lattice[0, j] = log_startprob[j] + framelogprob[0, j]
+        for i in range(n_components):
+            viterbi_lattice[0, i] = log_startprob[i] + framelogprob[0, i]
 
         # Induction
         for t in range(1, n_samples):
             for i in range(n_components):
-                maxbuf = -INFINITY
                 for j in range(n_components):
-                    buf = log_transmat[j, i] + viterbi_lattice[t-1, j]
-                    work_buffer[i, j] = buf
-                    if buf > maxbuf:
-                        maxbuf = buf
+                    work_buffer[j] = (log_transmat[j, i]
+                                      + viterbi_lattice[t - 1, j])
 
-                viterbi_lattice[t, i] = maxbuf + framelogprob[t, i]
+                viterbi_lattice[t, i] = _max(work_buffer) + framelogprob[t, i]
 
         # Observation traceback
-        maxbuf = -INFINITY
-        for j in range(n_components):
-            buf = viterbi_lattice[n_samples - 1, j]
-            if buf > maxbuf:
-                maxbuf = buf
-                max_pos = j
-
-        state_sequence[n_samples - 1] = max_pos
-        logprob = viterbi_lattice[n_samples - 1, max_pos]
+        state_sequence[n_samples - 1] = where_from = \
+            _argmax(viterbi_lattice[n_samples - 1])
+        logprob = viterbi_lattice[n_samples - 1, where_from]
 
         for t in range(n_samples - 2, -1, -1):
-            maxbuf = -INFINITY
-            for j in range(n_components):
-                buf = viterbi_lattice[t, j] \
-                    + log_transmat[j, state_sequence[t + 1]]
-                if buf > maxbuf:
-                    maxbuf = buf
-                    max_pos = j
-            state_sequence[t] = max_pos
+            for i in range(n_components):
+                work_buffer[i] = (viterbi_lattice[t, i]
+                                  + log_transmat[i, where_from])
 
-    return state_sequence_arr, logprob
+            state_sequence[t] = where_from = _argmax(work_buffer)
+
+    return np.asarray(state_sequence), logprob
