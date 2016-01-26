@@ -118,8 +118,8 @@ pygments_style = 'sphinx'
 linkcode_base_url = "https://github.com/hmmlearn/hmmlearn/tree/"
 
 def resolve_tag():
-    from urllib.request import urlopen
-    from urllib.error import HTTPError
+    from six.moves.urllib.request import urlopen
+    from six.moves.urllib.error import HTTPError
     try:
         urlopen(linkcode_base_url + release)
     except HTTPError:
