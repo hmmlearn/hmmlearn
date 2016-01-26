@@ -86,6 +86,4 @@ for i, (ax, colour) in enumerate(zip(axs, colours)):
 
     ax.grid(True)
 
-fig.tight_layout()
-fig.autofmt_xdate()
-fig.show()
+plt.show()
