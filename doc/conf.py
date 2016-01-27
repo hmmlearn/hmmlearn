@@ -282,4 +282,6 @@ def setup(app):
 # Make sure we can import ``_hmmc`` on RTD.
 import numpy as np
 import pyximport
-pyximport.install(setup_args={"include_dirs": np.get_include()})
+from numpy.distutils.misc_util import get_info
+
+pyximport.install(setup_args=get_info("npymath"))
