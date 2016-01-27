@@ -274,14 +274,6 @@ latex_documents = [('index', 'user_guide.tex', 'hmmlearn user guide',
 
 trim_doctests_flags = True
 
-# Add the 'copybutton' javascript, to hide/show the prompt in code
-# examples
-def setup(app):
-    app.add_javascript('js/copybutton.js')
-
 # Make sure we can import ``_hmmc`` on RTD.
-import numpy as np
 import pyximport
-from numpy.distutils.misc_util import get_info
-
-pyximport.install(setup_args=get_info("npymath"))
+pyximport.install()

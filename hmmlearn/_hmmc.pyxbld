@@ -1,0 +1,10 @@
+def make_ext(modname, pyxfilename):
+    from distutils.extension import Extension
+    from numpy.distutils.misc_util import get_info
+
+    return Extension(name=modname, sources=[pyxfilename],
+                     **get_info("npymath"))
+
+
+def make_setup_args():
+    return dict(script_args=["--verbose"])
