@@ -20,7 +20,7 @@ import sys
 # If extensions (or modules to document with autodoc) are in another directory,
 # add these directories to sys.path here. If the directory is relative to the
 # documentation root, use os.path.abspath to make it absolute, like shown here.
-sys.path.insert(0, os.path.abspath('..'))
+#sys.path.insert(0, os.path.abspath('..'))
 
 # -- General configuration ---------------------------------------------------
 
@@ -273,7 +273,3 @@ latex_documents = [('index', 'user_guide.tex', 'hmmlearn user guide',
 #latex_use_modindex = True
 
 trim_doctests_flags = True
-
-# Make sure we can import ``_hmmc`` on RTD.
-import pyximport
-pyximport.install()
