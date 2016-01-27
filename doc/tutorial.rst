@@ -80,9 +80,7 @@ constructor. Then, you can generate samples from the HMM by calling
     >>> X, Z = model.sample(100)
 
 The transition probability matrix need not to be ergodic. For instance, a
-left-right HMM can be defined as follows
-
-::
+left-right HMM can be defined as follows::
 
     >>> lr = hmm.GaussianHMM(n_components=3, covariance_type="diag",
     ...                      init_params="cm", params="cmt")
@@ -90,6 +88,15 @@ left-right HMM can be defined as follows
     >>> lr.transmat_ = np.array([[0.5, 0.5, 0.0],
     ...                          [0.0, 0.5, 0.5],
     ...                          [0.0, 0.0, 1.0]])
+
+If any of the required parameters are missing, :meth:`~base._BaseHMM.sample`
+will raise an exception::
+
+    >>> hmm.GaussianHMM(n_components=3)
+    >>> X, Z = model.sample(100)
+    Traceback (most recent call last):
+        ...
+    sklearn.utils.validation.NotFittedError: This GaussianHMM instance is not fitted yet. Call 'fit' with appropriate arguments before using this method.
 
 .. topic:: Fixing parameters
 
@@ -124,9 +131,11 @@ Training HMM parameters and inferring the hidden states
 
 You can train an HMM by calling the :meth:`~base._BaseHMM.fit` method. The input
 is a matrix of concatenated sequences of observations (*aka* samples) along with
-the lengths of the sequences. Note, since the EM algorithm is a gradient-based
-optimization method, it will generally get stuck in local optima. You should in general try
-to run ``fit`` with various initializations and select the highest scored model.
+the lengths of the sequences (see :ref:`Working with multiple sequences <multiple_sequences>`).
+
+Note, since the EM algorithm is a gradient-based optimization method, it will
+generally get stuck in local optima. You should in general try to run ``fit``
+with various initializations and select the highest scored model.
 
 The score of the model can be calculated by the :meth:`~base._BaseHMM.score` method.
 
@@ -162,9 +171,47 @@ in ``remodel`` will have a different order than those in the generating model.
        >>> remodel.monitor_.converged
        True
 
+.. _multiple_sequences:
+
+.. topic:: Working with multiple sequences
+
+   All of the examples so far were using a single sequence of observations.
+   The input format in the case of multiple sequences is a bit involved and
+   is best understood by example.
+
+   Consider two 1D sequences::
+
+       >>> X1 = [[0.5], [1.0], [-1.0], [0.42], [0.24]]
+       >>> X2 = [[2.4], [4.2], [0.5], [-0.24]]
+
+   To pass both sequences to :meth:`~base._BaseHMM.fit` or
+   :meth:`~base._BaseHMM.predict` first concatenate them into a single array and
+   then compute an array of sequence lengths::
+
+       >>> X = np.concatenate([X1, X2])
+       >>> lengths = [len(X1), len(X2)]
+
+   Finally just call the desired method with ``X`` and ``lengths``::
+
+       >>> hmm.GaussianHMM(n_components=3).fit(X, lengths)  # doctest: +ELLIPSIS, +NORMALIZE_WHITESPACE
+       GaussianHMM(algorithm='viterbi', ...
+
 .. topic:: Examples:
 
  * :ref:`sphx_glr_auto_examples_plot_hmm_stock_analysis.py`
+
+Saving and loading HMM
+----------------------
+
+After traning an HMM can be easily persisted for future use with the standard
+:mod:`pickle` module or its more efficient replacement in the :mod:`joblib`
+package::
+
+    >>> from sklearn.externals import joblib
+    >>> joblib.dump(remodel, "filename.pkl")
+    ["filename.pkl"]
+    >>> joblib.load("filename.pkl")  # doctest: +ELLIPSIS, +NORMALIZE_WHITESPACE
+    GaussianHMM(algorithm='viterbi',...
 
 .. _customizing:
 
