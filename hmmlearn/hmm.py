@@ -607,7 +607,8 @@ class GMMHMM(_BaseHMM):
                     shape = np.ones(tmp_gmm.covars_.ndim)
                     shape[0] = np.shape(tmp_gmm.covars_)[0]
                     cvnorm.shape = shape
-                    stats['covars'][state] += tmp_gmm.covars_ * cvnorm
+                    stats['covars'][state] += (tmp_gmm.covars_
+                                               + tmp_gmm.means_**2) * cvnorm
 
     def _do_mstep(self, stats):
         super(GMMHMM, self)._do_mstep(stats)
@@ -634,9 +635,9 @@ class GMMHMM(_BaseHMM):
                     cvnorm.shape = shape
                     if g.covariance_type in ['spherical', 'diag']:
                         g.covars_ = (stats['covars'][state] +
-                                     self.covars_prior) / cvnorm
+                                     self.covars_prior) / cvnorm - g.means_**2
                     elif g.covariance_type == 'full':
                         eye = np.eye(n_features)
                         g.covars_ = ((stats['covars'][state]
                                      + self.covars_prior * eye[np.newaxis])
-                                     / cvnorm)
+                                     / cvnorm) - g.mean_**2

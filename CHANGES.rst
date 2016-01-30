@@ -24,8 +24,10 @@ Version 0.2.0
   scikit-learn guidelines.
 - Removed deprecated re-exports from ``hmmlean.hmm``.
 - Fixed M-step for ``GMMHMM``, which incorrectly expeced ``GMM.score_samples``
-  to return log-probabilities. See PR #4 on GitHub for discussion. Thanks to
+  to return log-probabilities. See PR#4 on GitHub for discussion. Thanks to
   @mvictor212 and @michcio1234.
+- Fixed covariance update in M-step for ``GMMHMM``. See issue #78 for
+  discussion. Thanks to @michcio1234.
 - Speed up forward-backward algorithms and Viterbi decoding by using Cython
   typed memoryviews. Thanks to @cfarrow. See PR#82 on GitHub.
 
