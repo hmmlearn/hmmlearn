@@ -136,7 +136,7 @@ class GaussianHMMTestMixin(object):
         h.covars_prior = covars_prior
         h.covars_weight = covars_weight
 
-        lengths = [100] * 10
+        lengths = [200] * 10
         X, _state_sequence = h.sample(sum(lengths), random_state=self.prng)
 
         # Re-initialize the parameters and check that we can converge to the
@@ -146,8 +146,7 @@ class GaussianHMMTestMixin(object):
         h_learn.n_iter = 0
         h_learn.fit(X, lengths=lengths)
 
-        # TODO: change the parameters.
-        # assert log_likelihood_increasing(h_learn, X, lengths, n_iter)
+        assert log_likelihood_increasing(h_learn, X, lengths, n_iter)
 
         # Make sure we've converged to the right parameters.
         # a) means

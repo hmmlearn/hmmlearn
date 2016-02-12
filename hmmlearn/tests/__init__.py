@@ -36,6 +36,7 @@ def log_likelihood_increasing(h, X, lengths, n_iter):
         h.fit(X, lengths=lengths)
         log_likelihoods[i] = h.score(X, lengths=lengths)
 
-    # TODO: remove == 0, once all the tests are proper.
-    diff = np.diff(log_likelihoods) >= 0
+    # XXX the rounding is necessary because LL can oscillate in the
+    #     fractional part, failing the tests.
+    diff = np.round(np.diff(log_likelihoods), 10) >= 0
     return diff.all()
