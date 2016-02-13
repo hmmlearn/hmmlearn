@@ -113,6 +113,23 @@ class GaussianHMMTestMixin(object):
         #             has no identity
         h.fit(X, lengths=lengths)
 
+    def test_fit_zero_variance(self):
+        # Example from issue #2 on GitHub.
+        X = np.asarray([
+            [7.15000000e+02, 5.85000000e+02, 0.00000000e+00, 0.00000000e+00],
+            [7.15000000e+02, 5.20000000e+02, 1.04705811e+00, -6.03696289e+01],
+            [7.15000000e+02, 4.55000000e+02, 7.20886230e-01, -5.27055664e+01],
+            [7.15000000e+02, 3.90000000e+02, -4.57946777e-01, -7.80605469e+01],
+            [7.15000000e+02, 3.25000000e+02, -6.43127441e+00, -5.59954834e+01],
+            [7.15000000e+02, 2.60000000e+02, -2.90063477e+00, -7.80220947e+01],
+            [7.15000000e+02, 1.95000000e+02, 8.45532227e+00, -7.03294373e+01],
+            [7.15000000e+02, 1.30000000e+02, 4.09387207e+00, -5.83621216e+01],
+            [7.15000000e+02, 6.50000000e+01, -1.21667480e+00, -4.48131409e+01]
+        ])
+
+        h = hmm.GaussianHMM(3, self.covariance_type)
+        h.fit(X)
+
     def test_fit_with_priors(self, params='stmc', n_iter=5):
         startprob_prior = 10 * self.startprob + 2.0
         transmat_prior = 10 * self.transmat + 2.0

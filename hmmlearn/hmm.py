@@ -47,6 +47,10 @@ class GaussianHMM(_BaseHMM):
 
         Defaults to "diag".
 
+    min_covar : float
+        Floor on the diagonal of the covariance matrix to prevent
+        overfitting. Defaults to 1e-3.
+
     startprob_prior : array, shape (n_components, )
         Initial state occupation prior distribution.
 
@@ -119,6 +123,7 @@ class GaussianHMM(_BaseHMM):
     GaussianHMM(algorithm='viterbi',...
     """
     def __init__(self, n_components=1, covariance_type='diag',
+                 min_covar=1e-3,
                  startprob_prior=1.0, transmat_prior=1.0,
                  means_prior=0, means_weight=0,
                  covars_prior=1e-2, covars_weight=1,
@@ -133,9 +138,9 @@ class GaussianHMM(_BaseHMM):
                           init_params=init_params)
 
         self.covariance_type = covariance_type
+        self.min_covar = min_covar
         self.means_prior = means_prior
         self.means_weight = means_weight
-
         self.covars_prior = covars_prior
         self.covars_weight = covars_weight
 
@@ -183,14 +188,11 @@ class GaussianHMM(_BaseHMM):
             kmeans.fit(X)
             self.means_ = kmeans.cluster_centers_
         if 'c' in self.init_params or not hasattr(self, "covars_"):
-            cv = np.cov(X.T)
+            cv = np.cov(X.T) + self.min_covar * np.eye(X.shape[1])
             if not cv.shape:
                 cv.shape = (1, 1)
             self._covars_ = distribute_covar_matrix_to_match_covariance_type(
                 cv, self.covariance_type, self.n_components)
-            self._covars_ = self._covars_.copy()
-            if self._covars_.any() == 0:
-                self._covars_[self._covars_ == 0] = 1e-5
 
     def _compute_log_likelihood(self, X):
         return log_multivariate_normal_density(
@@ -253,10 +255,10 @@ class GaussianHMM(_BaseHMM):
             meandiff = self.means_ - means_prior
 
             if self.covariance_type in ('spherical', 'diag'):
-                cv_num = (means_weight * (meandiff) ** 2
+                cv_num = (means_weight * meandiff**2
                           + stats['obs**2']
                           - 2 * self.means_ * stats['obs']
-                          + self.means_ ** 2 * denom)
+                          + self.means_**2 * denom)
                 cv_den = max(covars_weight - 1, 0) + denom
                 self._covars_ = \
                     (covars_prior + cv_num) / np.maximum(cv_den, 1e-5)
