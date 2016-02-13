@@ -192,7 +192,7 @@ class GaussianHMM(_BaseHMM):
             if not cv.shape:
                 cv.shape = (1, 1)
             self._covars_ = distribute_covar_matrix_to_match_covariance_type(
-                cv, self.covariance_type, self.n_components)
+                cv, self.covariance_type, self.n_components).copy()
 
     def _compute_log_likelihood(self, X):
         return log_multivariate_normal_density(
