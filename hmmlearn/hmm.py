@@ -606,7 +606,7 @@ class GMMHMM(_BaseHMM):
                     stats['covars'][state] += tmp_gmm.covars_ * norm.sum()
                 else:
                     cvnorm = np.copy(norm)
-                    shape = np.ones(tmp_gmm.covars_.ndim)
+                    shape = np.ones(tmp_gmm.covars_.ndim, dtype=np.int)
                     shape[0] = np.shape(tmp_gmm.covars_)[0]
                     cvnorm.shape = shape
                     stats['covars'][state] += (tmp_gmm.covars_
@@ -632,7 +632,7 @@ class GMMHMM(_BaseHMM):
                                  / norm.sum())
                 else:
                     cvnorm = np.copy(norm)
-                    shape = np.ones(g.covars_.ndim)
+                    shape = np.ones(g.covars_.ndim, dtype=np.int)
                     shape[0] = np.shape(g.covars_)[0]
                     cvnorm.shape = shape
                     if g.covariance_type in ['spherical', 'diag']:
