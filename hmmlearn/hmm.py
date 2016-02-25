@@ -229,10 +229,10 @@ class GaussianHMM(_BaseHMM):
             if self.covariance_type in ('spherical', 'diag'):
                 stats['obs**2'] += np.dot(posteriors.T, obs ** 2)
             elif self.covariance_type in ('tied', 'full'):
-                for t, o in enumerate(obs):
-                    obsobsT = np.outer(o, o)
-                    for c in range(self.n_components):
-                        stats['obs*obs.T'][c] += posteriors[t, c] * obsobsT
+                # posteriors: (nt, nc); obs: (nt, nf); obs: (nt, nf)
+                # -> (nc, nf, nf)
+                stats['obs*obs.T'] += np.einsum(
+                    'ij,ik,il->jkl', posteriors, obs, obs)
 
     def _do_mstep(self, stats):
         super(GaussianHMM, self)._do_mstep(stats)
