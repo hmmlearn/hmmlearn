@@ -184,7 +184,8 @@ class GaussianHMM(_BaseHMM):
 
         self.n_features = n_features
         if 'm' in self.init_params or not hasattr(self, "means_"):
-            kmeans = cluster.KMeans(n_clusters=self.n_components)
+            kmeans = cluster.KMeans(n_clusters=self.n_components,
+                                    random_state=self.random_state)
             kmeans.fit(X)
             self.means_ = kmeans.cluster_centers_
         if 'c' in self.init_params or not hasattr(self, "covars_"):
