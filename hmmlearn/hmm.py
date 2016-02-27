@@ -552,9 +552,10 @@ class GMMHMM(_BaseHMM):
         self.gmms_ = []
         for x in range(self.n_components):
             if covariance_type is None:
-                gmm = GMM(n_mix)
+                gmm = GMM(n_mix, random_state=self.random_state)
             else:
-                gmm = GMM(n_mix, covariance_type=covariance_type)
+                gmm = GMM(n_mix, covariance_type=covariance_type,
+                        random_state=self.random_state)
             self.gmms_.append(gmm)
 
     def _init(self, X, lengths=None):
