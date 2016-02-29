@@ -25,7 +25,6 @@ class GMMHMMTestMixin(object):
         self.n_components = 3
         self.n_mix = 2
         self.n_features = 2
-        self.covariance_type = 'diag'
         self.startprob = self.prng.rand(self.n_components)
         self.startprob = self.startprob / self.startprob.sum()
         self.transmat = normalized(

@@ -642,4 +642,4 @@ class GMMHMM(_BaseHMM):
                         eye = np.eye(n_features)
                         g.covars_ = ((stats['covars'][state]
                                      + self.covars_prior * eye[np.newaxis])
-                                     / cvnorm) - g.mean_**2
+                                     / cvnorm) - g.means_**2
