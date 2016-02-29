@@ -184,7 +184,8 @@ class GaussianHMM(_BaseHMM):
 
         self.n_features = n_features
         if 'm' in self.init_params or not hasattr(self, "means_"):
-            kmeans = cluster.KMeans(n_clusters=self.n_components)
+            kmeans = cluster.KMeans(n_clusters=self.n_components,
+                                    random_state=self.random_state)
             kmeans.fit(X)
             self.means_ = kmeans.cluster_centers_
         if 'c' in self.init_params or not hasattr(self, "covars_"):
@@ -551,9 +552,10 @@ class GMMHMM(_BaseHMM):
         self.gmms_ = []
         for x in range(self.n_components):
             if covariance_type is None:
-                gmm = GMM(n_mix)
+                gmm = GMM(n_mix, random_state=self.random_state)
             else:
-                gmm = GMM(n_mix, covariance_type=covariance_type)
+                gmm = GMM(n_mix, covariance_type=covariance_type,
+                        random_state=self.random_state)
             self.gmms_.append(gmm)
 
     def _init(self, X, lengths=None):
@@ -606,7 +608,7 @@ class GMMHMM(_BaseHMM):
                     stats['covars'][state] += tmp_gmm.covars_ * norm.sum()
                 else:
                     cvnorm = np.copy(norm)
-                    shape = np.ones(tmp_gmm.covars_.ndim)
+                    shape = np.ones(tmp_gmm.covars_.ndim, dtype=np.int)
                     shape[0] = np.shape(tmp_gmm.covars_)[0]
                     cvnorm.shape = shape
                     stats['covars'][state] += (tmp_gmm.covars_
@@ -632,7 +634,7 @@ class GMMHMM(_BaseHMM):
                                  / norm.sum())
                 else:
                     cvnorm = np.copy(norm)
-                    shape = np.ones(g.covars_.ndim)
+                    shape = np.ones(g.covars_.ndim, dtype=np.int)
                     shape[0] = np.shape(g.covars_)[0]
                     cvnorm.shape = shape
                     if g.covariance_type in ['spherical', 'diag']:
