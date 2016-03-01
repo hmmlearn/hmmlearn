@@ -1,6 +1,6 @@
 language: python
-install: source continuous_integration/install.sh
-script: bash continuous_integration/test_script.sh
+install: source continuous_integration/travis/install.sh
+script: bash continuous_integration/travis/test_script.sh
 env:
   matrix:
     - PYTHON_VERSION="2.6"
