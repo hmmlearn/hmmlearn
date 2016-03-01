@@ -6,7 +6,7 @@ Here you can see the full list of changes between each hmmlearn release.
 Version 0.2.0
 -------------
 
-Relased on March 1st, 2016
+Released on March 1st, 2016
 
 The release contains a known bug: fitting ``GMMHMM`` with covariance
 types other than ``"diag"`` does not work. This is going to be fixed
@@ -35,7 +35,7 @@ in the following version. See issue #78 on GitHub for details.
   see issue #2 on GitHub.
 - Accelerated M-step fro `GaussianHMM` with full and tied covariances. See
   PR #97 on GitHub. Thanks to @anntzer.
-- Fixed M-step for ``GMMHMM``, which incorrectly expeced ``GMM.score_samples``
+- Fixed M-step for ``GMMHMM``, which incorrectly expected ``GMM.score_samples``
   to return log-probabilities. See PR #4 on GitHub for discussion. Thanks to
   @mvictor212 and @michcio1234.
 
