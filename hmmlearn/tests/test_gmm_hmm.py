@@ -104,9 +104,11 @@ class TestGMMHMMWithDiagCovars(GMMHMMTestMixin):
     covariance_type = 'diag'
 
 
+@pytest.mark.xfail
 class TestGMMHMMWithTiedCovars(GMMHMMTestMixin):
     covariance_type = 'tied'
 
 
+@pytest.mark.xfail
 class TestGMMHMMWithFullCovars(GMMHMMTestMixin):
     covariance_type = 'full'

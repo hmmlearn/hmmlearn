@@ -544,6 +544,12 @@ class GMMHMM(_BaseHMM):
                           n_iter=n_iter, tol=tol, verbose=verbose,
                           params=params, init_params=init_params)
 
+        if covariance_type != "diag":
+            warnings.warn("Fitting a GMMHMM with {0!r} covariance type "
+                          "is broken in 0.2.0. Please update to 0.2.1 once "
+                          "it's available.".format(covariance_type),
+                          UserWarning)
+
         # XXX: Hotfit for n_mix that is incompatible with the scikit's
         # BaseEstimator API
         self.n_mix = n_mix
