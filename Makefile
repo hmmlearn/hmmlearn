@@ -17,8 +17,6 @@ inplace:
 
 test: inplace
 	$(PYTEST) -s -v --doctest-modules hmmlearn
-test-cov: inplace
-	$(PYTEST) --cov=hmmlearn -s -v --doctest-modules hmmlearn
 
 trailing-spaces:
 	find hmmlearn -name "*.py" | xargs perl -pi -e 's/[ \t]*$$//'

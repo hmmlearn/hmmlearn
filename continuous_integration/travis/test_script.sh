@@ -17,7 +17,7 @@ python --version
 python -c "import sklearn; print('sklearn %s' % sklearn.__version__)"
 
 if [[ "$COVERAGE" == "true" ]]; then
-   make test-cov
+    py.test -s -v --cov=hmmlearn --doctest-modules --pyargs hmmlearn
 else
-   make test
+    py.test -s -v --doctest-modules --pyargs hmmlearn
 fi
