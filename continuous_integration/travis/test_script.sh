@@ -12,7 +12,7 @@ python --version
 python -c "import sklearn; print('sklearn %s' % sklearn.__version__)"
 
 if [[ "$COVERAGE" == "true" ]]; then
-   make test
-else
    make test-cov
+else
+   make test
 fi
