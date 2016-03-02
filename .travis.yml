@@ -3,6 +3,8 @@ sudo: false
 language: python
 
 env:
+  global:
+    - TEST_DIR=/tmp/hmmlearn
   matrix:
     - PYTHON_VERSION="2.6"
     - PYTHON_VERSION="2.7" COVERAGE="true"
