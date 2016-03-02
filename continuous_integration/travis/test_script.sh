@@ -11,4 +11,8 @@ set -e
 python --version
 python -c "import sklearn; print('sklearn %s' % sklearn.__version__)"
 
-make test
+if [[ "$COVERAGE" == "true" ]]; then
+   make test
+else
+   make test-cov
+fi

@@ -31,6 +31,10 @@ conda create -n testenv --yes python=$PYTHON_VERSION pip pytest \
     scikit-learn cython
 source activate testenv
 
+if [[ "$COVERAGE" == "true" ]]; then
+    pip install pytest-cov coveralls
+fi
+
 # Build hmmlearn in the install.sh script to collapse the verbose
 # build output in the travis output when it succeeds.
 python --version

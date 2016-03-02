@@ -1,10 +1,14 @@
+sudo: false
+
 language: python
-install: source continuous_integration/travis/install.sh
-script: bash continuous_integration/travis/test_script.sh
+
 env:
   matrix:
     - PYTHON_VERSION="2.6"
-    - PYTHON_VERSION="2.7"
+    - PYTHON_VERSION="2.7" COVERAGE="true"
     - PYTHON_VERSION="3.4"
     - PYTHON_VERSION="3.5"
-sudo: false
+
+install: source continuous_integration/travis/install.sh
+script: bash continuous_integration/travis/test_script.sh
+after_success: source continuous_integration/travis/after_success.sh
