@@ -11,64 +11,37 @@ hmmlearn is a set of algorithms for **unsupervised** learning and inference of
 Hidden Markov Models. For supervised learning learning of HMMs and similar models
 see `seqlearn <https://github.com/larsmans/seqlearn>`_.
 
-Getting the latest code
-=======================
+Important links
+===============
 
-To get the latest code using git, simply type::
+* Official source code repo: https://github.com/hmmlearn/hmmlearn
+* HTML documentation (stable release): https://hmmlearn.readthedocs.org/en/stable
+* HTML documentation (development version): https://hmmlearn.readthedocs.org/en/latest
 
-    $ git clone https://github.com/hmmlearn/hmmlearn.git
+Dependencies
+============
 
-Installing
-==========
+The required dependencies to use hmmlearn are
 
-Make sure you have all the dependencies::
+* Python >= 2.6
+* NumPy (tested to work with >=1.9.3)
+* SciPy (tested to work with >=0.16.0)
+* scikit-learn >= 0.16
 
-    $ pip install numpy scipy scikit-learn
+You also need Matplotlib >= 1.1.1 to run the examples and pytest >= 2.6.0 to run
+the tests.
 
-and then install ``hmmlearn`` by running::
+Installation
+============
 
-    $ python setup.py install
+First make sure you have installed all the dependencies listed above. Then run
+the following command::
 
-in the source code directory.
+    pip install -U --user hmmlearn
 
-Running the test suite
-======================
+..
+   Development
+   ===========
 
-To run the test suite, you need ``pytest``. Run the test suite using::
-
-    $ python setup.py build_ext --inplace
-    $ py.test --doctest-modules hmmlearn
-
-from the root of the project.
-
-Building the docs
-=================
-
-To build the docs you need to have the following packages installed::
-
-    $ pip install Pillow matplotlib Sphinx sphinx-gallery sphinx_rtd_theme numpydoc
-
-Run the command::
-
-    $ cd doc
-    $ make html
-
-The docs are built in the ``_build/html`` directory.
-
-Making a source tarball
-=======================
-
-To create a source tarball, eg for packaging or distributing, run the
-following command::
-
-    $ python setup.py sdist
-
-The tarball will be created in the ``dist`` directory.
-
-Making a release and uploading it to PyPI
-=========================================
-
-This command is only run by project manager, to make a release, and
-upload in to PyPI::
-
-    $ python setup.py sdist bdist_egg register upload
+   Detailed instructions on how to contribute are available in
+   ``CONTRIBUTING.rst``.

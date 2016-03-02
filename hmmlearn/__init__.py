@@ -2,7 +2,7 @@
 hmmlearn
 ========
 
-``hmmlearn`` is a set of algorithm for learning and inference of
+``hmmlearn`` is a set of algorithms for learning and inference of
 Hiden Markov Models.
 """
 
