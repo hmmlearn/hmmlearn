@@ -16,7 +16,7 @@ inplace:
 	$(PYTHON) setup.py build_ext -i
 
 test: inplace
-	$(PYTEST) -s -v --doctest-modules hmmlearn
+	$(PYTEST) -s -v --durations=10 --doctest-modules hmmlearn
 
 trailing-spaces:
 	find hmmlearn -name "*.py" | xargs perl -pi -e 's/[ \t]*$$//'
