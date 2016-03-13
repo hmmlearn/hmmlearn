@@ -66,3 +66,11 @@ artifacts:
 
 matrix:
   fast_finish: true
+
+
+cache:
+  # Use the appveyor cache to avoid re-downloading large archives such
+  # numpy and scipy wheels mirrored on a rackspace cloud container,
+  # speed up the appveyor jobs and reduce bandwidth usage on scikit-learn
+  # rackspace account.
+  - '%APPDATA%\pip\Cache'
