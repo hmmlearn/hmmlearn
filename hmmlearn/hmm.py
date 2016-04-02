@@ -463,14 +463,14 @@ class GMMHMM(_BaseHMM):
         String describing the type of covariance parameters to
         use.  Must be one of
 
-        * "spherical" --- each state uses a single variance value that
+        * 'spherical' --- each state uses a single variance value that
           applies to all features;
-        * "diag" --- each state uses a diagonal covariance matrix;
-        * "full" --- each state uses a full (i.e. unrestricted)
+        * 'diag' --- each state uses a diagonal covariance matrix;
+        * 'full' --- each state uses a full (i.e. unrestricted)
           covariance matrix;
-        * "tied" --- all states use **the same** full covariance matrix.
+        * 'tied' --- all states use **the same** full covariance matrix.
 
-        Defaults to "diag".
+        Defaults to 'diag'.
 
     startprob_prior : array, shape (n_components, )
         Initial state occupation prior distribution.
@@ -479,8 +479,8 @@ class GMMHMM(_BaseHMM):
         Matrix of prior transition probabilities between states.
 
     algorithm : string
-        Decoder algorithm. Must be one of "viterbi" or "map".
-        Defaults to "viterbi".
+        Decoder algorithm. Must be one of 'viterbi' or 'map'.
+        Defaults to 'viterbi'.
 
     random_state: RandomState or an int seed
         A random number generator instance.
@@ -520,134 +520,221 @@ class GMMHMM(_BaseHMM):
     transmat\_ : array, shape (n_components, n_components)
         Matrix of transition probabilities between states.
 
-    gmms\_ : list of GMM objects, length n_components
-        GMM emission distributions for each state.
+    means\_ : array, shape (n_components, n_mix)
 
-    Examples
-    --------
-    >>> from hmmlearn.hmm import GMMHMM
-    >>> GMMHMM(n_components=2, n_mix=10, covariance_type='diag')
-    ... # doctest: +ELLIPSIS, +NORMALIZE_WHITESPACE
-    GMMHMM(algorithm='viterbi', covariance_type='diag',...
+    covars\_ : array
+        Covariance parameters for each state in each component.
+
+        The shape depends on ``covariance_type``::
+
+            (n_components, n_mix)                          if 'spherical',
+            (n_components, n_features, n_features)         if 'tied',
+            (n_components, n_mix, n_features)              if 'diag',
+            (n_components, n_mix, n_features, n_features)  if 'full'
+
     """
 
     def __init__(self, n_components=1, n_mix=1,
                  startprob_prior=1.0, transmat_prior=1.0,
-                 covariance_type='diag', covars_prior=1e-2,
-                 algorithm="viterbi", random_state=None,
-                 n_iter=10, tol=1e-2, verbose=False,
-                 params="stmcw", init_params="stmcw"):
+                 algorithm='viterbi', covariance_type='full',
+                 random_state=None, n_iter=10, tol=1e-2,
+                 verbose=False, params='stmcw',
+                 init_params='stmcw'):
         _BaseHMM.__init__(self, n_components,
                           startprob_prior=startprob_prior,
                           transmat_prior=transmat_prior,
                           algorithm=algorithm, random_state=random_state,
                           n_iter=n_iter, tol=tol, verbose=verbose,
                           params=params, init_params=init_params)
-
-        if covariance_type != "diag":
-            warnings.warn("Fitting a GMMHMM with {0!r} covariance type "
-                          "is broken in 0.2.0. Please update to 0.2.1 once "
-                          "it's available.".format(covariance_type),
-                          UserWarning)
-
-        # XXX: Hotfit for n_mix that is incompatible with the scikit's
-        # BaseEstimator API
-        self.n_mix = n_mix
         self.covariance_type = covariance_type
-        self.covars_prior = covars_prior
-        self.gmms_ = []
-        for x in range(self.n_components):
-            if covariance_type is None:
-                gmm = GMM(n_mix, random_state=self.random_state)
-            else:
-                gmm = GMM(n_mix, covariance_type=covariance_type,
-                        random_state=self.random_state)
-            self.gmms_.append(gmm)
+        self.n_mix = n_mix
 
     def _init(self, X, lengths=None):
-        super(GMMHMM, self)._init(X, lengths=lengths)
+        super(GMMHMM, self)._init(X, lengths)
 
-        for g in self.gmms_:
-            g.set_params(init_params=self.init_params, n_iter=0)
-            g.fit(X)
+        _, n_features = X.shape
+        self.n_features = n_features
 
-    def _compute_log_likelihood(self, X):
-        return np.array([g.score(X) for g in self.gmms_]).T
+        main_kmeans = cluster.KMeans(n_clusters=self.n_components,
+                                     random_state=self.random_state)
+        main_kmeans.fit(X)
+        labels = main_kmeans.labels_
+        kmeanses = []
+        for i, label in enumerate(np.unique(labels)):
+            kmeans = cluster.KMeans(n_clusters=self.n_mix,
+                                    random_state=self.random_state)
+            kmeans.fit(X[np.where(labels == label)])
+            kmeanses.append(kmeans)
+
+        if 'w' in self.init_params or not hasattr(self, 'weights_'):
+            self.weights_ = (np.ones((self.n_components, self.n_mix)) /
+                             (np.ones((self.n_components, 1)) * self.n_mix))
+
+        if 'm' in self.init_params or not hasattr(self, 'means_'):
+            self.means_ = np.zeros((self.n_components, self.n_mix,
+                                    self.n_features))
+            for i, kmeans in enumerate(kmeanses):
+                self.means_[i] = kmeans.cluster_centers_
+
+        if 'c' in self.init_params or not hasattr(self, 'covars_'):
+            cv = np.cov(X.T)
+            if not cv.shape:
+                cv.shape = (1, 1)
+
+            if self.covariance_type == 'tied':
+                self.covars_ = np.zeros((self.n_components,
+                                         self.n_features, self.n_features))
+                self.covars_[:] = cv
+            elif self.covariance_type == 'full':
+                self.covars_ = np.zeros((self.n_components, self.n_mix,
+                                         self.n_features, self.n_features))
+                self.covars_[:] = cv
+            elif self.covariance_type == 'diag':
+                self.covars_ = np.zeros((self.n_components, self.n_mix,
+                                         self.n_features))
+                self.covars_[:] = np.diag(cv)
+            elif self.covariance_type == 'spherical':
+                self.covars_ = np.zeros((self.n_components, self.n_mix))
+                self.covars_[:] = cv.mean()
+
+    def _check(self):
+        super(GMMHMM, self)._check()
 
     def _generate_sample_from_state(self, state, random_state=None):
-        return self.gmms_[state].sample(1, random_state=random_state).flatten()
+        # TODO: actually use random_state
+        if random_state is None:
+            random_state = self.random_state
+
+        cur_means = self.means_[state]
+        cur_covs = self.covars_[state]
+        cur_weights = self.weights_[state]
+
+        i_gauss = np.random.multinomial(1, cur_weights)[0][0]
+        mean = cur_means[i_gauss]
+        if self.covariance_type == 'tied':
+            cov = cur_covs
+        else:
+            cov = cur_covs[i_gauss]
+
+        return sample_gaussian(mean, cov, self.covariance_type,
+                               random_state=random_state)
+
+    def _compute_log_likelihood(self, X):
+        n_samples, _ = X.shape
+        res = np.zeros((n_samples, self.n_components))
+
+        for i in range(self.n_components):
+            cur_means = self.means_[i]
+            cur_covs = self.covars_[i]
+            if self.covariance_type == 'spherical':
+                cur_covs = cur_covs[:, np.newaxis]
+            cur_weights = self.weights_[i]
+
+            densities = np.exp(log_multivariate_normal_density(
+                X, cur_means, cur_covs, self.covariance_type
+            ))
+            res[:, i] = np.log(np.sum(cur_weights * densities, axis=1))
+
+        return res
 
     def _initialize_sufficient_statistics(self):
         stats = super(GMMHMM, self)._initialize_sufficient_statistics()
-        stats['norm'] = [np.zeros(g.weights_.shape) for g in self.gmms_]
-        stats['means'] = [np.zeros(np.shape(g.means_)) for g in self.gmms_]
-        stats['covars'] = [np.zeros(np.shape(g.covars_)) for g in self.gmms_]
+        stats['n_samples'] = 0
+        stats['post_comp_mix'] = None
+        stats['post_mix_sum'] = np.zeros((self.n_components, self.n_mix))
+        stats['post_sum'] = np.zeros(self.n_components)
+        stats['samples'] = None
+        stats['centered'] = None
         return stats
 
     def _accumulate_sufficient_statistics(self, stats, X, framelogprob,
-                                          posteriors, fwdlattice, bwdlattice):
+                                          post_comp, fwdlattice, bwdlattice):
+
+        # TODO: support multiple frames
+
         super(GMMHMM, self)._accumulate_sufficient_statistics(
-            stats, X, framelogprob, posteriors, fwdlattice, bwdlattice)
+            stats, X, framelogprob, post_comp, fwdlattice, bwdlattice
+        )
 
-        for state, g in enumerate(self.gmms_):
-            lgmm_posteriors = (np.log(g.predict_proba(X))
-                               + np.log(posteriors[:, state][:, np.newaxis]
-                                        + np.finfo(np.float).eps))
-            gmm_posteriors = np.exp(lgmm_posteriors)
+        n_samples, _ = X.shape
 
-            n_features = g.means_.shape[1]
-            tmp_gmm = GMM(g.n_components, covariance_type=g.covariance_type)
-            tmp_gmm._set_covars(
-                distribute_covar_matrix_to_match_covariance_type(
-                    np.eye(n_features), g.covariance_type,
-                    g.n_components))
-            norm = tmp_gmm._do_mstep(X, gmm_posteriors, self.params)
+        stats['n_samples'] = n_samples
+        stats['samples'] = X
 
-            if np.any(np.isnan(tmp_gmm.covars_)):
-                raise ValueError
+        # post_comp = posteriors.reshape((n_samples,))
 
-            stats['norm'][state] += norm
-            if 'm' in self.params:
-                stats['means'][state] += tmp_gmm.means_ * norm[:, np.newaxis]
-            if 'c' in self.params:
-                if tmp_gmm.covariance_type == 'tied':
-                    stats['covars'][state] += tmp_gmm.covars_ * norm.sum()
-                else:
-                    cvnorm = np.copy(norm)
-                    shape = np.ones(tmp_gmm.covars_.ndim, dtype=np.int)
-                    shape[0] = np.shape(tmp_gmm.covars_)[0]
-                    cvnorm.shape = shape
-                    stats['covars'][state] += (tmp_gmm.covars_
-                                               + tmp_gmm.means_**2) * cvnorm
+        eps = 1e-15
+
+        prob_mix = np.zeros((n_samples, self.n_components, self.n_mix))
+        for p in range(self.n_components):
+            covar = self.covars_[p]
+            if self.covariance_type == 'spherical':
+                covar = covar[:, np.newaxis]
+            prob_mix[:, p, :] = np.exp(log_multivariate_normal_density(
+                X, self.means_[p], covar, self.covariance_type
+            )) * self.weights_[p] + eps
+
+        prob_mix_sum = np.sum(prob_mix, axis=2)
+        post_mix = prob_mix / prob_mix_sum[:, :, np.newaxis]
+        post_comp_mix = post_comp[:, :, np.newaxis] * post_mix
+        stats['post_comp_mix'] = post_comp_mix
+
+        stats['post_mix_sum'] = np.sum(post_comp_mix, axis=0)
+        stats['post_sum'] = np.sum(post_comp, axis=0)
+
+        stats['centered'] = X[:, np.newaxis, np.newaxis, :] - self.means_
 
     def _do_mstep(self, stats):
         super(GMMHMM, self)._do_mstep(stats)
 
-        # All that is left to do is to apply covars_prior to the
-        # parameters updated in _accumulate_sufficient_statistics.
-        for state, g in enumerate(self.gmms_):
-            n_features = g.means_.shape[1]
-            norm = stats['norm'][state]
-            if 'w' in self.params:
-                g.weights_ = norm.copy()
-                normalize(g.weights_)
-            if 'm' in self.params:
-                g.means_ = stats['means'][state] / norm[:, np.newaxis]
-            if 'c' in self.params:
-                if g.covariance_type == 'tied':
-                    g.covars_ = ((stats['covars'][state]
-                                 + self.covars_prior * np.eye(n_features))
-                                 / norm.sum())
-                else:
-                    cvnorm = np.copy(norm)
-                    shape = np.ones(g.covars_.ndim, dtype=np.int)
-                    shape[0] = np.shape(g.covars_)[0]
-                    cvnorm.shape = shape
-                    if g.covariance_type in ['spherical', 'diag']:
-                        g.covars_ = (stats['covars'][state] +
-                                     self.covars_prior) / cvnorm - g.means_**2
-                    elif g.covariance_type == 'full':
-                        eye = np.eye(n_features)
-                        g.covars_ = ((stats['covars'][state]
-                                     + self.covars_prior * eye[np.newaxis])
-                                     / cvnorm) - g.means_**2
+        n_samples = stats['n_samples']
+        n_features = self.n_features
+
+        new_weights = stats['post_mix_sum'] / stats['post_sum'][:, np.newaxis]
+
+        new_means = np.einsum(
+                'ijk,il->jkl',
+                stats['post_comp_mix'], stats['samples']
+        ) / stats['post_mix_sum'][:, :, np.newaxis]
+
+        if self.covariance_type == 'full':
+            centered = stats['centered'].reshape(
+                (n_samples, self.n_components, self.n_mix, self.n_features, 1)
+            )
+            centered_t = stats['centered'].reshape(
+                (n_samples, self.n_components, self.n_mix, 1, self.n_features)
+            )
+            centered_dots = centered * centered_t
+            new_cov = np.einsum(
+                'ijk,ijklm->jklm',
+                stats['post_comp_mix'], centered_dots
+            ) / stats['post_mix_sum'][:, :, np.newaxis, np.newaxis]
+        elif self.covariance_type == 'diag':
+            centered2 = stats['centered'] ** 2
+            new_cov = np.einsum(
+                'ijk,ijkl->jkl',
+                stats['post_comp_mix'], centered2
+            ) / stats['post_mix_sum'][:, :, np.newaxis]
+        elif self.covariance_type == 'spherical':
+            centered_norm2 = np.sum(stats['centered'] * stats['centered'],
+                                    axis=-1)
+            new_cov = np.einsum(
+                'ijk,ijk->jk',
+                stats['post_comp_mix'], centered_norm2
+            ) / (n_features * stats['post_mix_sum'])
+        elif self.covariance_type == 'tied':
+            centered = stats['centered'].reshape(
+                (n_samples, self.n_components, self.n_mix, self.n_features, 1)
+            )
+            centered_t = stats['centered'].reshape(
+                (n_samples, self.n_components, self.n_mix, 1, self.n_features)
+            )
+            centered_dots = centered * centered_t
+            new_cov = np.einsum(
+                'ijk,ijklm->jlm',
+                stats['post_comp_mix'], centered_dots
+            ) / stats['post_sum'][:, np.newaxis, np.newaxis]
+
+        self.weights_ = new_weights
+        self.means_ = new_means
+        self.covars_ = new_cov
