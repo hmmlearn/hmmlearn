@@ -60,3 +60,18 @@ def iter_from_X_lengths(X, lengths):
 
         for i in range(len(lengths)):
             yield start[i], end[i]
+
+def log_mask_zero(prob):
+    """Computes the log of input probabilities masking divide by zero in log.
+
+    Notes
+    -----
+    During EM iteration of the model fitting, very small intermediate
+    start/transition probabilities could be normalized to Zero, causes
+    a RuntimeWarning: divide by zero encountered in log. This function
+    masks this unharmful warning.
+    """
+    prob = np.asarray(prob)
+    with np.errstate(divide='ignore'):
+        _log_prob = np.where(prob > 0, np.log(prob), 0)
+    return _log_prob
