@@ -603,12 +603,13 @@ class GMMHMM(_BaseHMM):
         # TODO: actually use random_state
         if random_state is None:
             random_state = self.random_state
+        random_state = check_random_state(random_state)
 
         cur_means = self.means_[state]
         cur_covs = self.covars_[state]
         cur_weights = self.weights_[state]
 
-        i_gauss = np.random.choice(self.n_mix, p=cur_weights)
+        i_gauss = random_state.choice(self.n_mix, p=cur_weights)
         mean = cur_means[i_gauss]
         if self.covariance_type == 'tied':
             cov = cur_covs
