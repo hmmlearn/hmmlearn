@@ -11,6 +11,7 @@ The :mod:`hmmlearn.hmm` module implements hidden Markov models.
 """
 
 import numpy as np
+from scipy.misc import logsumexp
 from sklearn import cluster
 from sklearn.mixture import (
     GMM, sample_gaussian,
@@ -463,14 +464,14 @@ class GMMHMM(_BaseHMM):
         String describing the type of covariance parameters to
         use.  Must be one of
 
-        * 'spherical' --- each state uses a single variance value that
+        * "spherical" --- each state uses a single variance value that
           applies to all features;
-        * 'diag' --- each state uses a diagonal covariance matrix;
-        * 'full' --- each state uses a full (i.e. unrestricted)
+        * "diag" --- each state uses a diagonal covariance matrix;
+        * "full" --- each state uses a full (i.e. unrestricted)
           covariance matrix;
-        * 'tied' --- all states use **the same** full covariance matrix.
+        * "tied" --- all states use **the same** full covariance matrix.
 
-        Defaults to 'diag'.
+        Defaults to "full".
 
     startprob_prior : array, shape (n_components, )
         Initial state occupation prior distribution.
@@ -479,8 +480,8 @@ class GMMHMM(_BaseHMM):
         Matrix of prior transition probabilities between states.
 
     algorithm : string
-        Decoder algorithm. Must be one of 'viterbi' or 'map'.
-        Defaults to 'viterbi'.
+        Decoder algorithm. Must be one of "viterbi" or "map".
+        Defaults to "viterbi".
 
     random_state: RandomState or an int seed
         A random number generator instance.
@@ -536,10 +537,10 @@ class GMMHMM(_BaseHMM):
 
     def __init__(self, n_components=1, n_mix=1,
                  startprob_prior=1.0, transmat_prior=1.0,
-                 algorithm='viterbi', covariance_type='full',
+                 algorithm="viterbi", covariance_type="full",
                  random_state=None, n_iter=10, tol=1e-2,
-                 verbose=False, params='stmcw',
-                 init_params='stmcw'):
+                 verbose=False, params="stmcw",
+                 init_params="stmcw"):
         _BaseHMM.__init__(self, n_components,
                           startprob_prior=startprob_prior,
                           transmat_prior=transmat_prior,
@@ -550,33 +551,31 @@ class GMMHMM(_BaseHMM):
         self.n_mix = n_mix
 
     def _init(self, X, lengths=None):
-        super(GMMHMM, self)._init(X, lengths)
+        super(GMMHMM, self)._init(X, lengths=lengths)
 
-        _, n_features = X.shape
-        self.n_features = n_features
+        _, self.n_features = X.shape
 
         main_kmeans = cluster.KMeans(n_clusters=self.n_components,
                                      random_state=self.random_state)
-        main_kmeans.fit(X)
-        labels = main_kmeans.labels_
+        labels = main_kmeans.fit_predict(X)
         kmeanses = []
-        for i, label in enumerate(np.unique(labels)):
+        for label in range(self.n_components):
             kmeans = cluster.KMeans(n_clusters=self.n_mix,
                                     random_state=self.random_state)
             kmeans.fit(X[np.where(labels == label)])
             kmeanses.append(kmeans)
 
-        if 'w' in self.init_params or not hasattr(self, 'weights_'):
+        if 'w' in self.init_params or not hasattr(self, "weights_"):
             self.weights_ = (np.ones((self.n_components, self.n_mix)) /
                              (np.ones((self.n_components, 1)) * self.n_mix))
 
-        if 'm' in self.init_params or not hasattr(self, 'means_'):
+        if 'm' in self.init_params or not hasattr(self, "means_"):
             self.means_ = np.zeros((self.n_components, self.n_mix,
                                     self.n_features))
             for i, kmeans in enumerate(kmeanses):
                 self.means_[i] = kmeans.cluster_centers_
 
-        if 'c' in self.init_params or not hasattr(self, 'covars_'):
+        if 'c' in self.init_params or not hasattr(self, "covars_"):
             cv = np.cov(X.T)
             if not cv.shape:
                 cv.shape = (1, 1)
@@ -609,7 +608,7 @@ class GMMHMM(_BaseHMM):
         cur_covs = self.covars_[state]
         cur_weights = self.weights_[state]
 
-        i_gauss = np.random.multinomial(1, cur_weights)[0][0]
+        i_gauss = np.random.choice(self.n_mix, p=cur_weights)
         mean = cur_means[i_gauss]
         if self.covariance_type == 'tied':
             cov = cur_covs
@@ -619,21 +618,24 @@ class GMMHMM(_BaseHMM):
         return sample_gaussian(mean, cov, self.covariance_type,
                                random_state=random_state)
 
+    def _compute_log_weighted_gaussian_densities(self, X, i_comp):
+        cur_means = self.means_[i_comp]
+        cur_covs = self.covars_[i_comp]
+        if self.covariance_type == 'spherical':
+            cur_covs = cur_covs[:, np.newaxis]
+        log_cur_weights = np.log(self.weights_[i_comp])
+
+        return log_multivariate_normal_density(
+            X, cur_means, cur_covs, self.covariance_type
+        ) + log_cur_weights
+
     def _compute_log_likelihood(self, X):
         n_samples, _ = X.shape
         res = np.zeros((n_samples, self.n_components))
 
         for i in range(self.n_components):
-            cur_means = self.means_[i]
-            cur_covs = self.covars_[i]
-            if self.covariance_type == 'spherical':
-                cur_covs = cur_covs[:, np.newaxis]
-            cur_weights = self.weights_[i]
-
-            densities = np.exp(log_multivariate_normal_density(
-                X, cur_means, cur_covs, self.covariance_type
-            ))
-            res[:, i] = np.log(np.sum(cur_weights * densities, axis=1))
+            log_denses = self._compute_log_weighted_gaussian_densities(X, i)
+            res[:, i] = logsumexp(log_denses, axis=1)
 
         return res
 
@@ -667,12 +669,8 @@ class GMMHMM(_BaseHMM):
 
         prob_mix = np.zeros((n_samples, self.n_components, self.n_mix))
         for p in range(self.n_components):
-            covar = self.covars_[p]
-            if self.covariance_type == 'spherical':
-                covar = covar[:, np.newaxis]
-            prob_mix[:, p, :] = np.exp(log_multivariate_normal_density(
-                X, self.means_[p], covar, self.covariance_type
-            )) * self.weights_[p] + eps
+            log_denses = self._compute_log_weighted_gaussian_densities(X, p)
+            prob_mix[:, p, :] = np.exp(log_denses) + eps
 
         prob_mix_sum = np.sum(prob_mix, axis=2)
         post_mix = prob_mix / prob_mix_sum[:, :, np.newaxis]
