@@ -473,6 +473,10 @@ class GMMHMM(_BaseHMM):
 
         Defaults to "full".
 
+    min_covar : float
+        Floor on the diagonal of the covariance matrix to prevent
+        overfitting. Defaults to 1e-3.
+
     startprob_prior : array, shape (n_components, )
         Initial state occupation prior distribution.
 
@@ -536,7 +540,7 @@ class GMMHMM(_BaseHMM):
     """
 
     def __init__(self, n_components=1, n_mix=1,
-                 startprob_prior=1.0, transmat_prior=1.0,
+                 min_covar=1e-3, startprob_prior=1.0, transmat_prior=1.0,
                  algorithm="viterbi", covariance_type="full",
                  random_state=None, n_iter=10, tol=1e-2,
                  verbose=False, params="stmcw",
@@ -548,6 +552,7 @@ class GMMHMM(_BaseHMM):
                           n_iter=n_iter, tol=tol, verbose=verbose,
                           params=params, init_params=init_params)
         self.covariance_type = covariance_type
+        self.min_covar = min_covar
         self.n_mix = n_mix
 
     def _init(self, X, lengths=None):
@@ -576,7 +581,7 @@ class GMMHMM(_BaseHMM):
                 self.means_[i] = kmeans.cluster_centers_
 
         if 'c' in self.init_params or not hasattr(self, "covars_"):
-            cv = np.cov(X.T)
+            cv = np.cov(X.T) + self.min_covar * np.eye(self.n_features)
             if not cv.shape:
                 cv.shape = (1, 1)
 
