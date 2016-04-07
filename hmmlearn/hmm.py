@@ -599,6 +599,72 @@ class GMMHMM(_BaseHMM):
     def _check(self):
         super(GMMHMM, self)._check()
 
+        # Checking covariance type
+        if self.covariance_type not in COVARIANCE_TYPES:
+            raise ValueError("covariance_type must be one of {0}"
+                             .format(COVARIANCE_TYPES))
+
+        self.weights_ = np.array(self.weights_)
+        # Checking mixture weights' shape
+        if self.weights_.shape != (self.n_components, self.n_mix):
+            raise ValueError("mixture weights must have shape "
+                             "(n_components, n_mix), "
+                             "actual shape: {}".format(self.weights_.shape))
+
+        # Checking mixture weights' mathematical correctness
+        if not np.allclose(np.sum(self.weights_, axis=1),
+                           np.ones(self.n_components)):
+            raise ValueError("mixture weights must sum up to 1")
+
+        # Checking means' shape
+        self.means_ = np.array(self.means_)
+        if self.means_.shape != (self.n_components, self.n_mix,
+                                 self.n_features):
+            raise ValueError("mixture means must have shape "
+                             "(n_components, n_mix, n_features), "
+                             "actual shape: {}".format(self.means_.shape))
+
+        # Checking covariances' shape
+        self.covars_ = np.array(self.covars_)
+        covars_shape = self.covars_.shape
+        needed_shapes = {
+            "spherical": (self.n_components, self.n_mix),
+            "tied": (self.n_components, self.n_features, self.n_features),
+            "diag": (self.n_components, self.n_mix, self.n_features),
+            "full": (self.n_components, self.n_mix,
+                     self.n_features, self.n_features)
+        }
+        needed_shape = needed_shapes[self.covariance_type]
+        if covars_shape != needed_shape:
+            raise ValueError("{!r} mixture covars must have shape {}, "
+                             "actual shape: {}"
+                             .format(self.covariance_type,
+                                     needed_shape, covars_shape))
+
+        # Checking covariances' mathematical correctness
+        from scipy import linalg
+
+        if (self.covariance_type == "spherical" or
+                self.covariance_type == "diag"):
+            if np.any(self.covars_ <= 0):
+                raise ValueError("{!r} mixture covars must be non-negative"
+                                 .format(self.covariance_type))
+        elif self.covariance_type == "tied":
+            for i, covar in enumerate(self.covars_):
+                if (not np.allclose(covar, covar.T) or
+                        np.any(linalg.eigvalsh(covar) <= 0)):
+                    raise ValueError("'tied' mixture covars must be "
+                                     "symmetric, positive-definite")
+        elif self.covariance_type == "full":
+            for i, mix_covars in enumerate(self.covars_):
+                for j, covar in enumerate(mix_covars):
+                    if (not np.allclose(covar, covar.T) or
+                            np.any(linalg.eigvalsh(covar) <= 0)):
+                        raise ValueError("'full' covariance matrix of "
+                                         "mixture {} of component {} must be "
+                                         "symmetric, positive-definite"
+                                         .format(j, i))
+
     def _generate_sample_from_state(self, state, random_state=None):
         # TODO: actually use random_state
         if random_state is None:
