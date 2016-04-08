@@ -604,6 +604,9 @@ class GMMHMM(_BaseHMM):
     def _check(self):
         super(GMMHMM, self)._check()
 
+        if not hasattr(self, "n_features"):
+            self.n_features = self.means_.shape[2]
+
         # Checking covariance type
         if self.covariance_type not in COVARIANCE_TYPES:
             raise ValueError("covariance_type must be one of {0}"
