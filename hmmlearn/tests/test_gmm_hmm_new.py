@@ -2,6 +2,7 @@ import numpy as np
 from hmmlearn.hmm import GMMHMM
 
 import pytest
+
 from sklearn.mixture.gmm import sample_gaussian
 
 from sklearn.preprocessing import normalize
@@ -38,8 +39,8 @@ def prep_params(n_comps, n_mix, n_features, covar_type,
     startprob = np.zeros(n_comps)
     startprob[0] = 1
 
-    transmat = random_state.uniform(size=(n_comps, n_comps))
-    transmat /= np.sum(transmat, axis=1)[:, np.newaxis]
+    transmat = normalized(random_state.uniform(size=(n_comps, n_comps)),
+                          axis=1)
 
     if covar_type == "spherical":
         covs = random_state.uniform(0.1, 5, size=(n_comps, n_mix))
@@ -58,8 +59,8 @@ def prep_params(n_comps, n_mix, n_features, covar_type,
                                            size=(n_features, n_features))
                 covs[i, j] = np.dot(low.T, low)
 
-    weights = random_state.uniform(size=(n_comps, n_mix))
-    weights /= np.sum(weights, axis=1)[:, np.newaxis]
+    weights = normalized(random_state.uniform(size=(n_comps, n_mix)),
+                         axis=1)
 
     return covs, means, startprob, transmat, weights
 
