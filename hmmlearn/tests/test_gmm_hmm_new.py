@@ -1,13 +1,8 @@
 import numpy as np
-from hmmlearn.hmm import GMMHMM
-
 import pytest
 
-from sklearn.mixture.gmm import sample_gaussian
-
-from sklearn.preprocessing import normalize
-
 from . import normalized
+from hmmlearn.hmm import GMMHMM
 
 
 def sample_from_parallelepiped(low, high, n_samples, random_state):
