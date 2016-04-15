@@ -674,7 +674,6 @@ class GMMHMM(_BaseHMM):
                                          .format(j, i))
 
     def _generate_sample_from_state(self, state, random_state=None):
-        # TODO: actually use random_state
         if random_state is None:
             random_state = self.random_state
         random_state = check_random_state(random_state)
