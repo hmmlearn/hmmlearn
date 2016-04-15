@@ -1,8 +1,9 @@
 import numpy as np
 import pytest
 
+from . import log_likelihood_increasing
 from . import normalized
-from hmmlearn.hmm import GMMHMM
+from ..hmm import GMMHMM
 
 
 def sample_from_parallelepiped(low, high, n_samples, random_state):
@@ -67,11 +68,11 @@ class GMMHMMTestMixin(object):
         self.n_mix = 2
         self.n_features = 2
 
-        low, high = 10, 15
+        self.low, self.high = 10, 15
         (self.covars, self.means,
          self.startprob, self.transmat, self.weights) = prep_params(
             self.n_components, self.n_mix, self.n_features,
-            self.covariance_type, low, high, self.prng
+            self.covariance_type, self.low, self.high, self.prng
         )
         
         self.h = GMMHMM(n_components=self.n_components, n_mix=self.n_mix,
@@ -115,8 +116,23 @@ class GMMHMMTestMixin(object):
         assert np.allclose(states, decoded_states)
 
     def test_fit(self):
+        n_iter = 5
+        n_samples = 10000
+        lengths = None
+        X, _state_sequence = self.h.sample(n_samples)
 
-        X, _states = self.h.sample()
+        # Mess up the parameters and see if we can re-learn them.
+        covs0, means0, priors0, trans0, weights0 = prep_params(
+            self.n_components, self.n_mix, self.n_features,
+            self.covariance_type, self.low, self.high,
+            np.random.RandomState(15)
+        )
+        self.h.covars_ = covs0 * 100
+        self.h.means_ = means0
+        self.h.startprob_ = priors0
+        self.h.transmat_ = trans0
+        self.h.weights_ = weights0
+        assert log_likelihood_increasing(self.h, X, lengths, n_iter)
 
     def test_fit_sparse_data(self):
         n_samples = 1000
@@ -125,6 +141,7 @@ class GMMHMMTestMixin(object):
 
         # this should not raise
         # "ValueError: array must not contain infs or NaNs"
+        self.h._init(X)
         self.h.fit(X)
 
     def test_fit_zero_variance(self):
