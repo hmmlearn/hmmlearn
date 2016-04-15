@@ -745,7 +745,7 @@ class GMMHMM(_BaseHMM):
         prob_mix = np.zeros((n_samples, self.n_components, self.n_mix))
         for p in range(self.n_components):
             log_denses = self._compute_log_weighted_gaussian_densities(X, p)
-            prob_mix[:, p, :] = np.exp(log_denses) + eps
+            prob_mix[:, p, :] = np.exp(log_denses) + np.finfo(np.float).eps
 
         prob_mix_sum = np.sum(prob_mix, axis=2)
         post_mix = prob_mix / prob_mix_sum[:, :, np.newaxis]
