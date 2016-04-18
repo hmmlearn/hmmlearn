@@ -936,17 +936,38 @@ class GMMHMM(_BaseHMM):
             new_cov = new_cov_numer / new_cov_denom
         elif self.covariance_type == 'diag':
             centered2 = stats['centered'] ** 2
-            new_cov = np.einsum(
+            centered_means2 = centered_means ** 2
+
+            alphas = self.covars_prior["alphas"]
+            betas = self.covars_prior["betas"]
+
+            new_cov_numer = np.einsum(
                 'ijk,ijkl->jkl',
                 stats['post_comp_mix'], centered2
-            ) / stats['post_mix_sum'][:, :, np.newaxis]
+            ) + lambdas[:, :, np.newaxis] * centered_means2 + 2 * betas
+            new_cov_denom = (
+                stats['post_mix_sum'][:, :, np.newaxis] + 1 + 2 * (alphas + 1)
+            )
+
+            new_cov = new_cov_numer / new_cov_denom
         elif self.covariance_type == 'spherical':
-            centered_norm2 = np.sum(stats['centered'] * stats['centered'],
-                                    axis=-1)
-            new_cov = np.einsum(
+            centered_norm2 = np.sum(stats['centered'] ** 2, axis=-1)
+
+            alphas = self.covars_prior["alphas"]
+            betas = self.covars_prior["betas"]
+
+            centered_means_norm2 = np.sum(centered_means ** 2, axis=-1)
+
+            new_cov_numer = np.einsum(
                 'ijk,ijk->jk',
                 stats['post_comp_mix'], centered_norm2
-            ) / (n_features * stats['post_mix_sum'])
+            ) + lambdas * centered_means_norm2 + 2 * betas
+            new_cov_denom = (
+                n_features * stats['post_mix_sum'] + n_features +
+                2 * (alphas + 1)
+            )
+
+            new_cov = new_cov_numer / new_cov_denom
         elif self.covariance_type == 'tied':
             centered = stats['centered'].reshape((
                 n_samples, self.n_components, self.n_mix, self.n_features, 1
