@@ -541,6 +541,7 @@ class GMMHMM(_BaseHMM):
 
     def __init__(self, n_components=1, n_mix=1,
                  min_covar=1e-3, startprob_prior=1.0, transmat_prior=1.0,
+                 weights_prior=1.0, means_prior=(0.0, 0.0), covars_prior=None,
                  algorithm="viterbi", covariance_type="full",
                  random_state=None, n_iter=10, tol=1e-2,
                  verbose=False, params="stmcw",
@@ -554,11 +555,26 @@ class GMMHMM(_BaseHMM):
         self.covariance_type = covariance_type
         self.min_covar = min_covar
         self.n_mix = n_mix
+        self.weights_prior_alphas = weights_prior
+        self.means_prior = {"mus": means_prior[0], "lambdas": means_prior[1]}
+        self.covars_prior = {}
+        if covars_prior is not None:
+            if (self.covariance_type == "full" or
+                    self.covariance_type == "tied"):
+                self.covars_prior["psis"] = covars_prior[0]
+                self.covars_prior["nus"] = covars_prior[1]
+            elif (self.covariance_type == "diag" or
+                    self.covariance_type == "spherical"):
+                self.covars_prior["alphas"] = covars_prior[0]
+                self.covars_prior["betas"] = covars_prior[1]
 
     def _init(self, X, lengths=None):
         super(GMMHMM, self)._init(X, lengths=lengths)
 
         _, self.n_features = X.shape
+
+        # Default values for covariance prior parameters
+        self._init_covar_priors()
 
         main_kmeans = cluster.KMeans(n_clusters=self.n_components,
                                      random_state=self.random_state)
@@ -601,8 +617,33 @@ class GMMHMM(_BaseHMM):
                 self.covars_ = np.zeros((self.n_components, self.n_mix))
                 self.covars_[:] = cv.mean()
 
+    def _init_covar_priors(self):
+        if self.covariance_type == "full":
+            if "psis" not in self.covars_prior:
+                self.covars_prior["psis"] = 0.0
+            if "nus" not in self.covars_prior:
+                self.covars_prior["nus"] = -(1.0 + self.n_features + 1.0)
+        elif self.covariance_type == "tied":
+            if "psis" not in self.covars_prior:
+                self.covars_prior["psis"] = 0.0
+            if "nus" not in self.covars_prior:
+                self.covars_prior["nus"] = -(self.n_mix + self.n_features +
+                                             1.0)
+        elif self.covariance_type == "diag":
+            if "alphas" not in self.covars_prior:
+                self.covars_prior["alphas"] = -1.5
+            if "betas" not in self.covars_prior:
+                self.covars_prior["betas"] = 0.0
+        elif self.covariance_type == "spherical":
+            if "alphas" not in self.covars_prior:
+                self.covars_prior["alphas"] = -(self.n_mix + 2.0) / 2.0
+            if "betas" not in self.covars_prior:
+                self.covars_prior["betas"] = 0.0
+
     def _check(self):
         super(GMMHMM, self)._check()
+
+        self._init_covar_priors()
 
         if not hasattr(self, "n_features"):
             self.n_features = self.means_.shape[2]
