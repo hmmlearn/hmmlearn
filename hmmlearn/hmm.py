@@ -901,18 +901,39 @@ class GMMHMM(_BaseHMM):
         new_means_denom = (stats['post_mix_sum'] + lambdas)[:, :, np.newaxis]
         new_means = new_means_numer / new_means_denom
 
+        centered_means = self.means_ - mus
+
         if self.covariance_type == 'full':
-            centered = stats['centered'].reshape(
-                (n_samples, self.n_components, self.n_mix, self.n_features, 1)
-            )
-            centered_t = stats['centered'].reshape(
-                (n_samples, self.n_components, self.n_mix, 1, self.n_features)
-            )
+            centered = stats['centered'].reshape((
+                n_samples, self.n_components, self.n_mix, self.n_features, 1
+            ))
+            centered_t = stats['centered'].reshape((
+                n_samples, self.n_components, self.n_mix, 1, self.n_features
+            ))
             centered_dots = centered * centered_t
-            new_cov = np.einsum(
+
+            psis_t = np.transpose(self.covars_prior["psis"],
+                                  axes=(0, 1, 3, 2))
+            nus = self.covars_prior["nus"]
+
+            centr_means_resh = centered_means.reshape((
+                self.n_components, self.n_mix, self.n_features, 1
+            ))
+            centr_means_resh_t = centered_means.reshape((
+                self.n_components, self.n_mix, 1, self.n_features
+            ))
+            centered_means_dots = centr_means_resh * centr_means_resh_t
+
+            new_cov_numer = np.einsum(
                 'ijk,ijklm->jklm',
                 stats['post_comp_mix'], centered_dots
-            ) / stats['post_mix_sum'][:, :, np.newaxis, np.newaxis]
+            ) + psis_t + (lambdas[:, :, np.newaxis, np.newaxis] *
+                          centered_means_dots)
+            new_cov_denom = (
+                stats['post_mix_sum'] + 1 + nus + self.n_features + 1
+            )[:, :, np.newaxis, np.newaxis]
+
+            new_cov = new_cov_numer / new_cov_denom
         elif self.covariance_type == 'diag':
             centered2 = stats['centered'] ** 2
             new_cov = np.einsum(
@@ -927,12 +948,12 @@ class GMMHMM(_BaseHMM):
                 stats['post_comp_mix'], centered_norm2
             ) / (n_features * stats['post_mix_sum'])
         elif self.covariance_type == 'tied':
-            centered = stats['centered'].reshape(
-                (n_samples, self.n_components, self.n_mix, self.n_features, 1)
-            )
-            centered_t = stats['centered'].reshape(
-                (n_samples, self.n_components, self.n_mix, 1, self.n_features)
-            )
+            centered = stats['centered'].reshape((
+                n_samples, self.n_components, self.n_mix, self.n_features, 1
+            ))
+            centered_t = stats['centered'].reshape((
+                n_samples, self.n_components, self.n_mix, 1, self.n_features
+            ))
             centered_dots = centered * centered_t
             new_cov = np.einsum(
                 'ijk,ijklm->jlm',
