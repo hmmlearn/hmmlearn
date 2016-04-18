@@ -976,10 +976,33 @@ class GMMHMM(_BaseHMM):
                 n_samples, self.n_components, self.n_mix, 1, self.n_features
             ))
             centered_dots = centered * centered_t
-            new_cov = np.einsum(
+
+            psis_t = np.transpose(self.covars_prior["psis"],
+                                  axes=(0, 2, 1))
+            nus = self.covars_prior["nus"]
+
+            centr_means_resh = centered_means.reshape((
+                self.n_components, self.n_mix, self.n_features, 1
+            ))
+            centr_means_resh_t = centered_means.reshape((
+                self.n_components, self.n_mix, 1, self.n_features
+            ))
+            centered_means_dots = centr_means_resh * centr_means_resh_t
+
+            lambdas_cmdots_prod_sum = np.einsum(
+                'ij,ijkl->ikl',
+                lambdas, centered_means_dots
+            )
+
+            new_cov_numer = np.einsum(
                 'ijk,ijklm->jlm',
                 stats['post_comp_mix'], centered_dots
-            ) / stats['post_sum'][:, np.newaxis, np.newaxis]
+            ) + lambdas_cmdots_prod_sum + psis_t
+            new_cov_denom = (
+                stats['post_sum'] + self.n_mix + nus + self.n_features + 1
+            )[:, np.newaxis, np.newaxis]
+
+            new_cov = new_cov_numer / new_cov_denom
 
         self.weights_ = new_weights
         self.means_ = new_means
