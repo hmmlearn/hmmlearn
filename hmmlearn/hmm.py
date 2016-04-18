@@ -886,12 +886,20 @@ class GMMHMM(_BaseHMM):
         n_samples = stats['n_samples']
         n_features = self.n_features
 
-        new_weights = stats['post_mix_sum'] / stats['post_sum'][:, np.newaxis]
+        alphas_minus_one = self.weights_prior_alphas - 1
+        new_weights_numer = stats['post_mix_sum'] + alphas_minus_one
+        new_weights_denom = (
+            stats['post_sum'] + np.sum(alphas_minus_one, axis=1)
+        )[:, np.newaxis]
+        new_weights = new_weights_numer / new_weights_denom
 
-        new_means = np.einsum(
-                'ijk,il->jkl',
-                stats['post_comp_mix'], stats['samples']
-        ) / stats['post_mix_sum'][:, :, np.newaxis]
+        lambdas, mus = self.means_prior["lambdas"], self.means_prior["mus"]
+        new_means_numer = np.einsum(
+            'ijk,il->jkl',
+            stats['post_comp_mix'], stats['samples']
+        ) + lambdas[:, :, np.newaxis] * mus
+        new_means_denom = (stats['post_mix_sum'] + lambdas)[:, :, np.newaxis]
+        new_means = new_means_numer / new_means_denom
 
         if self.covariance_type == 'full':
             centered = stats['centered'].reshape(
