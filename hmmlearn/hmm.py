@@ -555,18 +555,21 @@ class GMMHMM(_BaseHMM):
         self.covariance_type = covariance_type
         self.min_covar = min_covar
         self.n_mix = n_mix
-        self.weights_prior_alphas = weights_prior
-        self.means_prior = {"mus": means_prior[0], "lambdas": means_prior[1]}
+        self.weights_prior_alphas = np.asarray(weights_prior)
+        self.means_prior = {
+            "mus": np.asarray(means_prior[0]),
+            "lambdas": np.asarray(means_prior[1])
+        }
         self.covars_prior = {}
         if covars_prior is not None:
             if (self.covariance_type == "full" or
                     self.covariance_type == "tied"):
-                self.covars_prior["psis"] = covars_prior[0]
-                self.covars_prior["nus"] = covars_prior[1]
+                self.covars_prior["psis"] = np.asarray(covars_prior[0])
+                self.covars_prior["nus"] = np.asarray(covars_prior[1])
             elif (self.covariance_type == "diag" or
                     self.covariance_type == "spherical"):
-                self.covars_prior["alphas"] = covars_prior[0]
-                self.covars_prior["betas"] = covars_prior[1]
+                self.covars_prior["alphas"] = np.asarray(covars_prior[0])
+                self.covars_prior["betas"] = np.asarray(covars_prior[1])
 
     def _init(self, X, lengths=None):
         super(GMMHMM, self)._init(X, lengths=lengths)
@@ -620,25 +623,30 @@ class GMMHMM(_BaseHMM):
     def _init_covar_priors(self):
         if self.covariance_type == "full":
             if "psis" not in self.covars_prior:
-                self.covars_prior["psis"] = 0.0
+                self.covars_prior["psis"] = np.asarray(0.0)
             if "nus" not in self.covars_prior:
-                self.covars_prior["nus"] = -(1.0 + self.n_features + 1.0)
+                self.covars_prior["nus"] = np.asarray(
+                    -(1.0 + self.n_features + 1.0)
+                )
         elif self.covariance_type == "tied":
             if "psis" not in self.covars_prior:
-                self.covars_prior["psis"] = 0.0
+                self.covars_prior["psis"] = np.asarray(0.0)
             if "nus" not in self.covars_prior:
-                self.covars_prior["nus"] = -(self.n_mix + self.n_features +
-                                             1.0)
+                self.covars_prior["nus"] = np.asarray(
+                    -(self.n_mix + self.n_features + 1.0)
+                )
         elif self.covariance_type == "diag":
             if "alphas" not in self.covars_prior:
-                self.covars_prior["alphas"] = -1.5
+                self.covars_prior["alphas"] = np.asarray(-1.5)
             if "betas" not in self.covars_prior:
-                self.covars_prior["betas"] = 0.0
+                self.covars_prior["betas"] = np.asarray(0.0)
         elif self.covariance_type == "spherical":
             if "alphas" not in self.covars_prior:
-                self.covars_prior["alphas"] = -(self.n_mix + 2.0) / 2.0
+                self.covars_prior["alphas"] = np.asarray(
+                    -(self.n_mix + 2.0) / 2.0
+                )
             if "betas" not in self.covars_prior:
-                self.covars_prior["betas"] = 0.0
+                self.covars_prior["betas"] = np.asarray(0.0)
 
     def _check(self):
         super(GMMHMM, self)._check()
