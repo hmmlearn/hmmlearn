@@ -886,6 +886,7 @@ class GMMHMM(_BaseHMM):
         n_samples = stats['n_samples']
         n_features = self.n_features
 
+        # Maximizing weights
         alphas_minus_one = self.weights_prior - 1
         new_weights_numer = stats['post_mix_sum'] + alphas_minus_one
         new_weights_denom = (
@@ -893,6 +894,7 @@ class GMMHMM(_BaseHMM):
         )[:, np.newaxis]
         new_weights = new_weights_numer / new_weights_denom
 
+        # Maximizing means
         lambdas, mus = self.means_prior["lambdas"], self.means_prior["mus"]
         new_means_numer = np.einsum(
             'ijk,il->jkl',
@@ -901,6 +903,7 @@ class GMMHMM(_BaseHMM):
         new_means_denom = (stats['post_mix_sum'] + lambdas)[:, :, np.newaxis]
         new_means = new_means_numer / new_means_denom
 
+        # Maximizing covariances
         centered_means = self.means_ - mus
 
         if self.covariance_type == 'full':
@@ -1004,6 +1007,7 @@ class GMMHMM(_BaseHMM):
 
             new_cov = new_cov_numer / new_cov_denom
 
+        # Assigning new values to class members
         self.weights_ = new_weights
         self.means_ = new_means
         self.covars_ = new_cov
