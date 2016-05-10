@@ -134,11 +134,14 @@ tag = resolve_tag()
 # Resolve function for the linkcode extension.
 def linkcode_resolve(domain, info):
     def find_source():
-        # try to find the file and line number, based on code from numpy:
+        # Try to find the file and line number. Based on code from NumPy:
         # https://github.com/numpy/numpy/blob/master/doc/source/conf.py#L286
         obj = sys.modules[info['module']]
         for part in info['fullname'].split('.'):
             obj = getattr(obj, part)
+
+        if hasattr(obj, "fget"):
+            obj = obj.fget  # Unwrap a @property.
 
         import inspect
         import os
