@@ -145,8 +145,7 @@ def linkcode_resolve(domain, info):
 
         import inspect
         import os
-        fn = inspect.getsourcefile(obj)
-        fn = os.path.relpath(fn, os.path.dirname(hmmlearn.__file__))
+        fn = os.path.basename(inspect.getsourcefile(obj))
         source, lineno = inspect.getsourcelines(obj)
         return fn, lineno, lineno + len(source) - 1
 
