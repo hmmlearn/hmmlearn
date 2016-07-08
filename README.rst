@@ -1,7 +1,7 @@
 hmmlearn |travis| |appveyor|
 ========
 
-.. |travis| image:: https://api.travis-ci.org/hmmlearn/hmmlearn.png?branch=master
+.. |travis| image:: https://api.travis-ci.org/hmmlearn/hmmlearn.svg?branch=master
    :target: https://travis-ci.org/hmmlearn/hmmlearn
 
 .. |appveyor| image:: https://ci.appveyor.com/api/projects/status/3c70msixtdvvae20/branch/master?svg=true
