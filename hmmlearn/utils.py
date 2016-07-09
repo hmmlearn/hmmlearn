@@ -67,8 +67,8 @@ def log_mask_zero(a):
 
     Notes
     -----
-    During the M-step of EM-algorithm, very small intermediate start or
-    transition probabilities could be normalized to zero, causing a
+    During the M-step of EM-algorithm, very small intermediate start
+    or transition probabilities could be normalized to zero, causing a
     *RuntimeWarning: divide by zero encountered in log*.
 
     This function masks this unharmful warning.

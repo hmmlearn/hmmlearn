@@ -619,11 +619,12 @@ class _BaseHMM(BaseEstimator):
             if n_samples <= 1:
                 return
 
-            lneta = np.zeros((n_samples - 1, n_components, n_components))
-            _hmmc._compute_lneta(n_samples, n_components, fwdlattice,
-                                 log_mask_zero(self.transmat_),
-                                 bwdlattice, framelogprob, lneta)
-            stats['trans'] += np.exp(logsumexp(lneta, axis=0))
+            log_xi_sum = np.full((n_components, n_components), -np.inf)
+            _hmmc._compute_log_xi_sum(n_samples, n_components, fwdlattice,
+                                      log_mask_zero(self.transmat_),
+                                      bwdlattice, framelogprob,
+                                      log_xi_sum)
+            stats['trans'] += np.exp(log_xi_sum)
 
     def _do_mstep(self, stats):
         """Performs the M-step of EM algorithm.
