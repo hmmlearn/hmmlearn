@@ -22,3 +22,4 @@ Authors and contributors, in no particular order:
 * Sergei Lebedev
 * Daniela Huppenkothen
 * Christopher Farrow
+* Alexandr Yanenko
