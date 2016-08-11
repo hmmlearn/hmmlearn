@@ -375,6 +375,7 @@ class _BaseHMM(BaseEstimator):
             State sequence produced by the model.
         """
         check_is_fitted(self, "startprob_")
+        self._check()
 
         if random_state is None:
             random_state = self.random_state
