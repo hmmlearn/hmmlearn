@@ -578,7 +578,8 @@ class GMMHMM(_BaseHMM):
 
     def __init__(self, n_components=1, n_mix=1,
                  min_covar=1e-3, startprob_prior=1.0, transmat_prior=1.0,
-                 weights_prior=1.0, means_prior=(0.0, 0.0), covars_prior=None,
+                 weights_prior=1.0, means_prior=0.0, means_weight=0.0,
+                 covars_prior=None, covars_weight=None,
                  algorithm="viterbi", covariance_type="diag",
                  random_state=None, n_iter=10, tol=1e-2,
                  verbose=False, params="stmcw",
@@ -592,21 +593,11 @@ class GMMHMM(_BaseHMM):
         self.covariance_type = covariance_type
         self.min_covar = min_covar
         self.n_mix = n_mix
-        self.weights_prior = np.asarray(weights_prior)
-        self.means_prior = {
-            "mus": np.asarray(means_prior[0]),
-            "lambdas": np.asarray(means_prior[1])
-        }
-        self.covars_prior = {}
-        if covars_prior is not None:
-            if (self.covariance_type == "full" or
-                    self.covariance_type == "tied"):
-                self.covars_prior["psis"] = np.asarray(covars_prior[0])
-                self.covars_prior["nus"] = np.asarray(covars_prior[1])
-            elif (self.covariance_type == "diag" or
-                    self.covariance_type == "spherical"):
-                self.covars_prior["alphas"] = np.asarray(covars_prior[0])
-                self.covars_prior["betas"] = np.asarray(covars_prior[1])
+        self.weights_prior = weights_prior
+        self.means_prior = means_prior
+        self.means_weight = means_weight
+        self.covars_prior = covars_prior
+        self.covars_weight = covars_weight
 
     def _init(self, X, lengths=None):
         super(GMMHMM, self)._init(X, lengths=lengths)
@@ -660,104 +651,63 @@ class GMMHMM(_BaseHMM):
 
     def _init_covar_priors(self):
         if self.covariance_type == "full":
-            if "psis" not in self.covars_prior:
-                self.covars_prior["psis"] = np.asarray(0.0)
-            if "nus" not in self.covars_prior:
-                self.covars_prior["nus"] = np.asarray(
-                    -(1.0 + self.n_features + 1.0)
-                )
+            if self.covars_prior is None:
+                self.covars_prior = 0.0
+            if self.covars_weight is None:
+                self.covars_weight = -(1.0 + self.n_features + 1.0)
         elif self.covariance_type == "tied":
-            if "psis" not in self.covars_prior:
-                self.covars_prior["psis"] = np.asarray(0.0)
-            if "nus" not in self.covars_prior:
-                self.covars_prior["nus"] = np.asarray(
-                    -(self.n_mix + self.n_features + 1.0)
-                )
+            if self.covars_prior is None:
+                self.covars_prior = 0.0
+            if self.covars_weight is None:
+                self.covars_weight = -(self.n_mix + self.n_features + 1.0)
         elif self.covariance_type == "diag":
-            if "alphas" not in self.covars_prior:
-                self.covars_prior["alphas"] = np.asarray(-1.5)
-            if "betas" not in self.covars_prior:
-                self.covars_prior["betas"] = np.asarray(0.0)
+            if self.covars_prior is None:
+                self.covars_prior = -1.5
+            if self.covars_weight is None:
+                self.covars_weight = 0.0
         elif self.covariance_type == "spherical":
-            if "alphas" not in self.covars_prior:
-                self.covars_prior["alphas"] = np.asarray(
-                    -(self.n_mix + 2.0) / 2.0
-                )
-            if "betas" not in self.covars_prior:
-                self.covars_prior["betas"] = np.asarray(0.0)
+            if self.covars_prior is None:
+                self.covars_prior = -(self.n_mix + 2.0) / 2.0
+            if self.covars_weight is None:
+                self.covars_weight = 0.0
 
     def _fix_priors_shape(self):
         # If priors are numbers, this function will make them into a
         # matrix of proper shape
-        if self.weights_prior.ndim == 0:
-            self.weights_prior = self.weights_prior * np.ones((
-                self.n_components, self.n_mix
-            ))
-
-        if self.means_prior["mus"].ndim == 0:
-            self.means_prior["mus"] = self.means_prior["mus"] * np.ones((
-                self.n_components, self.n_mix, self.n_features
-            ))
-
-        if self.means_prior["lambdas"].ndim == 0:
-            self.means_prior["lambdas"] = (
-                self.means_prior["lambdas"] * np.ones((
-                    self.n_components, self.n_mix
-                ))
-            )
+        self.weights_prior = np.broadcast_to(
+            self.weights_prior, (self.n_components, self.n_mix)).copy()
+        self.means_prior = np.broadcast_to(
+            self.means_prior,
+            (self.n_components, self.n_mix, self.n_features)).copy()
+        self.means_weight = np.broadcast_to(
+            self.means_weight,
+            (self.n_components, self.n_mix)).copy()
 
         if self.covariance_type == "full":
-            if self.covars_prior["psis"].ndim == 0:
-                self.covars_prior["psis"] = (
-                    self.covars_prior["psis"] * np.ones((
-                        self.n_components, self.n_mix,
-                        self.n_features, self.n_features
-                    ))
-                )
-            if self.covars_prior["nus"].ndim == 0:
-                self.covars_prior["nus"] = (
-                    self.covars_prior["nus"] * np.ones((
-                        self.n_components, self.n_mix
-                    ))
-                )
+            self.covars_prior = np.broadcast_to(
+                self.covars_prior,
+                (self.n_components, self.n_mix,
+                 self.n_features, self.n_features)).copy()
+            self.covars_weight = np.broadcast_to(
+                self.covars_weight, (self.n_components, self.n_mix)).copy()
         elif self.covariance_type == "tied":
-            if self.covars_prior["psis"].ndim == 0:
-                self.covars_prior["psis"] = (
-                    self.covars_prior["psis"] * np.ones((
-                        self.n_components,
-                        self.n_features, self.n_features
-                    ))
-                )
-            if self.covars_prior["nus"].ndim == 0:
-                self.covars_prior["nus"] = (
-                    self.covars_prior["nus"] * np.ones(self.n_components)
-                )
+            self.covars_prior = np.broadcast_to(
+                self.covars_prior,
+                (self.n_components, self.n_features, self.n_features)).copy()
+            self.covars_weight = np.broadcast_to(
+                self.covars_weight, self.n_components).copy()
         elif self.covariance_type == "diag":
-            if self.covars_prior["alphas"].ndim == 0:
-                self.covars_prior["alphas"] = (
-                    self.covars_prior["alphas"] * np.ones((
-                        self.n_components, self.n_mix, self.n_features
-                    ))
-                )
-            if self.covars_prior["betas"].ndim == 0:
-                self.covars_prior["betas"] = (
-                    self.covars_prior["betas"] * np.ones((
-                        self.n_components, self.n_mix, self.n_features
-                    ))
-                )
+            self.covars_prior = np.broadcast_to(
+                self.covars_prior,
+                (self.n_components, self.n_mix, self.n_features)).copy()
+            self.covars_weight = np.broadcast_to(
+                self.covars_weight,
+                (self.n_components, self.n_mix, self.n_features)).copy()
         elif self.covariance_type == "spherical":
-            if self.covars_prior["alphas"].ndim == 0:
-                self.covars_prior["alphas"] = (
-                    self.covars_prior["alphas"] * np.ones((
-                        self.n_components, self.n_mix
-                    ))
-                )
-            if self.covars_prior["betas"].ndim == 0:
-                self.covars_prior["betas"] = (
-                    self.covars_prior["betas"] * np.ones((
-                        self.n_components, self.n_mix
-                    ))
-                )
+            self.covars_prior = np.broadcast_to(
+                self.covars_prior, (self.n_components, self.n_mix)).copy()
+            self.covars_weight = np.broadcast_to(
+                self.covars_weight, (self.n_components, self.n_mix)).copy()
 
     def _check(self):
         super(GMMHMM, self)._check()
@@ -928,7 +878,7 @@ class GMMHMM(_BaseHMM):
         new_weights = new_weights_numer / new_weights_denom
 
         # Maximizing means
-        lambdas, mus = self.means_prior["lambdas"], self.means_prior["mus"]
+        lambdas, mus = self.means_weight, self.means_prior
         new_means_numer = np.einsum(
             'ijk,il->jkl',
             stats['post_comp_mix'], stats['samples']
@@ -948,9 +898,8 @@ class GMMHMM(_BaseHMM):
             ))
             centered_dots = centered * centered_t
 
-            psis_t = np.transpose(self.covars_prior["psis"],
-                                  axes=(0, 1, 3, 2))
-            nus = self.covars_prior["nus"]
+            psis_t = np.transpose(self.covars_prior, axes=(0, 1, 3, 2))
+            nus = self.covars_weight
 
             centr_means_resh = centered_means.reshape((
                 self.n_components, self.n_mix, self.n_features, 1
@@ -974,8 +923,8 @@ class GMMHMM(_BaseHMM):
             centered2 = stats['centered'] ** 2
             centered_means2 = centered_means ** 2
 
-            alphas = self.covars_prior["alphas"]
-            betas = self.covars_prior["betas"]
+            alphas = self.covars_prior
+            betas = self.covars_weight
 
             new_cov_numer = np.einsum(
                 'ijk,ijkl->jkl',
@@ -989,8 +938,8 @@ class GMMHMM(_BaseHMM):
         elif self.covariance_type == 'spherical':
             centered_norm2 = np.sum(stats['centered'] ** 2, axis=-1)
 
-            alphas = self.covars_prior["alphas"]
-            betas = self.covars_prior["betas"]
+            alphas = self.covars_prior
+            betas = self.covars_weight
 
             centered_means_norm2 = np.sum(centered_means ** 2, axis=-1)
 
@@ -1013,9 +962,8 @@ class GMMHMM(_BaseHMM):
             ))
             centered_dots = centered * centered_t
 
-            psis_t = np.transpose(self.covars_prior["psis"],
-                                  axes=(0, 2, 1))
-            nus = self.covars_prior["nus"]
+            psis_t = np.transpose(self.covars_prior, axes=(0, 2, 1))
+            nus = self.covars_weight
 
             centr_means_resh = centered_means.reshape((
                 self.n_components, self.n_mix, self.n_features, 1
