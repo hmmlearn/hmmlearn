@@ -97,7 +97,7 @@ class _BaseHMM(BaseEstimator):
     """Base class for Hidden Markov Models.
 
     This class allows for easy evaluation of, sampling from, and
-    maximum-likelihood estimation of the parameters of a HMM.
+    maximum a posteriori estimation of the parameters of a HMM.
 
     See the instance documentation for details specific to a
     particular object.
@@ -107,17 +107,19 @@ class _BaseHMM(BaseEstimator):
     n_components : int
         Number of states in the model.
 
-    startprob_prior : array, shape (n_components, )
-        Initial state occupation prior distribution.
+    startprob_prior : array, shape (n_components, ), optional
+        Parameters of the Dirichlet prior distribution for
+        :attr:`startprob_`.
 
-    transmat_prior : array, shape (n_components, n_components)
-        Matrix of prior transition probabilities between states.
+    transmat_prior : array, shape (n_components, n_components), optional
+        Parameters of the Dirichlet prior distribution for each row
+        of the transition probabilities :attr:`transmat_`.
 
-    algorithm : string
+    algorithm : string, optional
         Decoder algorithm. Must be one of "viterbi" or "map".
         Defaults to "viterbi".
 
-    random_state: RandomState or an int seed
+    random_state: RandomState or an int seed, optional
         A random number generator instance.
 
     n_iter : int, optional

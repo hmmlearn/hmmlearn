@@ -14,7 +14,7 @@ import numpy as np
 from scipy.misc import logsumexp
 from sklearn import cluster
 from sklearn.mixture import (
-    GMM, sample_gaussian,
+    sample_gaussian,
     log_multivariate_normal_density,
     distribute_covar_matrix_to_match_covariance_type, _validate_covars)
 from sklearn.utils import check_random_state
@@ -35,34 +35,48 @@ class GaussianHMM(_BaseHMM):
     n_components : int
         Number of states.
 
-    covariance_type : string
+    covariance_type : string, optional
         String describing the type of covariance parameters to
         use.  Must be one of
 
         * "spherical" --- each state uses a single variance value that
-          applies to all features;
-        * "diag" --- each state uses a diagonal covariance matrix;
+          applies to all features.
+        * "diag" --- each state uses a diagonal covariance matrix.
         * "full" --- each state uses a full (i.e. unrestricted)
-          covariance matrix;
+          covariance matrix.
         * "tied" --- all states use **the same** full covariance matrix.
 
         Defaults to "diag".
 
-    min_covar : float
+    min_covar : float, optional
         Floor on the diagonal of the covariance matrix to prevent
         overfitting. Defaults to 1e-3.
 
-    startprob_prior : array, shape (n_components, )
-        Initial state occupation prior distribution.
+    startprob_prior : array, shape (n_components, ), optional
+        Parameters of the Dirichlet prior distribution for
+        :attr:`startprob_`.
 
-    transmat_prior : array, shape (n_components, n_components)
-        Matrix of prior transition probabilities between states.
+    transmat_prior : array, shape (n_components, n_components), optional
+        Parameters of the Dirichlet prior distribution for each row
+        of the transition probabilities :attr:`transmat_`.
 
-    algorithm : string
-        Decoder algorithm. Must be one of "viterbi" or "map".
+    means_prior, means_weight : array, shape (n_components, ), optional
+        Mean and precision of the Normal prior distribtion for
+        :attr:`means_`.
+
+    covars_prior, covars_weight : array, shape (n_components, ), optional
+        Parameters of the prior distribution for the covariance matrix
+        :attr:`covars_`.
+
+        If :attr:`covariance_type` is "spherical" or "diag" the prior is
+        the inverse gamma distribution, otherwise --- the inverse Wishart
+        distribution.
+
+    algorithm : string, optional
+        Decoder algorithm. Must be one of "viterbi" or`"map".
         Defaults to "viterbi".
 
-    random_state: RandomState or an int seed
+    random_state: RandomState or an int seed, optional
         A random number generator instance.
 
     n_iter : int, optional
@@ -109,12 +123,12 @@ class GaussianHMM(_BaseHMM):
     covars\_ : array
         Covariance parameters for each state.
 
-        The shape depends on ``covariance_type``::
+        The shape depends on :attr:`covariance_type`::
 
-            (n_components, )                        if 'spherical',
-            (n_features, n_features)                if 'tied',
-            (n_components, n_features)              if 'diag',
-            (n_components, n_features, n_features)  if 'full'
+            (n_components, )                        if "spherical",
+            (n_features, n_features)                if "tied",
+            (n_components, n_features)              if "diag",
+            (n_components, n_features, n_features)  if "full"
 
     Examples
     --------
@@ -298,17 +312,19 @@ class MultinomialHMM(_BaseHMM):
     n_components : int
         Number of states.
 
-    startprob_prior : array, shape (n_components, )
-        Initial state occupation prior distribution.
+    startprob_prior : array, shape (n_components, ), optional
+        Parameters of the Dirichlet prior distribution for
+        :attr:`startprob_`.
 
-    transmat_prior : array, shape (n_components, n_components)
-        Matrix of prior transition probabilities between states.
+    transmat_prior : array, shape (n_components, n_components), optional
+        Parameters of the Dirichlet prior distribution for each row
+        of the transition probabilities :attr:`transmat_`.
 
-    algorithm : string
+    algorithm : string, optional
         Decoder algorithm. Must be one of "viterbi" or "map".
         Defaults to "viterbi".
 
-    random_state: RandomState or an int seed
+    random_state: RandomState or an int seed, optional
         A random number generator instance.
 
     n_iter : int, optional
@@ -359,7 +375,7 @@ class MultinomialHMM(_BaseHMM):
     ...                             #doctest: +ELLIPSIS +NORMALIZE_WHITESPACE
     MultinomialHMM(algorithm='viterbi',...
     """
-
+    # TODO: accept the prior on emissionprob_ for consistency.
     def __init__(self, n_components=1,
                  startprob_prior=1.0, transmat_prior=1.0,
                  algorithm="viterbi", random_state=None,
@@ -427,7 +443,7 @@ class MultinomialHMM(_BaseHMM):
         super(MultinomialHMM, self)._do_mstep(stats)
         if 'e' in self.params:
             self.emissionprob_ = (stats['obs']
-                                  / stats['obs'].sum(1)[:, np.newaxis])
+                                  / stats['obs'].sum(axis=1)[:, np.newaxis])
 
     def _check_input_symbols(self, X):
         """Check if ``X`` is a sample from a Multinomial distribution.
@@ -460,34 +476,52 @@ class GMMHMM(_BaseHMM):
     n_mix : int
         Number of states in the GMM.
 
-    covariance_type : string
+    covariance_type : string, optional
         String describing the type of covariance parameters to
         use.  Must be one of
 
         * "spherical" --- each state uses a single variance value that
-          applies to all features;
-        * "diag" --- each state uses a diagonal covariance matrix;
+          applies to all features.
+        * "diag" --- each state uses a diagonal covariance matrix.
         * "full" --- each state uses a full (i.e. unrestricted)
-          covariance matrix;
+          covariance matrix.
         * "tied" --- all states use **the same** full covariance matrix.
 
-        Defaults to "full".
+        Defaults to "diag".
 
-    min_covar : float
+    min_covar : float, optional
         Floor on the diagonal of the covariance matrix to prevent
         overfitting. Defaults to 1e-3.
 
-    startprob_prior : array, shape (n_components, )
-        Initial state occupation prior distribution.
+    startprob_prior : array, shape (n_components, ), optional
+        Parameters of the Dirichlet prior distribution for
+        :attr:`startprob_`.
 
-    transmat_prior : array, shape (n_components, n_components)
-        Matrix of prior transition probabilities between states.
+    transmat_prior : array, shape (n_components, n_components), optional
+        Parameters of the Dirichlet prior distribution for each row
+        of the transition probabilities :attr:`transmat_`.
 
-    algorithm : string
+    weights_prior : array, shape (n_mix, ), optional
+        Parameters of the Dirichlet prior distribution for
+        :attr:`weights_`.
+
+    means_prior, means_weight : array, shape (n_mix, ), optional
+        Mean and precision of the Normal prior distribtion for
+        :attr:`means_`.
+
+    covars_prior, covars_weight : array, shape (n_mix, ), optional
+        Parameters of the prior distribution for the covariance matrix
+        :attr:`covars_`.
+
+        If :attr:`covariance_type` is "spherical" or "diag" the prior is
+        the inverse gamma distribution, otherwise --- the inverse Wishart
+        distribution.
+
+    algorithm : string, optional
         Decoder algorithm. Must be one of "viterbi" or "map".
         Defaults to "viterbi".
 
-    random_state: RandomState or an int seed
+    random_state: RandomState or an int seed, optional
         A random number generator instance.
 
     n_iter : int, optional
@@ -525,24 +559,27 @@ class GMMHMM(_BaseHMM):
     transmat\_ : array, shape (n_components, n_components)
         Matrix of transition probabilities between states.
 
+    weights\_ : array, shape (n_components, n_mix)
+        Mixture weights for each state.
+
     means\_ : array, shape (n_components, n_mix)
+        Mean parameters for each mixture component in each state.
 
     covars\_ : array
-        Covariance parameters for each state in each component.
+        Covariance parameters for each mixture components in each state.
 
-        The shape depends on ``covariance_type``::
+        The shape depends on :attr:`covariance_type`::
 
-            (n_components, n_mix)                          if 'spherical',
-            (n_components, n_features, n_features)         if 'tied',
-            (n_components, n_mix, n_features)              if 'diag',
-            (n_components, n_mix, n_features, n_features)  if 'full'
-
+            (n_components, n_mix)                          if "spherical",
+            (n_components, n_features, n_features)         if "tied",
+            (n_components, n_mix, n_features)              if "diag",
+            (n_components, n_mix, n_features, n_features)  if "full"
     """
 
     def __init__(self, n_components=1, n_mix=1,
                  min_covar=1e-3, startprob_prior=1.0, transmat_prior=1.0,
                  weights_prior=1.0, means_prior=(0.0, 0.0), covars_prior=None,
-                 algorithm="viterbi", covariance_type="full",
+                 algorithm="viterbi", covariance_type="diag",
                  random_state=None, n_iter=10, tol=1e-2,
                  verbose=False, params="stmcw",
                  init_params="stmcw"):
@@ -574,7 +611,7 @@ class GMMHMM(_BaseHMM):
     def _init(self, X, lengths=None):
         super(GMMHMM, self)._init(X, lengths=lengths)
 
-        _, self.n_features = X.shape
+        _n_samples, self.n_features = X.shape
 
         # Default values for covariance prior parameters
         self._init_covar_priors()
@@ -860,10 +897,6 @@ class GMMHMM(_BaseHMM):
 
         stats['n_samples'] = n_samples
         stats['samples'] = X
-
-        # post_comp = posteriors.reshape((n_samples,))
-
-        eps = 1e-15
 
         prob_mix = np.zeros((n_samples, self.n_components, self.n_mix))
         for p in range(self.n_components):
