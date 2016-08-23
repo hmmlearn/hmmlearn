@@ -111,11 +111,11 @@ class GaussianHMM(_BaseHMM):
     monitor\_ : ConvergenceMonitor
         Monitor object used to check the convergence of EM.
 
-    transmat\_ : array, shape (n_components, n_components)
-        Matrix of transition probabilities between states.
-
     startprob\_ : array, shape (n_components, )
         Initial state occupation distribution.
+
+    transmat\_ : array, shape (n_components, n_components)
+        Matrix of transition probabilities between states.
 
     means\_ : array, shape (n_components, n_features)
         Mean parameters for each state.
@@ -308,7 +308,6 @@ class MultinomialHMM(_BaseHMM):
 
     Parameters
     ----------
-
     n_components : int
         Number of states.
 
@@ -319,6 +318,9 @@ class MultinomialHMM(_BaseHMM):
     transmat_prior : array, shape (n_components, n_components), optional
         Parameters of the Dirichlet prior distribution for each row
         of the transition probabilities :attr:`transmat_`.
+
+    emissionprob_prior : array, shape (n_components, n_features), optional
+        Emission probabilities for each symbol and state :attr:`emissionprob_`.
 
     algorithm : string, optional
         Decoder algorithm. Must be one of "viterbi" or "map".
@@ -359,11 +361,11 @@ class MultinomialHMM(_BaseHMM):
     monitor\_ : ConvergenceMonitor
         Monitor object used to check the convergence of EM.
 
-    transmat\_ : array, shape (n_components, n_components)
-        Matrix of transition probabilities between states.
-
     startprob\_ : array, shape (n_components, )
         Initial state occupation distribution.
+
+    transmat\_ : array, shape (n_components, n_components)
+        Matrix of transition probabilities between states.
 
     emissionprob\_ : array, shape (n_components, n_features)
         Probability of emitting a given symbol when in each state.
@@ -375,9 +377,9 @@ class MultinomialHMM(_BaseHMM):
     ...                             #doctest: +ELLIPSIS +NORMALIZE_WHITESPACE
     MultinomialHMM(algorithm='viterbi',...
     """
-    # TODO: accept the prior on emissionprob_ for consistency.
     def __init__(self, n_components=1,
                  startprob_prior=1.0, transmat_prior=1.0,
+                 emissionprob_prior=1.0,
                  algorithm="viterbi", random_state=None,
                  n_iter=10, tol=1e-2, verbose=False,
                  params="ste", init_params="ste"):
@@ -388,6 +390,8 @@ class MultinomialHMM(_BaseHMM):
                           random_state=random_state,
                           n_iter=n_iter, tol=tol, verbose=verbose,
                           params=params, init_params=init_params)
+
+        self.emissionprob_prior = emissionprob_prior
 
     def _init(self, X, lengths=None):
         if not self._check_input_symbols(X):
@@ -406,6 +410,8 @@ class MultinomialHMM(_BaseHMM):
             self.emissionprob_ = self.random_state \
                 .rand(self.n_components, self.n_features)
             normalize(self.emissionprob_, axis=1)
+        else:
+            self.emissionprob_ = self.emissionprob_prior
 
     def _check(self):
         super(MultinomialHMM, self)._check()
