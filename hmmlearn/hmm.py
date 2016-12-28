@@ -381,6 +381,10 @@ class MultinomialHMM(_BaseHMM):
                  algorithm="viterbi", random_state=None,
                  n_iter=10, tol=1e-2, verbose=False,
                  params="ste", init_params="ste"):
+
+        if (sum(startprob_) != 1) | (sum(transmat_) != 1) | (sum(emissionprob_) != 1): 
+            raise ValueError("matrices must sum to 1.")
+
         _BaseHMM.__init__(self, n_components,
                           startprob_prior=startprob_prior,
                           transmat_prior=transmat_prior,
@@ -408,8 +412,11 @@ class MultinomialHMM(_BaseHMM):
             normalize(self.emissionprob_, axis=1)
 
     def _check(self):
+        
+        # check startprob_ and transmat_
         super(MultinomialHMM, self)._check()
 
+        # check emissionprob_ separately
         self.emissionprob_ = np.atleast_2d(self.emissionprob_)
         n_features = getattr(self, "n_features", self.emissionprob_.shape[1])
         if self.emissionprob_.shape != (self.n_components, n_features):
