@@ -992,8 +992,3 @@ class GMMHMM(_BaseHMM):
         self.weights_ = new_weights
         self.means_ = new_means
         self.covars_ = new_cov
-
-    def fit(self, X, lengths=None):
-        if lengths is not None:
-            raise ValueError("'lengths' argument is not supported yet")
-        return super(GMMHMM, self).fit(X)
