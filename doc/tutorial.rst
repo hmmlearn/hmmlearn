@@ -53,14 +53,14 @@ Available models
    hmm.GMMHMM
    hmm.MultinomialHMM
 
-:ref:`Read on <customizing>` for details on how to implement an HMM with a
+:ref:`Read on <customizing>` for details on how to implement a HMM with a
 custom emission probability.
 
 
 Building HMM and generating samples
 -----------------------------------
 
-You can build an HMM instance by passing the parameters described above to the
+You can build a HMM instance by passing the parameters described above to the
 constructor. Then, you can generate samples from the HMM by calling
 :meth:`~base._BaseHMM.sample`.
 
@@ -101,7 +101,7 @@ will raise an exception::
 .. topic:: Fixing parameters
 
    Each HMM parameter has a character code which can be used to customize its
-   initialization and estimation.  EM algorithm needs a starting point to
+   initialization and estimation.  The EM algorithm needs a starting point to
    proceed, thus prior to training each parameter is assigned a value
    either random or computed from the data. It is possible to hook into this
    process and provide a starting point explicitly. To do so
@@ -110,7 +110,7 @@ will raise an exception::
         :attr:`~base._BaseHMM.init_params` and then
      2. set the parameter to the desired value.
 
-   For example, consider an HMM with explicitly initialized transition
+   For example, consider a HMM with an explicitly initialized transition
    probability matrix
 
       >>> model = hmm.GaussianHMM(n_components=3, n_iter=100, init_params="mcs")
@@ -141,7 +141,7 @@ The score of the model can be calculated by the :meth:`~base._BaseHMM.score` met
 
 The inferred optimal hidden states can be obtained by calling
 :meth:`~base._BaseHMM.predict` method. The ``predict`` method can be
-specified with decoder algorithm. Currently the Viterbi algorithm
+specified with a decoder algorithm. Currently the Viterbi algorithm
 (``"viterbi"``), and maximum a posteriori estimation (``"map"``) are supported.
 
 This time, the input is a single sequence of observed values.  Note, the states
@@ -156,10 +156,10 @@ in ``remodel`` will have a different order than those in the generating model.
 
 .. topic:: Monitoring convergence
 
-   The number of EM algorithm iteration is upper bounded by the ``n_iter``
+   The number of EM algorithm iterations is upper bounded by the ``n_iter``
    parameter. The training proceeds until ``n_iter`` steps were performed or the
    change in score is lower than the specified threshold ``tol``. Note, that
-   depending on the data EM algorithm may or may not achieve convergence in the
+   depending on the data, the EM algorithm may or may not achieve convergence in the
    given number of steps.
 
    You can use the :attr:`~base._BaseHMM.monitor_` attribute to diagnose
@@ -185,13 +185,13 @@ in ``remodel`` will have a different order than those in the generating model.
        >>> X2 = [[2.4], [4.2], [0.5], [-0.24]]
 
    To pass both sequences to :meth:`~base._BaseHMM.fit` or
-   :meth:`~base._BaseHMM.predict` first concatenate them into a single array and
+   :meth:`~base._BaseHMM.predict`, first concatenate them into a single array and
    then compute an array of sequence lengths::
 
        >>> X = np.concatenate([X1, X2])
        >>> lengths = [len(X1), len(X2)]
 
-   Finally just call the desired method with ``X`` and ``lengths``::
+   Finally, just call the desired method with ``X`` and ``lengths``::
 
        >>> hmm.GaussianHMM(n_components=3).fit(X, lengths)  # doctest: +ELLIPSIS, +NORMALIZE_WHITESPACE
        GaussianHMM(algorithm='viterbi', ...
@@ -203,7 +203,7 @@ in ``remodel`` will have a different order than those in the generating model.
 Saving and loading HMM
 ----------------------
 
-After traning an HMM can be easily persisted for future use with the standard
+After training, a HMM can be easily persisted for future use with the standard
 :mod:`pickle` module or its more efficient replacement in the :mod:`joblib`
 package::
 
@@ -218,7 +218,7 @@ package::
 Implementing HMMs with custom emission probabilities
 ----------------------------------------------------
 
-If you want to implement other emission probability (e.g. Poisson), you have to
+If you want to implement a custom emission probability (e.g. Poisson), you have to
 subclass :class:`~base._BaseHMM` and override the following methods
 
 .. autosummary::
