@@ -15,10 +15,10 @@ from scipy.misc import logsumexp
 from sklearn import cluster
 from sklearn.mixture import (
     sample_gaussian,
-    log_multivariate_normal_density,
     distribute_covar_matrix_to_match_covariance_type, _validate_covars)
 from sklearn.utils import check_random_state
 
+from .stats import log_multivariate_normal_density
 from .base import _BaseHMM
 from .utils import iter_from_X_lengths, normalize
 
