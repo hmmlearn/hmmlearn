@@ -74,7 +74,7 @@ class GMMHMMTestMixin(object):
             self.n_components, self.n_mix, self.n_features,
             self.covariance_type, self.low, self.high, self.prng
         )
-        
+
         self.h = GMMHMM(n_components=self.n_components, n_mix=self.n_mix,
                         covariance_type=self.covariance_type,
                         random_state=self.prng)
@@ -92,7 +92,7 @@ class GMMHMMTestMixin(object):
 
     def test_check_good_covariance_type(self):
         self.h._check()  # should not raise any errors
-        
+
     def test_sample(self):
         n_samples = 1000
         X, states = self.h.sample(n_samples)
