@@ -11,8 +11,7 @@ def make_covar_matrix(covariance_type, n_components, n_features):
     mincv = 0.1
     rand = np.random.random
     return {
-        'spherical': (mincv + mincv * np.dot(rand((n_components, 1)),
-                                             np.ones((1, n_features)))) ** 2,
+        'spherical': (mincv + mincv * rand((n_components,))) ** 2,
         'tied': (make_spd_matrix(n_features)
                  + mincv * np.eye(n_features)),
         'diag': (mincv + mincv * rand((n_components, n_features))) ** 2,
