@@ -159,7 +159,8 @@ class GaussianHMM(_BaseHMM):
         self.covars_prior = covars_prior
         self.covars_weight = covars_weight
 
-    def _get_covars(self):
+    @property
+    def covars_(self):
         """Return covars as a full matrix."""
         if self.covariance_type == 'full':
             return self._covars_
@@ -171,10 +172,9 @@ class GaussianHMM(_BaseHMM):
             return np.array(
                 [np.eye(self.n_features) * cov for cov in self._covars_])
 
-    def _set_covars(self, covars):
+    @covars_.setter
+    def covars_(self, covars):
         self._covars_ = np.asarray(covars).copy()
-
-    covars_ = property(_get_covars, _set_covars)
 
     def _check(self):
         super(GaussianHMM, self)._check()
