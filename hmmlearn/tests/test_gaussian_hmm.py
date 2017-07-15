@@ -23,16 +23,9 @@ class GaussianHMMTestMixin(object):
         self.transmat /= np.tile(self.transmat.sum(axis=1)[:, np.newaxis],
                                  (1, n_components))
         self.means = prng.randint(-20, 20, (n_components, n_features))
-        self.covars = dict(
-            (cv_type, make_covar_matrix(cv_type, n_components, n_features))
-            for cv_type in ["spherical", "tied", "diag", "full"])
-        self.expanded_covars = {
-            'spherical': [np.eye(n_features) * cov
-                          for cov in self.covars['spherical']],
-            'diag': [np.diag(cov) for cov in self.covars['diag']],
-            'tied': [self.covars['tied']] * n_components,
-            'full': self.covars['full'],
-        }
+        self.covars = make_covar_matrix(
+            self.covariance_type, n_components, n_features
+        )
 
     def test_bad_covariance_type(self):
         with pytest.raises(ValueError):
@@ -47,7 +40,7 @@ class GaussianHMMTestMixin(object):
         h = hmm.GaussianHMM(self.n_components, self.covariance_type,
                             init_params="st")
         h.means_ = self.means
-        h.covars_ = self.covars[self.covariance_type]
+        h.covars_ = self.covars
 
         # Make sure the means are far apart so posteriors.argmax()
         # picks the actual component used to generate the observations.
@@ -72,7 +65,7 @@ class GaussianHMMTestMixin(object):
         # Make sure the means are far apart so posteriors.argmax()
         # picks the actual component used to generate the observations.
         h.means_ = 20 * self.means
-        h.covars_ = np.maximum(self.covars[self.covariance_type], 0.1)
+        h.covars_ = np.maximum(self.covars, 0.1)
 
         X, state_sequence = h.sample(n, random_state=self.prng)
         self.assertEqual(X.shape, (n, self.n_features))
@@ -84,7 +77,7 @@ class GaussianHMMTestMixin(object):
         h.transmat_ = normalized(
             self.transmat + np.diag(self.prng.rand(self.n_components)), 1)
         h.means_ = 20 * self.means
-        h.covars_ = self.covars[self.covariance_type]
+        h.covars_ = self.covars
 
         lengths = [10] * 10
         X, _state_sequence = h.sample(sum(lengths), random_state=self.prng)
@@ -138,7 +131,7 @@ class GaussianHMMTestMixin(object):
         covars_weight = 2.0
         if self.covariance_type in ('full', 'tied'):
             covars_weight += self.n_features
-        covars_prior = self.covars[self.covariance_type]
+        covars_prior = self.covars
 
         h = hmm.GaussianHMM(self.n_components, self.covariance_type)
         h.startprob_ = self.startprob
@@ -149,7 +142,7 @@ class GaussianHMMTestMixin(object):
         h.means_ = 20 * self.means
         h.means_prior = means_prior
         h.means_weight = means_weight
-        h.covars_ = self.covars[self.covariance_type]
+        h.covars_ = self.covars
         h.covars_prior = covars_prior
         h.covars_weight = covars_weight
 
