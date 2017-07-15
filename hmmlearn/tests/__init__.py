@@ -10,15 +10,17 @@ np.seterr(all="warn")
 def make_covar_matrix(covariance_type, n_components, n_features):
     mincv = 0.1
     rand = np.random.random
-    return {
-        'spherical': (mincv + mincv * rand((n_components,))) ** 2,
-        'tied': (make_spd_matrix(n_features)
-                 + mincv * np.eye(n_features)),
-        'diag': (mincv + mincv * rand((n_components, n_features))) ** 2,
-        'full': np.array([(make_spd_matrix(n_features)
-                           + mincv * np.eye(n_features))
-                          for x in range(n_components)])
-    }[covariance_type]
+    if covariance_type == 'spherical':
+        return (mincv + mincv * rand((n_components,))) ** 2
+    elif covariance_type == 'tied':
+        return (make_spd_matrix(n_features)
+                + mincv * np.eye(n_features))
+    elif covariance_type == 'diag':
+        return (mincv + mincv * rand((n_components, n_features))) ** 2
+    elif covariance_type == 'full':
+        return np.array([(make_spd_matrix(n_features)
+                        + mincv * np.eye(n_features))
+                        for x in range(n_components)])
 
 
 def normalized(X, axis=None):
