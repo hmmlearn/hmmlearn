@@ -215,12 +215,9 @@ class GaussianHMM(_BaseHMM):
             X, self.means_, self._covars_, self.covariance_type)
 
     def _generate_sample_from_state(self, state, random_state=None):
-        if self.covariance_type == 'tied':
-            cv = self._covars_
-        else:
-            cv = self._covars_[state]
-        return sample_gaussian(self.means_[state], cv, self.covariance_type,
-                               random_state=random_state)
+        return random_state.multivariate_normal(
+            self.means_[state], self.covars_[state]
+        )
 
     def _initialize_sufficient_statistics(self):
         stats = super(GaussianHMM, self)._initialize_sufficient_statistics()
