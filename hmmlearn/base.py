@@ -504,6 +504,11 @@ class _BaseHMM(BaseEstimator):
     def _check(self):
         """Validates model parameters prior to fitting.
 
+        Note: Only startprob_ and transmat_ are covered by this method, as 
+        they are used in GMMHMM, GaussianHMM, and MultinomialHMM. 
+
+        emissionprob_ is not covered since it's unique to MultinomialHMM.
+
         Raises
         ------
 
