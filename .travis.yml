@@ -1,24 +1,17 @@
 sudo: false
 
 language: python
+python:
+  - "2.6"
+  - "2.7"
+  - "3.5"
+  - "3.6"
 
 env:
   global:
     - TEST_DIR=/tmp/hmmlearn
-  matrix:
-    - PYTHON_VERSION="2.6"
-    - PYTHON_VERSION="2.7" COVERAGE="true"
-    - PYTHON_VERSION="3.4"
-    - PYTHON_VERSION="3.5"
+    - COVERAGE=`[[ $TRAVIS_PYTHON_VERSION = "2.7" ]] && echo true || echo false`
 
-before_install:
-# Necessary for --only-binary option
-- pip install --upgrade pip
-# scikit-learn install doesn't auto-fetch dependencies
-# need numpy-1.10.0 for broadcast_to in tests
-- pip install --only-binary numpy,scipy 'numpy>=1.10.0' scipy
-- if [ -n $COVERAGE ]; then pip install coveralls pytest-cov; else true; fi
-install:
-- pip install --editable .
+install: source continuous_integration/travis/install.sh
 script: bash continuous_integration/travis/test_script.sh
 after_success: source continuous_integration/travis/after_success.sh
