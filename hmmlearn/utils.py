@@ -76,7 +76,7 @@ def log_mask_zero(a):
     a = np.asarray(a)
     with np.errstate(divide="ignore"):
         a_log = np.log(a)
-        a_log[a <= 0] = 0.0
+        a_log[a <= 0] = -np.inf
         return a_log
 
 
