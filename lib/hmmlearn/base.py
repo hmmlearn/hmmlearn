@@ -61,6 +61,11 @@ class ConvergenceMonitor(object):
         return "{0}({1})".format(
             class_name, _pprint(params, offset=len(class_name)))
 
+    def _reset(self):
+        """Reset the monitor's state."""
+        self.iter = 0
+        self.history.clear()
+
     def report(self, logprob):
         """Reports convergence to :data:`sys.stderr`.
 
@@ -174,6 +179,7 @@ class _BaseHMM(BaseEstimator):
         self.n_iter = n_iter
         self.tol = tol
         self.verbose = verbose
+        self.monitor_ = ConvergenceMonitor(self.tol, self.n_iter, self.verbose)
 
     def score_samples(self, X, lengths=None):
         """Compute the log probability under the model and compute posteriors.
@@ -424,7 +430,7 @@ class _BaseHMM(BaseEstimator):
         self._init(X, lengths=lengths)
         self._check()
 
-        self.monitor_ = ConvergenceMonitor(self.tol, self.n_iter, self.verbose)
+        self.monitor_._reset()
         for iter in range(self.n_iter):
             stats = self._initialize_sufficient_statistics()
             curr_logprob = 0
