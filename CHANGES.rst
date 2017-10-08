@@ -10,6 +10,8 @@ Version 0.2.1
   PR #105 on GitHub.
 - Reduced worst-case memory consumption of the M-step from O(S^2 T)
   to O(S T). See issue #313 on GitHub.
+- Dropped support for Python 2.6. It is no longer supported by
+  scikit-learn.
 
 Version 0.2.0
 -------------
