@@ -75,9 +75,7 @@ def log_mask_zero(a):
     """
     a = np.asarray(a)
     with np.errstate(divide="ignore"):
-        a_log = np.log(a)
-        a_log[a <= 0] = 0.0
-        return a_log
+        return np.log(a)
 
 
 def fill_covars(covars, covariance_type='full', n_components=1, n_features=1):
