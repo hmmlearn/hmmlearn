@@ -11,7 +11,7 @@ from sklearn.utils import check_array, check_random_state
 from sklearn.utils.validation import check_is_fitted
 
 from . import _hmmc
-from .utils import normalize, log_normalize, iter_from_X_lengths, log_mask_zero
+from .utils import normalize, log_normalize, iter_from_X_lengths
 
 
 #: Supported decoder algorithms.
@@ -451,16 +451,16 @@ class _BaseHMM(BaseEstimator):
     def _do_viterbi_pass(self, framelogprob):
         n_samples, n_components = framelogprob.shape
         state_sequence, logprob = _hmmc._viterbi(
-            n_samples, n_components, log_mask_zero(self.startprob_),
-            log_mask_zero(self.transmat_), framelogprob)
+            n_samples, n_components, np.log(self.startprob_),
+            np.log(self.transmat_), framelogprob)
         return logprob, state_sequence
 
     def _do_forward_pass(self, framelogprob):
         n_samples, n_components = framelogprob.shape
         fwdlattice = np.zeros((n_samples, n_components))
         _hmmc._forward(n_samples, n_components,
-                       log_mask_zero(self.startprob_),
-                       log_mask_zero(self.transmat_),
+                       np.log(self.startprob_),
+                       np.log(self.transmat_),
                        framelogprob, fwdlattice)
         return logsumexp(fwdlattice[-1]), fwdlattice
 
@@ -468,8 +468,8 @@ class _BaseHMM(BaseEstimator):
         n_samples, n_components = framelogprob.shape
         bwdlattice = np.zeros((n_samples, n_components))
         _hmmc._backward(n_samples, n_components,
-                        log_mask_zero(self.startprob_),
-                        log_mask_zero(self.transmat_),
+                        np.log(self.startprob_),
+                        np.log(self.transmat_),
                         framelogprob, bwdlattice)
         return bwdlattice
 
@@ -624,7 +624,7 @@ class _BaseHMM(BaseEstimator):
 
             log_xi_sum = np.full((n_components, n_components), -np.inf)
             _hmmc._compute_log_xi_sum(n_samples, n_components, fwdlattice,
-                                      log_mask_zero(self.transmat_),
+                                      np.log(self.transmat_),
                                       bwdlattice, framelogprob,
                                       log_xi_sum)
             stats['trans'] += np.exp(log_xi_sum)
