@@ -55,7 +55,7 @@ test_script:
   - "mkdir empty_folder"
   - "cd empty_folder"
 
-  - "python -c \"import pytest; pytest.main()\" -s -v hmmlearn"
+  - "python -c \"import pytest; pytest.main()\" -s -v --pyargs hmmlearn"
 
   # Move back to the project folder
   - "cd .."
