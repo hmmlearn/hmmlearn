@@ -43,7 +43,8 @@ numpydoc_show_class_members = False
 
 sphinx_gallery_conf = {
     'examples_dirs': '../examples',
-    'gallery_dirs': 'auto_examples'
+    'gallery_dirs': 'auto_examples',
+    'backreferences_dir': 'modules/generated'
 }
 
 # Add any paths that contain templates here, relative to this directory.
