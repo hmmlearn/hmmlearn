@@ -123,6 +123,7 @@ class GaussianHMMTestMixin(object):
         h = hmm.GaussianHMM(3, self.covariance_type)
         h.fit(X)
 
+    @pytest.mark.xfail
     def test_fit_with_priors(self, params='stmc', n_iter=5):
         startprob_prior = 10 * self.startprob + 2.0
         transmat_prior = 10 * self.transmat + 2.0
