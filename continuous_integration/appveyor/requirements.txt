@@ -9,7 +9,7 @@
 # of the rackspace folder instead of trying to install from more recent
 # source tarball published on PyPI
 pytest
-numpy
+numpy==1.13.0
 scipy==0.19.0
 scikit-learn
 wheel
