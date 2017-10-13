@@ -9,8 +9,8 @@
 # of the rackspace folder instead of trying to install from more recent
 # source tarball published on PyPI
 pytest
-numpy==1.9.3
-scipy==0.16.0
+numpy
+scipy==0.19.0
 scikit-learn
 wheel
 wheelhouse_uploader
