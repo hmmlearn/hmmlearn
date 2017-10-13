@@ -24,7 +24,7 @@ class GaussianHMMTestMixin(object):
                                  (1, n_components))
         self.means = prng.randint(-20, 20, (n_components, n_features))
         self.covars = make_covar_matrix(
-            self.covariance_type, n_components, n_features
+            self.covariance_type, n_components, n_features, random_state=prng
         )
 
     def test_bad_covariance_type(self):
@@ -123,7 +123,6 @@ class GaussianHMMTestMixin(object):
         h = hmm.GaussianHMM(3, self.covariance_type)
         h.fit(X)
 
-    @pytest.mark.xfail
     def test_fit_with_priors(self, params='stmc', n_iter=5):
         startprob_prior = 10 * self.startprob + 2.0
         transmat_prior = 10 * self.transmat + 2.0

@@ -1,5 +1,6 @@
 import numpy as np
 from sklearn.datasets.samples_generator import make_spd_matrix
+from sklearn.utils import check_random_state
 
 from hmmlearn.utils import normalize
 
@@ -7,20 +8,24 @@ from hmmlearn.utils import normalize
 np.seterr(all="warn")
 
 
-def make_covar_matrix(covariance_type, n_components, n_features):
+def make_covar_matrix(covariance_type, n_components, n_features,
+                      random_state=None):
     mincv = 0.1
-    rand = np.random.random
+    prng = check_random_state(random_state)
     if covariance_type == 'spherical':
-        return (mincv + mincv * rand((n_components,))) ** 2
+        return (mincv + mincv * prng.random_sample((n_components,))) ** 2
     elif covariance_type == 'tied':
         return (make_spd_matrix(n_features)
                 + mincv * np.eye(n_features))
     elif covariance_type == 'diag':
-        return (mincv + mincv * rand((n_components, n_features))) ** 2
+        return (mincv + mincv *
+                prng.random_sample((n_components, n_features))) ** 2
     elif covariance_type == 'full':
-        return np.array([(make_spd_matrix(n_features)
-                        + mincv * np.eye(n_features))
-                        for x in range(n_components)])
+        return np.array([
+            (make_spd_matrix(n_features, random_state=prng)
+             + mincv * np.eye(n_features))
+            for x in range(n_components)
+        ])
 
 
 def normalized(X, axis=None):
