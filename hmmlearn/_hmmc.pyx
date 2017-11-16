@@ -1,9 +1,10 @@
-# cython: boundscheck=False, wraparound=False
-
+# cython: boundscheck=False, wraparound=False, nonecheck=False, language_level=3
 from cython cimport view
+from cython.parallel import parallel, prange
 from numpy.math cimport expl, logl, log1pl, isinf, fabsl, INFINITY
 
 import numpy as np
+cimport openmp
 
 ctypedef double dtype_t
 
@@ -43,7 +44,6 @@ cdef inline dtype_t _logaddexp(dtype_t a, dtype_t b) nogil:
     else:
         return max(a, b) + log1pl(expl(-fabsl(a - b)))
 
-
 def _forward(int n_samples, int n_components,
              dtype_t[:] log_startprob,
              dtype_t[:, :] log_transmat,
@@ -51,19 +51,27 @@ def _forward(int n_samples, int n_components,
              dtype_t[:, :] fwdlattice):
 
     cdef int t, i, j
-    cdef dtype_t[::view.contiguous] work_buffer = np.zeros(n_components)
+    cdef dtype_t[:, ::view.contiguous] work_buffer = np.empty((n_components,n_components))
+
+    # prepare memory continous view on transmat to better utilize processor cache
+    cdef dtype_t[::1, :] log_transmat_trans = log_transmat.copy_fortran()
+
+    # loop will be paralelized for each componenet
+    # threads should not compete over them
+    num_threads = openmp.omp_get_num_threads()
+    if  num_threads > n_components:
+        num_threads = n_components
 
     with nogil:
         for i in range(n_components):
             fwdlattice[0, i] = log_startprob[i] + framelogprob[0, i]
 
         for t in range(1, n_samples):
-            for j in range(n_components):
+            for j in prange(n_components, schedule = 'static', num_threads = num_threads):
                 for i in range(n_components):
-                    work_buffer[i] = fwdlattice[t - 1, i] + log_transmat[i, j]
+                    work_buffer[j, i] = fwdlattice[t - 1, i] + log_transmat_trans[i, j]
 
-                fwdlattice[t, j] = _logsumexp(work_buffer) + framelogprob[t, j]
-
+                fwdlattice[t, j] = _logsumexp(work_buffer[j,:]) + framelogprob[t, j]
 
 def _backward(int n_samples, int n_components,
               dtype_t[:] log_startprob,
@@ -72,20 +80,25 @@ def _backward(int n_samples, int n_components,
               dtype_t[:, :] bwdlattice):
 
     cdef int t, i, j
-    cdef dtype_t[::view.contiguous] work_buffer = np.zeros(n_components)
+    cdef dtype_t[:, ::view.contiguous] work_buffer = np.empty((n_components,n_components))
+
+    # loop will be paralelized for each componenet
+    # threads should not compete over them
+    num_threads = openmp.omp_get_num_threads()
+    if  num_threads > n_components:
+        num_threads = n_components
 
     with nogil:
         for i in range(n_components):
             bwdlattice[n_samples - 1, i] = 0.0
 
         for t in range(n_samples - 2, -1, -1):
-            for i in range(n_components):
-                for j in range(n_components):
-                    work_buffer[j] = (log_transmat[i, j]
-                                      + framelogprob[t + 1, j]
-                                      + bwdlattice[t + 1, j])
-                bwdlattice[t, i] = _logsumexp(work_buffer)
-
+            for j in prange(n_components, schedule = 'static', num_threads = num_threads):
+                for i in range(n_components):
+                    work_buffer[j,i] = (log_transmat[j, i]
+                                      + framelogprob[t + 1, i]
+                                      + bwdlattice[t + 1, i])
+                bwdlattice[t, j] = _logsumexp(work_buffer[j,:])
 
 def _compute_log_xi_sum(int n_samples, int n_components,
                         dtype_t[:, :] fwdlattice,
@@ -99,9 +112,15 @@ def _compute_log_xi_sum(int n_samples, int n_components,
         np.full((n_components, n_components), -INFINITY)
     cdef dtype_t logprob = _logsumexp(fwdlattice[n_samples - 1])
 
+    # loop will be paralelized for each componenet
+    # threads should not compete over them
+    num_threads = openmp.omp_get_num_threads()
+    if  num_threads > n_components:
+        num_threads = n_components
+
     with nogil:
         for t in range(n_samples - 1):
-            for i in range(n_components):
+            for i in prange(n_components, schedule = 'static', num_threads = num_threads):
                 for j in range(n_components):
                     work_buffer[i, j] = (fwdlattice[t, i]
                                          + log_transmat[i, j]
@@ -109,7 +128,7 @@ def _compute_log_xi_sum(int n_samples, int n_components,
                                          + bwdlattice[t + 1, j]
                                          - logprob)
 
-            for i in range(n_components):
+            for i in prange(n_components, schedule = 'static', num_threads = num_threads):
                 for j in range(n_components):
                     log_xi_sum[i, j] = _logaddexp(log_xi_sum[i, j],
                                                   work_buffer[i, j])
