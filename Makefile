@@ -6,11 +6,12 @@ PYTHON ?= python
 CYTHON ?= cython
 PYTEST ?= py.test
 
-all: clean inplace test
+all: clean cython inplace test
 
 clean:
 	$(PYTHON) setup.py clean
 	rm -rf dist
+	rm -f **/*so
 
 inplace:
 	$(PYTHON) setup.py build_ext -i
@@ -22,7 +23,7 @@ trailing-spaces:
 	find hmmlearn -name "*.py" | xargs perl -pi -e 's/[ \t]*$$//'
 
 cython:
-	find hmmlearn -name "*.pyx" | xargs $(CYTHON)
+	find hmmlearn -name "*.pyx" | xargs $(CYTHON) -v
 
 doc: inplace
 	$(MAKE) -C doc html
