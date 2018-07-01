@@ -11,6 +11,14 @@ hmmlearn is a set of algorithms for **unsupervised** learning and inference of
 Hidden Markov Models. For supervised learning learning of HMMs and similar models
 see `seqlearn <https://github.com/larsmans/seqlearn>`_.
 
+**Note**: this package has currently no maintainer. Nobody will answer
+questions. In particular, the person who is making this code available on
+Github will not answer questions, fix bugs, or maintain the package in
+any way.
+
+If you are interested in contributing, or fixing bugs, please open an
+issue on Github and we will gladly give you contributor rights.
+
 Important links
 ===============
 
