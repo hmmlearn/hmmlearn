@@ -208,6 +208,7 @@ class GaussianHMM(_BaseHMM):
             X, self.means_, self._covars_, self.covariance_type)
 
     def _generate_sample_from_state(self, state, random_state=None):
+        random_state = check_random_state(random_state)
         return random_state.multivariate_normal(
             self.means_[state], self.covars_[state]
         )
