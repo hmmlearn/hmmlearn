@@ -43,7 +43,8 @@ def log_normalize(a, axis=None):
     -----
     Modifies the input **inplace**.
     """
-    a_lse = logsumexp(a, axis)
+    with np.errstate(under="ignore"):
+        a_lse = logsumexp(a, axis)
     a -= a_lse[:, np.newaxis]
 
 
