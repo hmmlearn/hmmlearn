@@ -5,7 +5,7 @@ import sys
 from collections import deque
 
 import numpy as np
-from scipy.misc import logsumexp
+from scipy.special import logsumexp
 from sklearn.base import BaseEstimator, _pprint
 from sklearn.utils import check_array, check_random_state
 from sklearn.utils.validation import check_is_fitted

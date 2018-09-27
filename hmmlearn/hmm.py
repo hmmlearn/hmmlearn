@@ -11,13 +11,11 @@ The :mod:`hmmlearn.hmm` module implements hidden Markov models.
 """
 
 import numpy as np
-from scipy.misc import logsumexp
+from scipy.special import logsumexp
 from sklearn import cluster
-from sklearn.mixture import (
-    distribute_covar_matrix_to_match_covariance_type, _validate_covars
-)
 from sklearn.utils import check_random_state
 
+from . import _utils
 from .stats import log_multivariate_normal_density
 from .base import _BaseHMM
 from .utils import iter_from_X_lengths, normalize, fill_covars
@@ -179,8 +177,8 @@ class GaussianHMM(_BaseHMM):
             raise ValueError('covariance_type must be one of {0}'
                              .format(COVARIANCE_TYPES))
 
-        _validate_covars(self._covars_, self.covariance_type,
-                         self.n_components)
+        _utils._validate_covars(self._covars_, self.covariance_type,
+                                self.n_components)
 
     def _init(self, X, lengths=None):
         super(GaussianHMM, self)._init(X, lengths=lengths)
@@ -200,8 +198,9 @@ class GaussianHMM(_BaseHMM):
             cv = np.cov(X.T) + self.min_covar * np.eye(X.shape[1])
             if not cv.shape:
                 cv.shape = (1, 1)
-            self._covars_ = distribute_covar_matrix_to_match_covariance_type(
-                cv, self.covariance_type, self.n_components).copy()
+            self._covars_ = \
+                _utils.distribute_covar_matrix_to_match_covariance_type(
+                    cv, self.covariance_type, self.n_components).copy()
 
     def _compute_log_likelihood(self, X):
         return log_multivariate_normal_density(
