@@ -28,7 +28,7 @@ COVARIANCE_TYPES = frozenset(("spherical", "diag", "full", "tied"))
 
 
 class GaussianHMM(_BaseHMM):
-    """Hidden Markov Model with Gaussian emissions.
+    r"""Hidden Markov Model with Gaussian emissions.
 
     Parameters
     ----------
@@ -294,7 +294,7 @@ class GaussianHMM(_BaseHMM):
 
 
 class MultinomialHMM(_BaseHMM):
-    """Hidden Markov Model with multinomial (discrete) emissions
+    r"""Hidden Markov Model with multinomial (discrete) emissions
 
     Parameters
     ----------
@@ -456,7 +456,7 @@ class MultinomialHMM(_BaseHMM):
 
 
 class GMMHMM(_BaseHMM):
-    """Hidden Markov Model with Gaussian mixture emissions.
+    r"""Hidden Markov Model with Gaussian mixture emissions.
 
     Parameters
     ----------

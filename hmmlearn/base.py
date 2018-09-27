@@ -94,7 +94,7 @@ class ConvergenceMonitor(object):
 
 
 class _BaseHMM(BaseEstimator):
-    """Base class for Hidden Markov Models.
+    r"""Base class for Hidden Markov Models.
 
     This class allows for easy evaluation of, sampling from, and
     maximum a posteriori estimation of the parameters of a HMM.
