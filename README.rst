@@ -31,7 +31,7 @@ Dependencies
 
 The required dependencies to use hmmlearn are
 
-* Python >= 2.6
+* Python >= 2.7
 * NumPy (tested to work with >=1.9.3)
 * SciPy (tested to work with >=0.16.0)
 * scikit-learn >= 0.16
