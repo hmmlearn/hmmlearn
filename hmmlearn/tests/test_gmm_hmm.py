@@ -2,7 +2,7 @@ from __future__ import absolute_import
 
 import numpy as np
 import pytest
-from sklearn.mixture import GMM
+from sklearn.mixture import GaussianMixture
 from sklearn.utils import check_random_state
 
 from hmmlearn import hmm
@@ -13,7 +13,7 @@ pytestmark = pytest.mark.xfail()
 
 def create_random_gmm(n_mix, n_features, covariance_type, prng=0):
     prng = check_random_state(prng)
-    g = GMM(n_mix, covariance_type=covariance_type)
+    g = GaussianMixture(n_mix, covariance_type=covariance_type)
     g.means_ = prng.randint(-20, 20, (n_mix, n_features))
     g.covars_ = make_covar_matrix(covariance_type, n_mix, n_features)
     g.weights_ = normalized(prng.rand(n_mix))

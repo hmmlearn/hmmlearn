@@ -5,7 +5,7 @@ import sys
 from collections import deque
 
 import numpy as np
-from scipy.misc import logsumexp
+from scipy.special import logsumexp
 from sklearn.base import BaseEstimator, _pprint
 from sklearn.utils import check_array, check_random_state
 from sklearn.utils.validation import check_is_fitted
@@ -94,7 +94,7 @@ class ConvergenceMonitor(object):
 
 
 class _BaseHMM(BaseEstimator):
-    """Base class for Hidden Markov Models.
+    r"""Base class for Hidden Markov Models.
 
     This class allows for easy evaluation of, sampling from, and
     maximum a posteriori estimation of the parameters of a HMM.
@@ -462,7 +462,8 @@ class _BaseHMM(BaseEstimator):
                        log_mask_zero(self.startprob_),
                        log_mask_zero(self.transmat_),
                        framelogprob, fwdlattice)
-        return logsumexp(fwdlattice[-1]), fwdlattice
+        with np.errstate(under="ignore"):
+            return logsumexp(fwdlattice[-1]), fwdlattice
 
     def _do_backward_pass(self, framelogprob):
         n_samples, n_components = framelogprob.shape
@@ -480,7 +481,8 @@ class _BaseHMM(BaseEstimator):
         # pruned too aggressively.
         log_gamma = fwdlattice + bwdlattice
         log_normalize(log_gamma, axis=1)
-        return np.exp(log_gamma)
+        with np.errstate(under="ignore"):
+            return np.exp(log_gamma)
 
     def _init(self, X, lengths):
         """Initializes model parameters prior to fitting.
@@ -627,7 +629,8 @@ class _BaseHMM(BaseEstimator):
                                       log_mask_zero(self.transmat_),
                                       bwdlattice, framelogprob,
                                       log_xi_sum)
-            stats['trans'] += np.exp(log_xi_sum)
+            with np.errstate(under="ignore"):
+                stats['trans'] += np.exp(log_xi_sum)
 
     def _do_mstep(self, stats):
         """Performs the M-step of EM algorithm.

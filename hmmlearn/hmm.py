@@ -11,13 +11,11 @@ The :mod:`hmmlearn.hmm` module implements hidden Markov models.
 """
 
 import numpy as np
-from scipy.misc import logsumexp
+from scipy.special import logsumexp
 from sklearn import cluster
-from sklearn.mixture import (
-    distribute_covar_matrix_to_match_covariance_type, _validate_covars
-)
 from sklearn.utils import check_random_state
 
+from . import _utils
 from .stats import log_multivariate_normal_density
 from .base import _BaseHMM
 from .utils import iter_from_X_lengths, normalize, fill_covars
@@ -28,7 +26,7 @@ COVARIANCE_TYPES = frozenset(("spherical", "diag", "full", "tied"))
 
 
 class GaussianHMM(_BaseHMM):
-    """Hidden Markov Model with Gaussian emissions.
+    r"""Hidden Markov Model with Gaussian emissions.
 
     Parameters
     ----------
@@ -179,8 +177,8 @@ class GaussianHMM(_BaseHMM):
             raise ValueError('covariance_type must be one of {0}'
                              .format(COVARIANCE_TYPES))
 
-        _validate_covars(self._covars_, self.covariance_type,
-                         self.n_components)
+        _utils._validate_covars(self._covars_, self.covariance_type,
+                                self.n_components)
 
     def _init(self, X, lengths=None):
         super(GaussianHMM, self)._init(X, lengths=lengths)
@@ -200,8 +198,9 @@ class GaussianHMM(_BaseHMM):
             cv = np.cov(X.T) + self.min_covar * np.eye(X.shape[1])
             if not cv.shape:
                 cv.shape = (1, 1)
-            self._covars_ = distribute_covar_matrix_to_match_covariance_type(
-                cv, self.covariance_type, self.n_components).copy()
+            self._covars_ = \
+                _utils.distribute_covar_matrix_to_match_covariance_type(
+                    cv, self.covariance_type, self.n_components).copy()
 
     def _compute_log_likelihood(self, X):
         return log_multivariate_normal_density(
@@ -294,7 +293,7 @@ class GaussianHMM(_BaseHMM):
 
 
 class MultinomialHMM(_BaseHMM):
-    """Hidden Markov Model with multinomial (discrete) emissions
+    r"""Hidden Markov Model with multinomial (discrete) emissions
 
     Parameters
     ----------
@@ -456,7 +455,7 @@ class MultinomialHMM(_BaseHMM):
 
 
 class GMMHMM(_BaseHMM):
-    """Hidden Markov Model with Gaussian mixture emissions.
+    r"""Hidden Markov Model with Gaussian mixture emissions.
 
     Parameters
     ----------
@@ -810,7 +809,8 @@ class GMMHMM(_BaseHMM):
 
         for i in range(self.n_components):
             log_denses = self._compute_log_weighted_gaussian_densities(X, i)
-            res[:, i] = logsumexp(log_denses, axis=1)
+            with np.errstate(under="ignore"):
+                res[:, i] = logsumexp(log_denses, axis=1)
 
         return res
 
@@ -841,7 +841,8 @@ class GMMHMM(_BaseHMM):
         prob_mix = np.zeros((n_samples, self.n_components, self.n_mix))
         for p in range(self.n_components):
             log_denses = self._compute_log_weighted_gaussian_densities(X, p)
-            prob_mix[:, p, :] = np.exp(log_denses) + np.finfo(np.float).eps
+            with np.errstate(under="ignore"):
+                prob_mix[:, p, :] = np.exp(log_denses) + np.finfo(np.float).eps
 
         prob_mix_sum = np.sum(prob_mix, axis=2)
         post_mix = prob_mix / prob_mix_sum[:, :, np.newaxis]

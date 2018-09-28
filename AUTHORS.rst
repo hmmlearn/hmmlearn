@@ -23,3 +23,4 @@ Authors and contributors, in no particular order:
 * Daniela Huppenkothen
 * Christopher Farrow
 * Alexandr Yanenko
+* Antony Lee
