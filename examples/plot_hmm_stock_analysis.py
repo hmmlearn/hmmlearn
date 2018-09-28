@@ -3,8 +3,7 @@ Gaussian HMM of stock data
 --------------------------
 
 This script shows how to use Gaussian HMM on stock price data from
-Yahoo! finance. For more information on how to visualize stock prices
-with matplotlib, please refer to ``date_demo1.py`` of matplotlib.
+Google finance.
 """
 
 from __future__ import print_function
@@ -14,13 +13,7 @@ import datetime
 import numpy as np
 from matplotlib import cm, pyplot as plt
 from matplotlib.dates import YearLocator, MonthLocator
-try:
-    from matplotlib.finance import quotes_historical_yahoo_ochl
-except ImportError:
-    # For Matplotlib prior to 1.5.
-    from matplotlib.finance import (
-        quotes_historical_yahoo as quotes_historical_yahoo_ochl
-    )
+from examples import quotes_historical_google
 
 from hmmlearn.hmm import GaussianHMM
 
@@ -28,12 +21,12 @@ from hmmlearn.hmm import GaussianHMM
 print(__doc__)
 
 ###############################################################################
-# Get quotes from Yahoo! finance
-quotes = quotes_historical_yahoo_ochl(
+# Get quotes from Google finance
+quotes = quotes_historical_google(
     "INTC", datetime.date(1995, 1, 1), datetime.date(2012, 1, 6))
 
 # Unpack quotes
-dates = np.array([q[0] for q in quotes], dtype=int)
+dates = np.array([int(q[0].strftime("%s")) for q in quotes], dtype=int)
 close_v = np.array([q[2] for q in quotes])
 volume = np.array([q[5] for q in quotes])[1:]
 

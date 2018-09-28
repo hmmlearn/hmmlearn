@@ -1,6 +1,6 @@
-# simple makefile to simplify repetetive build env management tasks under posix
+# simple makefile to simplify repetitive build env management tasks under posix
 
-# caution: testing won't work on windows, see README
+# caution: testing won't work on windows
 
 PYTHON ?= python
 CYTHON ?= cython
@@ -11,6 +11,7 @@ all: clean inplace test
 clean:
 	$(PYTHON) setup.py clean
 	rm -rf dist
+	rm -rf build
 
 inplace:
 	$(PYTHON) setup.py build_ext -i
