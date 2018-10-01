@@ -9,7 +9,7 @@
 set -e
 
 # Newer version is necessary for --only-binary option.
-pip install --upgrade pip
+pip install --upgrade pip setuptools
 
 # ``setup.py`` does no fetch dependencies for ``scikit-learn``, install
 # them manually. N.B. NumPy >= 1.0 is needed for ``np.broadcast_to`` in
