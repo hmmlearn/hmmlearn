@@ -55,7 +55,7 @@ test_script:
   - "mkdir empty_folder"
   - "cd empty_folder"
 
-  - "python -c \"import pytest; pytest.main()\" -s -v hmmlearn"
+  - "python -c \"from os.path import dirname; import pytest; import hmmlearn; pytest.main([dirname(hmmlearn.__file__), '-s', '-v'])\""
 
   # Move back to the project folder
   - "cd .."
