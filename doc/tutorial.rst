@@ -196,10 +196,6 @@ in ``remodel`` will have a different order than those in the generating model.
        >>> hmm.GaussianHMM(n_components=3).fit(X, lengths)  # doctest: +ELLIPSIS, +NORMALIZE_WHITESPACE
        GaussianHMM(algorithm='viterbi', ...
 
-.. topic:: Examples:
-
- * :ref:`sphx_glr_auto_examples_plot_hmm_stock_analysis.py`
-
 Saving and loading HMM
 ----------------------
 
