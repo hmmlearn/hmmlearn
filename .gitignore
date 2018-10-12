@@ -32,7 +32,6 @@ pip-log.txt
 .cache
 .coverage
 .tox
-nosetests.xml
 
 # Translations
 *.mo
