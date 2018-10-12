@@ -51,7 +51,7 @@ VERSION = hmmlearn.__version__
 install_requires = ["numpy", "scikit-learn>=0.16"]
 tests_require = install_requires + ["pytest"]
 docs_require = install_requires + [
-    "Sphinx", "sphinx-gallery", "numpydoc", "Pillow", "matplotlib"
+    "Sphinx", "sphinx-gallery", "Pillow", "matplotlib"
 ]
 
 setup_options = dict(
