@@ -6,6 +6,7 @@ Here you can see the full list of changes between each hmmlearn release.
 Version 0.2.1
 -------------
 
+- GMMHMM was fully rewritten (#107).
 - Fixed underflow when dealing with logs. Thanks to @aubreyli. See
   PR #105 on GitHub.
 - Reduced worst-case memory consumption of the M-step from O(S^2 T)
