@@ -6,6 +6,8 @@ Here you can see the full list of changes between each hmmlearn release.
 Version 0.2.1
 -------------
 
+Released on October 17th, 2018.
+
 - GMMHMM was fully rewritten (#107).
 - Fixed underflow when dealing with logs. Thanks to @aubreyli. See
   PR #105 on GitHub.
@@ -17,7 +19,7 @@ Version 0.2.1
 Version 0.2.0
 -------------
 
-Released on March 1st, 2016
+Released on March 1st, 2016.
 
 The release contains a known bug: fitting ``GMMHMM`` with covariance
 types other than ``"diag"`` does not work. This is going to be fixed
@@ -53,4 +55,4 @@ in the following version. See issue #78 on GitHub for details.
 Version 0.1.1
 -------------
 
-Initial release, released on February 9th 2015
+Initial release, released on February 9th 2015.
