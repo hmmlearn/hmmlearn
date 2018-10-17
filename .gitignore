@@ -1,48 +1,16 @@
-# hmmlearn generated files
-doc/_build
-doc/auto_examples
-doc/generated
-
-# Python compiled files
-*.py[cod]
-
-# C extensions
+*.egg-info/
+.*.swp
+*.o
+*.pyc
+*.pyd
 *.so
-
-# Packages
-*.egg
-*.egg-info
-dist
-build
-eggs
-parts
-bin
-var
-sdist
-develop-eggs
-.installed.cfg
-lib
-lib64
-__pycache__
-
-# Installer logs
-pip-log.txt
-
-# Unit test / coverage reports
-.cache
+.cache/
+.eggs/
+.ipynb_checkpoints/
+.pytest_cache/
+build/
+dist/
+htmlcov/
+oprofile_data/
 .coverage
-.tox
-
-# Translations
-*.mo
-
-# Mr Developer
-.mr.developer.cfg
-.project
-.pydevproject
-
-# vim and emacs backups
-*~
-.#*
-*.swp
-*.swo
+.gdb_history

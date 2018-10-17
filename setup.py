@@ -1,84 +1,101 @@
-#! /usr/bin/env python
-#
 # Copyright (C) 2007-2009 Cournapeau David <cournape@gmail.com>
 #               2010 Fabian Pedregosa <fabian.pedregosa@inria.fr>
 #               2014 Gael Varoquaux
 #               2014-2016 Sergei Lebedev <superbobry@gmail.com>
-
-"""Hidden Markov Models in Python with scikit-learn like API"""
-
-import sys
-
-try:
-    from numpy.distutils.misc_util import get_info
-except ImportError:
-    # A dirty hack to get RTD running.
-    def get_info(name):
-        return {}
-
-from setuptools import setup, Extension
+#               2018- Antony Lee
 
 
-DISTNAME = "hmmlearn"
-DESCRIPTION = __doc__
-LONG_DESCRIPTION = open("README.rst").read()
-MAINTAINER = "Sergei Lebedev"
-MAINTAINER_EMAIL = "superbobry@gmail.com"
-LICENSE = "new BSD"
+from distutils.version import LooseVersion
+from io import open
 
-CLASSIFIERS = [
-    "Development Status :: 3 - Alpha",
-    "License :: OSI Approved",
-    "Intended Audience :: Developers",
-    "Intended Audience :: Science/Research",
-    "Topic :: Software Development",
-    "Topic :: Scientific/Engineering",
-    "Programming Language :: Cython",
-    "Programming Language :: Python",
-    "Programming Language :: Python :: 2",
-    "Programming Language :: Python :: 2.7",
-    "Programming Language :: Python :: 3",
-    "Programming Language :: Python :: 3.4",
-    "Programming Language :: Python :: 3.5",
-    "Programming Language :: Python :: 3.6",
-    "Programming Language :: Python :: 3.7",
-]
+import setuptools
+from setuptools import Extension, find_packages, setup
+from setuptools.command.build_ext import build_ext
 
-import hmmlearn
 
-VERSION = hmmlearn.__version__
+# Added support for environment markers in install_requires.
+if LooseVersion(setuptools.__version__) < "36.2":
+    raise ImportError("setuptools>=36.2 is required")
 
-install_requires = ["numpy", "scikit-learn>=0.16"]
-tests_require = install_requires + ["pytest"]
-docs_require = install_requires + [
-    "Sphinx", "sphinx-gallery", "Pillow", "matplotlib"
-]
 
-setup_options = dict(
+class build_ext(build_ext, object):
+
+    def finalize_options(self):
+        # The key point: here, Cython and numpy will have been installed by
+        # pip.
+        from Cython.Build import cythonize
+        import numpy as np
+        import numpy.distutils
+
+        self.distribution.ext_modules[:] = cythonize("**/*.pyx")
+        # Sadly, this part needs to be done manually.
+        for ext in self.distribution.ext_modules:
+            for k, v in np.distutils.misc_util.get_info("npymath").items():
+                setattr(ext, k, v)
+            ext.include_dirs = [np.get_include()]
+
+        super(build_ext, self).finalize_options()
+
+    def build_extensions(self):
+        try:
+            self.compiler.compiler_so.remove("-Wstrict-prototypes")
+        except (AttributeError, ValueError):
+            pass
+        super(build_ext, self).build_extensions()
+
+
+setup(
     name="hmmlearn",
-    version=VERSION,
-    description=DESCRIPTION,
-    long_description=LONG_DESCRIPTION,
-    maintainer=MAINTAINER,
-    maintainer_email=MAINTAINER_EMAIL,
-    license=LICENSE,
+    description="",
+    long_description=open("README.rst", encoding="utf-8").read(),
+    maintainer="Antony Lee",
+    maintainer_email="",
     url="https://github.com/hmmlearn/hmmlearn",
-    packages=["hmmlearn", "hmmlearn.tests"],
-    classifiers=CLASSIFIERS,
-    ext_modules=[
-        Extension("hmmlearn._hmmc", ["hmmlearn/_hmmc.c"],
-                  extra_compile_args=["-O3"],
-                  **get_info("npymath"))
+    license="new BSD",
+    classifiers=[
+        "Development Status :: 3 - Alpha",
+        "License :: OSI Approved",
+        "Intended Audience :: Developers",
+        "Intended Audience :: Science/Research",
+        "Topic :: Software Development",
+        "Topic :: Scientific/Engineering",
+        "Programming Language :: Cython",
+        "Programming Language :: Python",
+        "Programming Language :: Python :: 2",
+        "Programming Language :: Python :: 2.7",
+        "Programming Language :: Python :: 3",
+        "Programming Language :: Python :: 3.4",
+        "Programming Language :: Python :: 3.5",
+        "Programming Language :: Python :: 3.6",
+        "Programming Language :: Python :: 3.7",
     ],
+    cmdclass={"build_ext": build_ext},
+    py_modules=[],
+    packages=find_packages("lib"),
+    package_dir={"": "lib"},
+    ext_modules=[Extension("", [])],
+    package_data={},
     python_requires=">=2.7",
-    install_requires=install_requires,
-    tests_require=tests_require,
+    setup_requires=[
+        "Cython",
+        "numpy",
+        "setuptools_scm",
+    ],
+    use_scm_version=lambda: {  # xref __init__.py
+        "version_scheme": "post-release",
+        "local_scheme": "node-and-date",
+        "write_to": "lib/hmmlearn/_version.py",
+    },
+    install_requires=[
+        "numpy>=1.10",  # np.broadcast_to.
+        "scikit-learn>=0.16",  # sklearn.utils.check_array.
+    ],
     extras_require={
-        "tests": tests_require,
-        "docs": docs_require
-    }
+        "tests": ["pytest"],
+        "docs": ["Sphinx", "sphinx-gallery", "Pillow", "matplotlib"],
+    },
+    entry_points={
+        "console_scripts": [],
+        "gui_scripts": [],
+    },
 )
-
-
-if __name__ == "__main__":
-    setup(**setup_options)

@@ -1,4 +1,0 @@
-pytest
-scikit-learn
-wheel
-wheelhouse_uploader
