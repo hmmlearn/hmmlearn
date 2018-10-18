@@ -40,4 +40,5 @@ def test_fill_covars():
     expected = np.array([[[1, 0], [0, 1]],
                          [[2, 0], [0, 2]],
                          [[3, 0], [0, 3]]])
-    np.testing.assert_equal(fill_covars(spherical, 'spherical', 3, 2), expected)
+    np.testing.assert_equal(
+        fill_covars(spherical, 'spherical', 3, 2), expected)

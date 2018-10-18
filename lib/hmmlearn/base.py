@@ -79,7 +79,7 @@ class ConvergenceMonitor(object):
     def __repr__(self):
         class_name = self.__class__.__name__
         params = dict(vars(self), history=list(self.history))
-        return "{0}({1})".format(
+        return "{}({})".format(
             class_name, _pprint(params, offset=len(class_name)))
 
     def _reset(self):
@@ -324,7 +324,7 @@ class _BaseHMM(BaseEstimator):
 
         algorithm = algorithm or self.algorithm
         if algorithm not in DECODER_ALGORITHMS:
-            raise ValueError("Unknown decoder {0!r}".format(algorithm))
+            raise ValueError("Unknown decoder {!r}".format(algorithm))
 
         decoder = {
             "viterbi": self._decode_viterbi,
@@ -544,7 +544,7 @@ class _BaseHMM(BaseEstimator):
         if len(self.startprob_) != self.n_components:
             raise ValueError("startprob_ must have length n_components")
         if not np.allclose(self.startprob_.sum(), 1.0):
-            raise ValueError("startprob_ must sum to 1.0 (got {0:.4f})"
+            raise ValueError("startprob_ must sum to 1.0 (got {:.4f})"
                              .format(self.startprob_.sum()))
 
         self.transmat_ = np.asarray(self.transmat_)
@@ -552,7 +552,7 @@ class _BaseHMM(BaseEstimator):
             raise ValueError(
                 "transmat_ must have shape (n_components, n_components)")
         if not np.allclose(self.transmat_.sum(axis=1), 1.0):
-            raise ValueError("rows of transmat_ must sum to 1.0 (got {0})"
+            raise ValueError("rows of transmat_ must sum to 1.0 (got {})"
                              .format(self.transmat_.sum(axis=1)))
 
     def _compute_log_likelihood(self, X):

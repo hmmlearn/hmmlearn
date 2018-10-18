@@ -56,7 +56,7 @@ def iter_from_X_lengths(X, lengths):
         end = np.cumsum(lengths).astype(np.int32)
         start = end - lengths
         if end[-1] > n_samples:
-            raise ValueError("more than {0:d} samples in lengths array {1!s}"
+            raise ValueError("more than {:d} samples in lengths array {!s}"
                              .format(n_samples, lengths))
 
         for i in range(len(lengths)):
