@@ -17,7 +17,7 @@ extensions = [
 autodoc_default_flags = ['members', 'inherited-members']
 
 sphinx_gallery_conf = {
-    'examples_dirs': '../examples',
+    'examples_dirs': '../../examples',
     'gallery_dirs': 'auto_examples'
 }
 

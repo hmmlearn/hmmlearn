@@ -1,16 +1,19 @@
-sudo: false
+dist: xenial
+sudo: true
 
 language: python
 python:
-  - "2.7"
-  - "3.4"
-  - "3.6"
+- "2.7"
+- "3.4"
+- "3.7"
 
-env:
-  global:
-    - TEST_DIR=/tmp/hmmlearn
-    - COVERAGE=`[[ $TRAVIS_PYTHON_VERSION = "2.7" ]] && echo true || echo false`
-
-install: source continuous_integration/travis/install.sh
-script: bash continuous_integration/travis/test_script.sh
-after_success: source continuous_integration/travis/after_success.sh
+install: |
+  set -e
+  python -mpip install --upgrade pip setuptools wheel
+  python -mpip install --upgrade pytest pytest-cov codecov
+  python -mpip install .
+  python -mpip list
+script: |
+  python -mpytest --doctest-modules --cov --pyargs hmmlearn
+after_success: |
+  codecov

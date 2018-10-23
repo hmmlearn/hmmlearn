@@ -1,4 +1,4 @@
-# cython: boundscheck=False, wraparound=False
+# cython: language_level=3, boundscheck=False, wraparound=False
 
 from cython cimport view
 from numpy.math cimport expl, logl, log1pl, isinf, fabsl, INFINITY
