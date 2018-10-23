@@ -446,13 +446,12 @@ class MultinomialHMM(_BaseHMM):
         Multinomial distribution, while ``[0, 0, 3, 5, 10]`` is not.
         """
         symbols = np.concatenate(X)
-        if (len(symbols) == 1 or          # not enough data
-            symbols.dtype.kind != 'i' or  # not an integer
-            (symbols < 0).any()):         # contains negative integers
+        if (len(symbols) == 1                                # not enough data
+            or not np.issubdtype(symbols.dtype, np.integer)  # not an integer
+            or (symbols < 0).any()):                         # not positive
             return False
-
-        symbols.sort()
-        return np.all(np.diff(symbols) <= 1)
+        u = np.unique(symbols)
+        return u[0] == 0 and u[-1] == len(u) - 1
 
 
 class GMMHMM(_BaseHMM):
