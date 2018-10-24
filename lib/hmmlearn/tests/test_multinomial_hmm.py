@@ -119,6 +119,8 @@ class TestMultinomailHMM(object):
 
     def test__check_input_symbols(self):
         assert self.h._check_input_symbols([[0, 0, 2, 1, 3, 1, 1]])
+        assert self.h._check_input_symbols(
+            np.array([[0, 0, 2, 1, 3, 1, 1]], np.uint8))
 
         # a) non-contigous
         assert not self.h._check_input_symbols([[0, 0, 3, 5, 10]])
