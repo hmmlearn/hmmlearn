@@ -54,6 +54,8 @@ the tests.
 Installation
 ============
 
+Requires a C compiler.
+
 ::
 
     pip install --upgrade --user hmmlearn
