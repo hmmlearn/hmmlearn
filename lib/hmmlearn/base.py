@@ -45,6 +45,27 @@ class ConvergenceMonitor(object):
 
     iter : int
         Number of iterations performed while training the model.
+
+    Examples
+    --------
+    Use custom convergence criteria by subclassing ``ConvergenceMonitor``
+    and redefining the ``converged`` method. The resulting subclass can
+    be used by creating an instance and pointing a model's ``monitor_``
+    attribute to it prior to fitting.
+
+    >>> from hmmlearn.base import ConvergenceMonitor
+    >>> from hmmlearn import hmm
+    >>>
+    >>> class ThresholdMonitor(ConvergenceMonitor):
+    ...     @property
+    ...     def converged(self):
+    ...         return (self.iter == self.n_iter or
+    ...                 self.history[-1] >= self.tol)
+    >>>
+    >>> model = hmm.GaussianHMM(n_components=2, tol=5, verbose=True)
+    >>> model.monitor_ = ThresholdMonitor(model.monitor_.tol,
+    ...                                   model.monitor_.n_iter,
+    ...                                   model.monitor_.verbose)
     """
     _template = "{iter:>10d} {logprob:>16.4f} {delta:>+16.4f}"
 
