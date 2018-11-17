@@ -23,6 +23,14 @@ class TestMonitor(object):
         m.report(-0.0101)
         assert m.converged
 
+    def test_reset(self):
+        m = ConvergenceMonitor(tol=1e-3, n_iter=10, verbose=False)
+        m.iter = 1
+        m.history.append(-0.01)
+        m._reset()
+        assert m.iter == 0
+        assert not m.history
+
     def test_report_first_iteration(self, capsys):
         m = ConvergenceMonitor(tol=1e-3, n_iter=10, verbose=True)
         m.report(-0.01)

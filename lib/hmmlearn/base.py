@@ -45,6 +45,27 @@ class ConvergenceMonitor(object):
 
     iter : int
         Number of iterations performed while training the model.
+
+    Examples
+    --------
+    Use custom convergence criteria by subclassing ``ConvergenceMonitor``
+    and redefining the ``converged`` method. The resulting subclass can
+    be used by creating an instance and pointing a model's ``monitor_``
+    attribute to it prior to fitting.
+
+    >>> from hmmlearn.base import ConvergenceMonitor
+    >>> from hmmlearn import hmm
+    >>>
+    >>> class ThresholdMonitor(ConvergenceMonitor):
+    ...     @property
+    ...     def converged(self):
+    ...         return (self.iter == self.n_iter or
+    ...                 self.history[-1] >= self.tol)
+    >>>
+    >>> model = hmm.GaussianHMM(n_components=2, tol=5, verbose=True)
+    >>> model.monitor_ = ThresholdMonitor(model.monitor_.tol,
+    ...                                   model.monitor_.n_iter,
+    ...                                   model.monitor_.verbose)
     """
     _template = "{iter:>10d} {logprob:>16.4f} {delta:>+16.4f}"
 
@@ -60,6 +81,11 @@ class ConvergenceMonitor(object):
         params = dict(vars(self), history=list(self.history))
         return "{0}({1})".format(
             class_name, _pprint(params, offset=len(class_name)))
+
+    def _reset(self):
+        """Reset the monitor's state."""
+        self.iter = 0
+        self.history.clear()
 
     def report(self, logprob):
         """Reports convergence to :data:`sys.stderr`.
@@ -174,6 +200,7 @@ class _BaseHMM(BaseEstimator):
         self.n_iter = n_iter
         self.tol = tol
         self.verbose = verbose
+        self.monitor_ = ConvergenceMonitor(self.tol, self.n_iter, self.verbose)
 
     def score_samples(self, X, lengths=None):
         """Compute the log probability under the model and compute posteriors.
@@ -424,7 +451,7 @@ class _BaseHMM(BaseEstimator):
         self._init(X, lengths=lengths)
         self._check()
 
-        self.monitor_ = ConvergenceMonitor(self.tol, self.n_iter, self.verbose)
+        self.monitor_._reset()
         for iter in range(self.n_iter):
             stats = self._initialize_sufficient_statistics()
             curr_logprob = 0
