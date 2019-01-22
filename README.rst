@@ -10,11 +10,11 @@ hmmlearn
    image:: https://readthedocs.org/projects/hmmlearn/badge/?version=latest
    :target: http://hmmlearn.readthedocs.io/en/latest/?badge=latest
 .. |Travis|
-   image:: https://travis-ci.org/anntzer/hmmlearn.svg?branch=master
-   :target: https://travis-ci.org/anntzer/hmmlearn
+   image:: https://travis-ci.org/hmmlearn/hmmlearn.svg?branch=master
+   :target: https://travis-ci.org/hmmlearn/hmmlearn
 .. |AppVeyor|
    image:: https://ci.appveyor.com/api/projects/status/github/hmmlearn/hmmlearn?branch=master&svg=true
-   :target: https://ci.appveyor.com/project/hmmlearn/hmmlearn
+   :target: https://ci.appveyor.com/project/superbobry/hmmlearn
 .. |CodeCov|
    image:: https://codecov.io/gh/hmmlearn/hmmlearn/master.svg
    :target: https://codecov.io/gh/hmmlearn/hmmlearn
