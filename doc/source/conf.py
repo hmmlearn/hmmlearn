@@ -2,8 +2,6 @@
 
 from __future__ import unicode_literals
 
-import os
-import sys
 
 extensions = [
     'sphinx.ext.autodoc',

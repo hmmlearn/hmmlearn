@@ -11,6 +11,7 @@ from . import log_likelihood_increasing, make_covar_matrix, normalized
 
 pytestmark = pytest.mark.xfail()
 
+
 def create_random_gmm(n_mix, n_features, covariance_type, prng=0):
     prng = check_random_state(prng)
     g = GaussianMixture(n_mix, covariance_type=covariance_type)

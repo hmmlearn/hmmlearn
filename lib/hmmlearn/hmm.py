@@ -174,7 +174,7 @@ class GaussianHMM(_BaseHMM):
         self.n_features = self.means_.shape[1]
 
         if self.covariance_type not in COVARIANCE_TYPES:
-            raise ValueError('covariance_type must be one of {0}'
+            raise ValueError('covariance_type must be one of {}'
                              .format(COVARIANCE_TYPES))
 
         _utils._validate_covars(self._covars_, self.covariance_type,
@@ -709,15 +709,15 @@ class GMMHMM(_BaseHMM):
 
         # Checking covariance type
         if self.covariance_type not in COVARIANCE_TYPES:
-            raise ValueError("covariance_type must be one of {0}"
+            raise ValueError("covariance_type must be one of {}"
                              .format(COVARIANCE_TYPES))
 
         self.weights_ = np.array(self.weights_)
         # Checking mixture weights' shape
         if self.weights_.shape != (self.n_components, self.n_mix):
             raise ValueError("mixture weights must have shape "
-                             "(n_components, n_mix), "
-                             "actual shape: {0}".format(self.weights_.shape))
+                             "(n_components, n_mix), actual shape: {}"
+                             .format(self.weights_.shape))
 
         # Checking mixture weights' mathematical correctness
         if not np.allclose(np.sum(self.weights_, axis=1),
@@ -730,7 +730,7 @@ class GMMHMM(_BaseHMM):
                                  self.n_features):
             raise ValueError("mixture means must have shape "
                              "(n_components, n_mix, n_features), "
-                             "actual shape: {0}".format(self.means_.shape))
+                             "actual shape: {}".format(self.means_.shape))
 
         # Checking covariances' shape
         self.covars_ = np.array(self.covars_)
@@ -744,8 +744,8 @@ class GMMHMM(_BaseHMM):
         }
         needed_shape = needed_shapes[self.covariance_type]
         if covars_shape != needed_shape:
-            raise ValueError("{!r} mixture covars must have shape {0}, "
-                             "actual shape: {1}"
+            raise ValueError("{!r} mixture covars must have shape {}, "
+                             "actual shape: {}"
                              .format(self.covariance_type,
                                      needed_shape, covars_shape))
 
@@ -768,10 +768,10 @@ class GMMHMM(_BaseHMM):
                 for j, covar in enumerate(mix_covars):
                     if (not np.allclose(covar, covar.T) or
                             np.any(linalg.eigvalsh(covar) <= 0)):
-                        raise ValueError("'full' covariance matrix of "
-                                         "mixture {0} of component {1} must be "
-                                         "symmetric, positive-definite"
-                                         .format(j, i))
+                        raise ValueError(
+                            "'full' covariance matrix of mixture {} of "
+                            "component {} must be symmetric, positive-definite"
+                            .format(j, i))
 
     def _generate_sample_from_state(self, state, random_state=None):
         if random_state is None:

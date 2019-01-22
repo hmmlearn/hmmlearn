@@ -36,7 +36,7 @@ class TestMonitor(object):
         m.report(-0.01)
         out, err = capsys.readouterr()
         assert not out
-        expected = m._template.format(iter=1, logprob=-0.01, delta=float("nan"))
+        expected = m._template.format(iter=1, logprob=-0.01, delta=np.nan)
         assert err.splitlines() == [expected]
 
     def test_report(self, capsys):
