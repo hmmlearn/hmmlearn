@@ -8,7 +8,6 @@ extensions = [
     'sphinx.ext.autosummary',
     'sphinx.ext.mathjax',
     'sphinx.ext.napoleon',
-    'matplotlib.sphinxext.plot_directive',
     'sphinx_gallery.gen_gallery',
 ]
 

@@ -6,6 +6,7 @@ Here you can see the full list of changes between each hmmlearn release.
 next
 ----
 
+- Custom ConvergenceMonitors subclasses can be used (#218).
 - MultinomialHMM now accepts unsigned symbols (#258).
 
 Version 0.2.1

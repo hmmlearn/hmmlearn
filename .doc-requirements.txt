@@ -1,0 +1,3 @@
+matplotlib
+sphinx
+sphinx-gallery
