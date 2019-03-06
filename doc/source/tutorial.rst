@@ -33,12 +33,12 @@ algorithm, known as the Baum-Welch algorithm.
 
 .. topic:: References:
 
-  .. [Rabiner89] Lawrence R. Rabiner "A tutorial on hidden Markov models and
-                 selected applications in speech recognition",
-                 Proceedings of the IEEE 77.2, pp. 257-286, 1989.
-  .. [Bilmes98] Jeff A. Bilmes, "A gentle tutorial of the EM algorithm and its
-                application to parameter estimation for Gaussian mixture and
-                hidden Markov models.", 1998.
+  - Lawrence R. Rabiner "A tutorial on hidden Markov models and selected
+    applications in speech recognition", Proceedings of the IEEE 77.2,
+    pp. 257-286, 1989.
+  - Jeff A. Bilmes, "A gentle tutorial of the EM algorithm and its application
+    to parameter estimation for Gaussian mixture and hidden Markov models.",
+    1998.
 
 Available models
 ----------------

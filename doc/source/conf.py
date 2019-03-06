@@ -3,6 +3,8 @@
 from __future__ import unicode_literals
 
 
+needs_sphinx = '2.0'
+
 extensions = [
     'sphinx.ext.autodoc',
     'sphinx.ext.autosummary',
@@ -11,7 +13,7 @@ extensions = [
     'sphinx_gallery.gen_gallery',
 ]
 
-autodoc_default_flags = ['members', 'inherited-members']
+autodoc_default_options = {'members': True, 'inherited-members': True}
 
 sphinx_gallery_conf = {
     'examples_dirs': '../../examples',
@@ -76,19 +78,18 @@ pygments_style = 'sphinx'
 
 # -- Options for HTML output -------------------------------------------------
 
-## Read the docs style:
-try:
-    import sphinx_rtd_theme
-except ImportError:
-    html_theme = 'classic'
-else:
-    html_theme_path = [sphinx_rtd_theme.get_html_theme_path()]
-    html_theme = 'sphinx_rtd_theme'
+html_theme = 'alabaster'
+html_sidebars = {'**': ['about.html', 'navigation.html', 'localtoc.html']}
+html_theme_options = {
+    'description': 'Unsupervised learning and inference of Hidden Markov Models',
+    'github_user': 'hmmlearn',
+    'github_repo': 'hmmlearn',
+    'github_banner': True,
+    'github_button': False,
+    'code_font_size': '80%',
+}
 
-# Theme options are theme-specific and customize the look and feel of a theme
-# further.  For a list of options available for each theme, see the
-# documentation.
-html_theme_options = {}
+htmlhelp_basename = 'hmmlearn_doc'
 
 # Add any paths that contain custom themes here, relative to this directory.
 #html_theme_path = ['themes']
