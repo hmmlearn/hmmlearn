@@ -6,7 +6,7 @@ from __future__ import unicode_literals
 extensions = [
     'sphinx.ext.autodoc',
     'sphinx.ext.autosummary',
-    'sphinx.ext.mathjax',
+    'sphinx.ext.doctest',
     'sphinx.ext.napoleon',
     'sphinx_gallery.gen_gallery',
 ]

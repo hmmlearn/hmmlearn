@@ -6,7 +6,7 @@ from collections import deque
 
 import numpy as np
 from scipy.special import logsumexp
-from sklearn.base import BaseEstimator, _pprint
+from sklearn.base import BaseEstimator
 from sklearn.utils import check_array, check_random_state
 from sklearn.utils.validation import check_is_fitted
 
@@ -78,9 +78,10 @@ class ConvergenceMonitor(object):
 
     def __repr__(self):
         class_name = self.__class__.__name__
-        params = dict(vars(self), history=list(self.history))
-        return "{}({})".format(
-            class_name, _pprint(params, offset=len(class_name)))
+        params = sorted(dict(vars(self), history=list(self.history)).items())
+        return ("{}(\n".format(class_name)
+                + "".join(map("    {}={},\n".format, *zip(*params)))
+                + ")")
 
     def _reset(self):
         """Reset the monitor's state."""
