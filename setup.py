@@ -49,7 +49,6 @@ setup(
     description="",
     long_description=open("README.rst", encoding="utf-8").read(),
     maintainer="Antony Lee",
-    maintainer_email="",
     url="https://github.com/hmmlearn/hmmlearn",
     license="new BSD",
     classifiers=[

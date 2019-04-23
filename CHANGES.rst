@@ -3,8 +3,14 @@ hmmlearn Changelog
 
 Here you can see the full list of changes between each hmmlearn release.
 
-next
-----
+Version 0.2.2
+-------------
+
+Released on May 5th, 2019.
+
+This version was cut in particular in order to clear up the confusion between
+the "real" v0.2.1 and the pseudo-0.2.1 that were previously released by various
+third-party packagers.
 
 - Custom ConvergenceMonitors subclasses can be used (#218).
 - MultinomialHMM now accepts unsigned symbols (#258).
