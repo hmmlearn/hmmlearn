@@ -3,7 +3,7 @@
 from __future__ import unicode_literals
 
 
-needs_sphinx = '2.0'
+needs_sphinx = '1.8'
 
 extensions = [
     'sphinx.ext.autodoc',
@@ -13,7 +13,7 @@ extensions = [
     'sphinx_gallery.gen_gallery',
 ]
 
-autodoc_default_options = {'members': True, 'inherited-members': True}
+autodoc_default_options = {'members': None, 'inherited-members': None}
 
 sphinx_gallery_conf = {
     'examples_dirs': '../../examples',
