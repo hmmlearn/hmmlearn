@@ -196,3 +196,15 @@ def test_base_hmm_attributes():
     with pytest.raises(ValueError):
         h.transmat_ = np.zeros((n_components - 2, n_components))
         h._check()
+
+
+def test_stationary_distribution():
+    n_components = 10
+    h = StubHMM(n_components)
+    transmat = np.random.random((n_components, n_components))
+    transmat /= np.tile(transmat.sum(axis=1)[:, np.newaxis], (1, n_components))
+    h.transmat_ = transmat
+    stationary = h.get_stationary_distribution()
+    assert stationary.dtype == float
+    assert np.dot(h.get_stationary_distribution().T, h.transmat_) \
+        == pytest.approx(stationary)

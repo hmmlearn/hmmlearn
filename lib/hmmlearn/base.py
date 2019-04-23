@@ -202,6 +202,17 @@ class _BaseHMM(BaseEstimator):
         self.verbose = verbose
         self.monitor_ = ConvergenceMonitor(self.tol, self.n_iter, self.verbose)
 
+    def get_stationary_distribution(self):
+        """Compute the stationary distribution of states.
+        """
+        # The stationary distribution is proportional to the left-eigenvector
+        # associated with the largest eigenvalue (i.e., 1) of the transition
+        # matrix.
+        check_is_fitted(self, "transmat_")
+        eigvals, eigvecs = np.linalg.eig(self.transmat_.T)
+        eigvec = np.real_if_close(eigvecs[:, np.argmax(eigvals)])
+        return eigvec / eigvec.sum()
+
     def score_samples(self, X, lengths=None):
         """Compute the log probability under the model and compute posteriors.
 

@@ -8,6 +8,9 @@ next
 
 - Custom ConvergenceMonitors subclasses can be used (#218).
 - MultinomialHMM now accepts unsigned symbols (#258).
+- The ``get_stationary_distribution`` returns the stationary distribution of
+  the transition matrix (i.e., the rescaled left-eigenvector of the transition
+  matrix that is associated with the eigenvalue 1) (#141).
 
 Version 0.2.1
 -------------
