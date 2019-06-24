@@ -15,3 +15,5 @@ oprofile_data/
 .coverage
 .coverage.*
 .gdb_history
+.project
+
