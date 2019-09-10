@@ -6,6 +6,7 @@ Here you can see the full list of changes between each hmmlearn release.
 next
 ----
 
+- Dropped support for Py2.7, Py3.4.
 - Log warning if not enough data is passed to fit() for a meaningful fit.
 - Better handle degenerate fits.
 - Allow missing observations in input multinomial data.

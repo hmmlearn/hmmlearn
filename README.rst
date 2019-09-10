@@ -1,20 +1,22 @@
 hmmlearn
 ========
 
-|PyPI| |Read the Docs| |Travis| |AppVeyor| |CodeCov|
+|GitHub| |PyPI|
 
+|Read the Docs| |Azure Pipelines| |CodeCov|
+
+.. |GitHub|
+   image:: https://img.shields.io/badge/github-hmmlearn%2Fhmmlearn-brightgreen
+   :target: https://github.com/hmmlearn/hmmlearn
 .. |PyPI|
    image:: https://img.shields.io/pypi/v/hmmlearn.svg
    :target: https://pypi.python.org/pypi/hmmlearn
 .. |Read the Docs|
    image:: https://readthedocs.org/projects/hmmlearn/badge/?version=latest
    :target: http://hmmlearn.readthedocs.io/en/latest/?badge=latest
-.. |Travis|
-   image:: https://travis-ci.org/hmmlearn/hmmlearn.svg?branch=master
-   :target: https://travis-ci.org/hmmlearn/hmmlearn
-.. |AppVeyor|
-   image:: https://ci.appveyor.com/api/projects/status/github/hmmlearn/hmmlearn?branch=master&svg=true
-   :target: https://ci.appveyor.com/project/superbobry/hmmlearn
+.. |Azure Pipelines|
+   image:: https://dev.azure.com/anntzer/hmmlearn/_apis/build/status/anntzer.hmmlearn
+   :target: https://dev.azure.com/anntzer/hmmlearn/_build/latest?definitionId=1
 .. |CodeCov|
    image:: https://codecov.io/gh/hmmlearn/hmmlearn/master.svg
    :target: https://codecov.io/gh/hmmlearn/hmmlearn
@@ -44,7 +46,7 @@ Dependencies
 
 The required dependencies to use hmmlearn are
 
-* Python >= 2.7
+* Python >= 3.5
 * NumPy >= 1.10
 * scikit-learn >= 0.16
 
