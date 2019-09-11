@@ -266,6 +266,7 @@ class GaussianHMM(_BaseHMM):
                           - 2 * self.means_ * stats['obs']
                           + self.means_**2 * denom)
                 cv_den = max(covars_weight - 1, 0) + denom
+                cv_num = np.maximum(cv_num, 1e6)  # prevent negative covariances (numerical issue ?)
                 self._covars_ = \
                     (covars_prior + cv_num) / np.maximum(cv_den, 1e-5)
                 if self.covariance_type == 'spherical':
