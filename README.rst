@@ -54,8 +54,12 @@ the tests.
 Installation
 ============
 
-Requires a C compiler.
+Requires a C compiler and Python headers.
 
-::
+To install from PyPI::
 
     pip install --upgrade --user hmmlearn
+
+To install from the repo::
+
+    pip install --user git+https://github.com/hmmlearn/hmmlearn
