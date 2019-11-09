@@ -131,8 +131,7 @@ class GaussianHMM(_BaseHMM):
     Examples
     --------
     >>> from hmmlearn.hmm import GaussianHMM
-    >>> GaussianHMM(n_components=2)
-    ...                             #doctest: +ELLIPSIS +NORMALIZE_WHITESPACE
+    >>> GaussianHMM(n_components=2)  #doctest: +ELLIPSIS
     GaussianHMM(algorithm='viterbi',...
     """
     def __init__(self, n_components=1, covariance_type='diag',
@@ -361,8 +360,7 @@ class MultinomialHMM(_BaseHMM):
     Examples
     --------
     >>> from hmmlearn.hmm import MultinomialHMM
-    >>> MultinomialHMM(n_components=2)
-    ...                             #doctest: +ELLIPSIS +NORMALIZE_WHITESPACE
+    >>> MultinomialHMM(n_components=2)  #doctest: +ELLIPSIS
     MultinomialHMM(algorithm='viterbi',...
     """
     # TODO: accept the prior on emissionprob_ for consistency.
