@@ -293,7 +293,7 @@ class GaussianHMM(_BaseHMM):
                                      (cvweight + stats['post'][:, None, None]))
 
     def fit(self, X, lengths=None):
-        super().fit(X, lengths)
+        super(GaussianHMM, self).fit(X, lengths)
 
         # if self._covars_ is not positive-definite, add the smallest eigen value.   
         for k in range(self.n_components):
