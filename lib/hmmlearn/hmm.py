@@ -12,6 +12,7 @@ The :mod:`hmmlearn.hmm` module implements hidden Markov models.
 
 import numpy as np
 from scipy.special import logsumexp
+from scipy import linalg
 from sklearn import cluster
 from sklearn.utils import check_random_state
 
@@ -295,9 +296,9 @@ class GaussianHMM(_BaseHMM):
     def fit(self, X, lengths=None):
         super(GaussianHMM, self).fit(X, lengths)
 
-        # if self._covars_ is not positive-definite, add the smallest eigen value.   
+        # if self._covars_ is not positive-definite, add the smallest eigen value.
         for k in range(self.n_components):
-            eigen_values = np.linalg.eigvalsh(self._covars_[k])
+            eigen_values = linalg.eigvalsh(self._covars_[k])
             min_eigen_values = np.min(eigen_values)
             if min_eigen_values < 0:
                 lmd = -min_eigen_values + 1e-10
