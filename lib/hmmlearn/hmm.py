@@ -292,6 +292,16 @@ class GaussianHMM(_BaseHMM):
                     self._covars_ = ((covars_prior + cv_num) /
                                      (cvweight + stats['post'][:, None, None]))
 
+    def fit(self, X, lengths=None):
+        super().fit(X, lengths)
+
+        # if self._covars_ is not positive-definite, add the smallest eigen value.   
+        for k in range(self.n_components):
+            eigen_values = np.linalg.eigvalsh(self._covars_[k])
+            min_eigen_values = np.min(eigen_values)
+            if min_eigen_values < 0:
+                lmd = -min_eigen_values + 1e-10
+                self._covars_[k] += lmd * np.eye(self.n_features)
 
 class MultinomialHMM(_BaseHMM):
     r"""Hidden Markov Model with multinomial (discrete) emissions
