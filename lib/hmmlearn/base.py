@@ -1,5 +1,6 @@
 from __future__ import print_function
 
+import logging
 import string
 import sys
 from collections import deque
@@ -16,6 +17,7 @@ from .utils import normalize, log_normalize, iter_from_X_lengths, log_mask_zero
 
 #: Supported decoder algorithms.
 DECODER_ALGORITHMS = frozenset(("viterbi", "map"))
+_log = logging.getLogger(__name__)
 
 
 class ConvergenceMonitor(object):
@@ -541,6 +543,12 @@ class _BaseHMM(BaseEstimator):
         if 't' in self.init_params or not hasattr(self, "transmat_"):
             self.transmat_ = np.full((self.n_components, self.n_components),
                                      init)
+        n_fit_scalars_per_param = self._get_n_fit_scalars_per_param()
+        n_fit_scalars = sum(n_fit_scalars_per_param[p] for p in self.params)
+        if X.size < n_fit_scalars:
+            _log.warning("Fitting a model with {} free scalar parameters with "
+                         "only {} data points will result in a degenerate "
+                         "solution.".format(n_fit_scalars, X.size))
 
     def _check(self):
         """Validates model parameters prior to fitting.

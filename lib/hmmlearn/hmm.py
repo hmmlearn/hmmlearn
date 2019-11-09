@@ -18,11 +18,19 @@ from sklearn.utils import check_random_state
 from . import _utils
 from .stats import log_multivariate_normal_density
 from .base import _BaseHMM
-from .utils import iter_from_X_lengths, normalize, fill_covars
+from .utils import fill_covars, iter_from_X_lengths, log_mask_zero, normalize
 
 __all__ = ["GMMHMM", "GaussianHMM", "MultinomialHMM"]
 
 COVARIANCE_TYPES = frozenset(("spherical", "diag", "full", "tied"))
+
+
+def _check_and_set_gaussian_n_features(model, X):
+    _, n_features = X.shape
+    if hasattr(model, "n_features") and model.n_features != n_features:
+        raise ValueError("Unexpected number of dimensions, got {} but "
+                         "expected {}".format(n_features, model.n_features))
+    model.n_features = n_features
 
 
 class GaussianHMM(_BaseHMM):
@@ -109,11 +117,11 @@ class GaussianHMM(_BaseHMM):
     monitor\_ : ConvergenceMonitor
         Monitor object used to check the convergence of EM.
 
-    transmat\_ : array, shape (n_components, n_components)
-        Matrix of transition probabilities between states.
-
     startprob\_ : array, shape (n_components, )
         Initial state occupation distribution.
+
+    transmat\_ : array, shape (n_components, n_components)
+        Matrix of transition probabilities between states.
 
     means\_ : array, shape (n_components, n_features)
         Mean parameters for each state.
@@ -124,9 +132,9 @@ class GaussianHMM(_BaseHMM):
         The shape depends on :attr:`covariance_type`::
 
             (n_components, )                        if "spherical",
-            (n_features, n_features)                if "tied",
             (n_components, n_features)              if "diag",
             (n_components, n_features, n_features)  if "full"
+            (n_features, n_features)                if "tied",
 
     Examples
     --------
@@ -179,15 +187,25 @@ class GaussianHMM(_BaseHMM):
         _utils._validate_covars(self._covars_, self.covariance_type,
                                 self.n_components)
 
+    def _get_n_fit_scalars_per_param(self):
+        nc = self.n_components
+        nf = self.n_features
+        return {
+            "s": nc - 1,
+            "t": nc * (nc - 1),
+            "m": nc * nf,
+            "c": {
+                "spherical": nc,
+                "diag": nc * nf,
+                "full": nc * nf * (nf + 1) // 2,
+                "tied": nf * (nf + 1) // 2,
+            }[self.covariance_type],
+        }
+
     def _init(self, X, lengths=None):
+        _check_and_set_gaussian_n_features(self, X)
         super(GaussianHMM, self)._init(X, lengths=lengths)
 
-        _, n_features = X.shape
-        if hasattr(self, 'n_features') and self.n_features != n_features:
-            raise ValueError('Unexpected number of dimensions, got %s but '
-                             'expected %s' % (n_features, self.n_features))
-
-        self.n_features = n_features
         if 'm' in self.init_params or not hasattr(self, "means_"):
             kmeans = cluster.KMeans(n_clusters=self.n_components,
                                     random_state=self.random_state)
@@ -348,11 +366,11 @@ class MultinomialHMM(_BaseHMM):
     monitor\_ : ConvergenceMonitor
         Monitor object used to check the convergence of EM.
 
-    transmat\_ : array, shape (n_components, n_components)
-        Matrix of transition probabilities between states.
-
     startprob\_ : array, shape (n_components, )
         Initial state occupation distribution.
+
+    transmat\_ : array, shape (n_components, n_components)
+        Matrix of transition probabilities between states.
 
     emissionprob\_ : array, shape (n_components, n_features)
         Probability of emitting a given symbol when in each state.
@@ -377,20 +395,21 @@ class MultinomialHMM(_BaseHMM):
                           n_iter=n_iter, tol=tol, verbose=verbose,
                           params=params, init_params=init_params)
 
-    def _init(self, X, lengths=None):
-        if not self._check_input_symbols(X):
-            raise ValueError("expected a sample from "
-                             "a Multinomial distribution.")
+    def _get_n_fit_scalars_per_param(self):
+        nc = self.n_components
+        nf = self.n_features
+        return {
+            "s": nc - 1,
+            "t": nc * (nc - 1),
+            "e": nc * (nf - 1),
+        }
 
+    def _init(self, X, lengths=None):
+        self._check_and_set_n_features(X)
         super(MultinomialHMM, self)._init(X, lengths=lengths)
         self.random_state = check_random_state(self.random_state)
 
         if 'e' in self.init_params:
-            if not hasattr(self, "n_features"):
-                symbols = set()
-                for i, j in iter_from_X_lengths(X, lengths):
-                    symbols |= set(X[i:j].flatten())
-                self.n_features = len(symbols)
             self.emissionprob_ = self.random_state \
                 .rand(self.n_components, self.n_features)
             normalize(self.emissionprob_, axis=1)
@@ -407,7 +426,7 @@ class MultinomialHMM(_BaseHMM):
             self.n_features = n_features
 
     def _compute_log_likelihood(self, X):
-        return np.log(self.emissionprob_)[:, np.concatenate(X)].T
+        return log_mask_zero(self.emissionprob_)[:, np.concatenate(X)].T
 
     def _generate_sample_from_state(self, state, random_state=None):
         cdf = np.cumsum(self.emissionprob_[state, :])
@@ -433,23 +452,22 @@ class MultinomialHMM(_BaseHMM):
             self.emissionprob_ = (stats['obs']
                                   / stats['obs'].sum(axis=1)[:, np.newaxis])
 
-    def _check_input_symbols(self, X):
-        """Check if ``X`` is a sample from a Multinomial distribution.
-
-        That is ``X`` should be an array of non-negative integers from
-        range ``[min(X), max(X)]``, such that each integer from the range
-        occurs in ``X`` at least once.
-
-        For example ``[0, 0, 2, 1, 3, 1, 1]`` is a valid sample from a
-        Multinomial distribution, while ``[0, 0, 3, 5, 10]`` is not.
+    def _check_and_set_n_features(self, X):
         """
-        symbols = np.concatenate(X)
-        if (len(symbols) == 1                                # not enough data
-            or not np.issubdtype(symbols.dtype, np.integer)  # not an integer
-            or (symbols < 0).any()):                         # not positive
-            return False
-        u = np.unique(symbols)
-        return u[0] == 0 and u[-1] == len(u) - 1
+        Check if ``X`` is a sample from a Multinomial distribution, i.e. an
+        array of non-negative integers.
+        """
+        if not np.issubdtype(X.dtype, np.integer):
+            raise ValueError("Symbols should be integers")
+        if X.min() < 0:
+            raise ValueError("Symbols should be nonnegative")
+        if hasattr(self, "n_features"):
+            if self.n_features - 1 < X.max():
+                raise ValueError(
+                    "Largest symbol is {} but the model only emits "
+                    "symbols up to {}"
+                    .format(X.max(), self.n_features - 1))
+        self.n_features = X.max() + 1
 
 
 class GMMHMM(_BaseHMM):
@@ -472,7 +490,9 @@ class GMMHMM(_BaseHMM):
         * "diag" --- each state uses a diagonal covariance matrix.
         * "full" --- each state uses a full (i.e. unrestricted)
           covariance matrix.
-        * "tied" --- all states use **the same** full covariance matrix.
+        * "tied" --- all mixture components of each state use **the same** full
+          covariance matrix (note that this is not the same as for
+          `GaussianHMM`).
 
         Defaults to "diag".
 
@@ -558,9 +578,9 @@ class GMMHMM(_BaseHMM):
         The shape depends on :attr:`covariance_type`::
 
             (n_components, n_mix)                          if "spherical",
-            (n_components, n_features, n_features)         if "tied",
             (n_components, n_mix, n_features)              if "diag",
             (n_components, n_mix, n_features, n_features)  if "full"
+            (n_components, n_features, n_features)         if "tied",
     """
 
     def __init__(self, n_components=1, n_mix=1,
@@ -586,10 +606,26 @@ class GMMHMM(_BaseHMM):
         self.covars_prior = covars_prior
         self.covars_weight = covars_weight
 
-    def _init(self, X, lengths=None):
-        super(GMMHMM, self)._init(X, lengths=lengths)
+    def _get_n_fit_scalars_per_param(self):
+        nc = self.n_components
+        nf = self.n_features
+        nm = self.n_mix
+        return {
+            "s": nc - 1,
+            "t": nc * (nc - 1),
+            "m": nc * nm * nf,
+            "c": {
+                "spherical": nc * nm,
+                "diag": nc * nm * nf,
+                "full": nc * nm * nf * (nf + 1) // 2,
+                "tied": nc * nf * (nf + 1) // 2,
+            }[self.covariance_type],
+            "w": nm - 1,
+        }
 
-        _n_samples, self.n_features = X.shape
+    def _init(self, X, lengths=None):
+        _check_and_set_gaussian_n_features(self, X)
+        super(GMMHMM, self)._init(X, lengths=lengths)
 
         # Default values for covariance prior parameters
         self._init_covar_priors()

@@ -117,16 +117,10 @@ class TestMultinomailHMM(object):
 
         assert log_likelihood_increasing(h, X, lengths, n_iter)
 
-    def test__check_input_symbols(self):
-        assert self.h._check_input_symbols([[0, 0, 2, 1, 3, 1, 1]])
-        assert self.h._check_input_symbols(
-            np.array([[0, 0, 2, 1, 3, 1, 1]], np.uint8))
-
-        # a) non-contigous
-        assert not self.h._check_input_symbols([[0, 0, 3, 5, 10]])
-        # b) not enough data
-        assert not self.h._check_input_symbols([[0]])
-        # c) non-integral
-        assert not self.h._check_input_symbols([[0., 2., 1., 3.]])
-        # d) negative integers
-        assert not self.h._check_input_symbols([[0, 0, -2, 1, 3, 1, 1]])
+    def test__check_and_set_n_features(self):
+        self.h._check_and_set_n_features(np.array([[0, 0, 2, 1, 3, 1, 1]]))
+        self.h._check_and_set_n_features(np.array([[0, 0, 1, 3, 1]], np.uint8))
+        with pytest.raises(ValueError):  # non-integral
+            self.h._check_and_set_n_features(np.array([[0., 2., 1., 3.]]))
+        with pytest.raises(ValueError): # negative integers
+            self.h._check_and_set_n_features(np.array([[0, -2, 1, 3, 1, 1]]))

@@ -3,6 +3,12 @@ hmmlearn Changelog
 
 Here you can see the full list of changes between each hmmlearn release.
 
+next
+----
+
+- Log warning if not enough data is passed to fit() for a meaningful fit.
+- Allow missing observations in input multinomial data.
+
 Version 0.2.2
 -------------
 
