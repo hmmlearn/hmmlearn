@@ -77,13 +77,14 @@ setup(
     python_requires=">=2.7",
     setup_requires=[
         "Cython",
-        "numpy",
-        "setuptools_scm",
+        "numpy>=1.10",
+        "setuptools_scm>=3.3",  # fallback_version.
     ],
     use_scm_version=lambda: {  # xref __init__.py
         "version_scheme": "post-release",
         "local_scheme": "node-and-date",
         "write_to": "lib/hmmlearn/_version.py",
+        "fallback_version": "0+unknown",
     },
     install_requires=[
         "numpy>=1.10",  # np.broadcast_to.
