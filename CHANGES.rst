@@ -7,6 +7,7 @@ next
 ----
 
 - Log warning if not enough data is passed to fit() for a meaningful fit.
+- Better handle degenerate fits.
 - Allow missing observations in input multinomial data.
 
 Version 0.2.2

@@ -487,6 +487,10 @@ class _BaseHMM(BaseEstimator):
             if self.monitor_.converged:
                 break
 
+        if (self.transmat_.sum(axis=1) == 0).any():
+            _log.warning("Some rows of transmat_ have zero sum because no "
+                         "transition from the state was ever observed.")
+
         return self
 
     def _do_viterbi_pass(self, framelogprob):
