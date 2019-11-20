@@ -691,15 +691,18 @@ class _BaseHMM(BaseEstimator):
         stats : dict
             Sufficient statistics updated from all available samples.
         """
+        # If a prior is < 1, `prior - 1 + starts['start']` can be negative.  In
+        # that case maximization of (n1+e1) log p1 + ... + (ns+es) log ps under
+        # the conditions sum(p) = 1 and all(p >= 0) show that the negative
+        # terms can just be set to zero.
         # The ``np.where`` calls guard against updating forbidden states
         # or transitions in e.g. a left-right HMM.
         if 's' in self.params:
-            startprob_ = self.startprob_prior - 1.0 + stats['start']
-            self.startprob_ = np.where(self.startprob_ == 0.0,
-                                       self.startprob_, startprob_)
+            startprob_ = np.maximum(self.startprob_prior - 1 + stats['start'],
+                                    0)
+            self.startprob_ = np.where(self.startprob_ == 0, 0, startprob_)
             normalize(self.startprob_)
         if 't' in self.params:
-            transmat_ = self.transmat_prior - 1.0 + stats['trans']
-            self.transmat_ = np.where(self.transmat_ == 0.0,
-                                      self.transmat_, transmat_)
+            transmat_ = np.maximum(self.transmat_prior - 1 + stats['trans'], 0)
+            self.transmat_ = np.where(self.transmat_ == 0, 0, transmat_)
             normalize(self.transmat_, axis=1)
