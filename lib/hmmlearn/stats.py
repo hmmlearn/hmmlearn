@@ -40,12 +40,14 @@ def log_multivariate_normal_density(X, means, covars, covariance_type='diag'):
 
 def _log_multivariate_normal_density_diag(X, means, covars):
     """Compute Gaussian log-density at X for a diagonal model."""
+    # X: (ns, nf); means: (nc, nf); covars: (nc, nf) -> (ns, nc)
     n_samples, n_dim = X.shape
-    lpr = -0.5 * (n_dim * np.log(2 * np.pi) + np.sum(np.log(covars), 1)
-                  + np.sum((means ** 2) / covars, 1)
-                  - 2 * np.dot(X, (means / covars).T)
-                  + np.dot(X ** 2, (1.0 / covars).T))
-    return lpr
+    # Avoid 0 log 0 = nan in degenerate covariance case.
+    covars = np.maximum(covars, np.finfo(float).tiny)
+    with np.errstate(over="ignore"):
+        return -0.5 * (n_dim * np.log(2 * np.pi)
+                       + np.log(covars).sum(axis=-1)
+                       + ((X[:, None, :] - means) ** 2 / covars).sum(axis=-1))
 
 
 def _log_multivariate_normal_density_spherical(X, means, covars):
