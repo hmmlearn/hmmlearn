@@ -3,7 +3,8 @@ from scipy.special import logsumexp
 
 
 def normalize(a, axis=None):
-    """Normalizes the input array so that it sums to 1.
+    """
+    Normalizes the input array so that it sums to 1.
 
     Parameters
     ----------
@@ -29,7 +30,8 @@ def normalize(a, axis=None):
 
 
 def log_normalize(a, axis=None):
-    """Normalizes the input array so that the exponent of the sum is 1.
+    """
+    Normalizes the input array so that ``sum(exp(a)) == 1``.
 
     Parameters
     ----------
@@ -43,9 +45,14 @@ def log_normalize(a, axis=None):
     -----
     Modifies the input **inplace**.
     """
-    with np.errstate(under="ignore"):
-        a_lse = logsumexp(a, axis)
-    a -= a_lse[:, np.newaxis]
+    if axis is not None and a.shape[axis] == 1:
+        # Handle single-state GMMHMM in the degenerate case normalizing a
+        # single -inf to zero.
+        a[:] = 0
+    else:
+        with np.errstate(under="ignore"):
+            a_lse = logsumexp(a, axis, keepdims=True)
+        a -= a_lse
 
 
 def iter_from_X_lengths(X, lengths):

@@ -18,7 +18,8 @@ from sklearn.utils import check_random_state
 from . import _utils
 from .stats import log_multivariate_normal_density
 from .base import _BaseHMM
-from .utils import fill_covars, iter_from_X_lengths, log_mask_zero, normalize
+from .utils import (
+    fill_covars, iter_from_X_lengths, log_mask_zero, log_normalize, normalize)
 
 __all__ = ["GMMHMM", "GaussianHMM", "MultinomialHMM"]
 
@@ -872,15 +873,15 @@ class GMMHMM(_BaseHMM):
         stats['n_samples'] = n_samples
         stats['samples'] = X
 
-        prob_mix = np.zeros((n_samples, self.n_components, self.n_mix))
+        post_mix = np.zeros((n_samples, self.n_components, self.n_mix))
         for p in range(self.n_components):
             log_denses = self._compute_log_weighted_gaussian_densities(X, p)
+            log_normalize(log_denses, axis=-1)
             with np.errstate(under="ignore"):
-                prob_mix[:, p, :] = np.exp(log_denses) + np.finfo(np.float).eps
+                post_mix[:, p, :] = np.exp(log_denses)
 
-        prob_mix_sum = np.sum(prob_mix, axis=2)
-        post_mix = prob_mix / prob_mix_sum[:, :, np.newaxis]
-        post_comp_mix = post_comp[:, :, np.newaxis] * post_mix
+        with np.errstate(under="ignore"):
+            post_comp_mix = post_comp[:, :, np.newaxis] * post_mix
         stats['post_comp_mix'] = post_comp_mix
 
         stats['post_mix_sum'] = np.sum(post_comp_mix, axis=0)
