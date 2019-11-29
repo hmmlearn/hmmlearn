@@ -904,10 +904,10 @@ class GMMHMM(_BaseHMM):
 
         # Maximizing means
         lambdas, mus = self.means_weight, self.means_prior
-        new_means_numer = np.einsum(
-            'ijk,il->jkl',
-            stats['post_comp_mix'], stats['samples']
-        ) + lambdas[:, :, np.newaxis] * mus
+        new_means_numer = (
+            np.einsum('ijk,il->jkl', stats['post_comp_mix'], stats['samples'])
+            + lambdas[:, :, np.newaxis] * mus
+        )
         new_means_denom = (stats['post_mix_sum'] + lambdas)[:, :, np.newaxis]
         new_means = new_means_numer / new_means_denom
 
@@ -916,34 +916,31 @@ class GMMHMM(_BaseHMM):
 
         if self.covariance_type == 'full':
             centered = stats['centered'].reshape((
-                n_samples, self.n_components, self.n_mix, self.n_features, 1
-            ))
+                n_samples, self.n_components, self.n_mix, self.n_features, 1))
             centered_t = stats['centered'].reshape((
-                n_samples, self.n_components, self.n_mix, 1, self.n_features
-            ))
+                n_samples, self.n_components, self.n_mix, 1, self.n_features))
             centered_dots = centered * centered_t
 
             psis_t = np.transpose(self.covars_prior, axes=(0, 1, 3, 2))
             nus = self.covars_weight
 
             centr_means_resh = centered_means.reshape((
-                self.n_components, self.n_mix, self.n_features, 1
-            ))
+                self.n_components, self.n_mix, self.n_features, 1))
             centr_means_resh_t = centered_means.reshape((
-                self.n_components, self.n_mix, 1, self.n_features
-            ))
+                self.n_components, self.n_mix, 1, self.n_features))
             centered_means_dots = centr_means_resh * centr_means_resh_t
 
-            new_cov_numer = np.einsum(
-                'ijk,ijklm->jklm',
-                stats['post_comp_mix'], centered_dots
-            ) + psis_t + (lambdas[:, :, np.newaxis, np.newaxis] *
-                          centered_means_dots)
+            new_cov_numer = (
+                np.einsum(
+                    'ijk,ijklm->jklm', stats['post_comp_mix'], centered_dots)
+                + psis_t
+                + lambdas[:, :, np.newaxis, np.newaxis] * centered_means_dots
+            )
             new_cov_denom = (
                 stats['post_mix_sum'] + 1 + nus + self.n_features + 1
             )[:, :, np.newaxis, np.newaxis]
-
             new_cov = new_cov_numer / new_cov_denom
+
         elif self.covariance_type == 'diag':
             centered2 = stats['centered'] ** 2
             centered_means2 = centered_means ** 2
@@ -951,15 +948,16 @@ class GMMHMM(_BaseHMM):
             alphas = self.covars_prior
             betas = self.covars_weight
 
-            new_cov_numer = np.einsum(
-                'ijk,ijkl->jkl',
-                stats['post_comp_mix'], centered2
-            ) + lambdas[:, :, np.newaxis] * centered_means2 + 2 * betas
+            new_cov_numer = (
+                np.einsum('ijk,ijkl->jkl', stats['post_comp_mix'], centered2)
+                + lambdas[:, :, np.newaxis] * centered_means2
+                + 2 * betas
+            )
             new_cov_denom = (
                 stats['post_mix_sum'][:, :, np.newaxis] + 1 + 2 * (alphas + 1)
             )
-
             new_cov = new_cov_numer / new_cov_denom
+
         elif self.covariance_type == 'spherical':
             centered_norm2 = np.sum(stats['centered'] ** 2, axis=-1)
 
@@ -968,49 +966,43 @@ class GMMHMM(_BaseHMM):
 
             centered_means_norm2 = np.sum(centered_means ** 2, axis=-1)
 
-            new_cov_numer = np.einsum(
-                'ijk,ijk->jk',
-                stats['post_comp_mix'], centered_norm2
-            ) + lambdas * centered_means_norm2 + 2 * betas
-            new_cov_denom = (
-                n_features * stats['post_mix_sum'] + n_features +
-                2 * (alphas + 1)
+            new_cov_numer = (
+                np.einsum(
+                    'ijk,ijk->jk', stats['post_comp_mix'], centered_norm2)
+                + lambdas * centered_means_norm2
+                + 2 * betas
             )
-
+            new_cov_denom = (
+                n_features * (stats['post_mix_sum'] + 1) + 2 * (alphas + 1)
+            )
             new_cov = new_cov_numer / new_cov_denom
+
         elif self.covariance_type == 'tied':
             centered = stats['centered'].reshape((
-                n_samples, self.n_components, self.n_mix, self.n_features, 1
-            ))
+                n_samples, self.n_components, self.n_mix, self.n_features, 1))
             centered_t = stats['centered'].reshape((
-                n_samples, self.n_components, self.n_mix, 1, self.n_features
-            ))
+                n_samples, self.n_components, self.n_mix, 1, self.n_features))
             centered_dots = centered * centered_t
 
             psis_t = np.transpose(self.covars_prior, axes=(0, 2, 1))
             nus = self.covars_weight
 
             centr_means_resh = centered_means.reshape((
-                self.n_components, self.n_mix, self.n_features, 1
-            ))
+                self.n_components, self.n_mix, self.n_features, 1))
             centr_means_resh_t = centered_means.reshape((
-                self.n_components, self.n_mix, 1, self.n_features
-            ))
+                self.n_components, self.n_mix, 1, self.n_features))
             centered_means_dots = centr_means_resh * centr_means_resh_t
 
-            lambdas_cmdots_prod_sum = np.einsum(
-                'ij,ijkl->ikl',
-                lambdas, centered_means_dots
-            )
+            lambdas_cmdots_prod_sum = (
+                np.einsum('ij,ijkl->ikl', lambdas, centered_means_dots))
 
-            new_cov_numer = np.einsum(
-                'ijk,ijklm->jlm',
-                stats['post_comp_mix'], centered_dots
-            ) + lambdas_cmdots_prod_sum + psis_t
+            new_cov_numer = (
+                np.einsum(
+                    'ijk,ijklm->jlm', stats['post_comp_mix'], centered_dots)
+                + lambdas_cmdots_prod_sum + psis_t)
             new_cov_denom = (
                 stats['post_sum'] + self.n_mix + nus + self.n_features + 1
             )[:, np.newaxis, np.newaxis]
-
             new_cov = new_cov_numer / new_cov_denom
 
         # Assigning new values to class members
