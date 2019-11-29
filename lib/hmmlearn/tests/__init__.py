@@ -1,5 +1,5 @@
 import numpy as np
-from sklearn.datasets.samples_generator import make_spd_matrix
+from sklearn.datasets import make_spd_matrix
 from sklearn.utils import check_random_state
 
 from hmmlearn.utils import normalize

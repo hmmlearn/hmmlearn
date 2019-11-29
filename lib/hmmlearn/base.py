@@ -9,9 +9,8 @@ import numpy as np
 from scipy.special import logsumexp
 from sklearn.base import BaseEstimator
 from sklearn.utils import check_array, check_random_state
-from sklearn.utils.validation import check_is_fitted
 
-from . import _hmmc
+from . import _hmmc, _utils
 from .utils import normalize, log_normalize, iter_from_X_lengths, log_mask_zero
 
 
@@ -211,7 +210,7 @@ class _BaseHMM(BaseEstimator):
         # The stationary distribution is proportional to the left-eigenvector
         # associated with the largest eigenvalue (i.e., 1) of the transition
         # matrix.
-        check_is_fitted(self, "transmat_")
+        _utils.check_is_fitted(self, "transmat_")
         eigvals, eigvecs = np.linalg.eig(self.transmat_.T)
         eigvec = np.real_if_close(eigvecs[:, np.argmax(eigvals)])
         return eigvec / eigvec.sum()
@@ -241,7 +240,7 @@ class _BaseHMM(BaseEstimator):
         score : Compute the log probability under the model.
         decode : Find most likely state sequence corresponding to ``X``.
         """
-        check_is_fitted(self, "startprob_")
+        _utils.check_is_fitted(self, "startprob_")
         self._check()
 
         X = check_array(X)
@@ -280,7 +279,7 @@ class _BaseHMM(BaseEstimator):
             posteriors.
         decode : Find most likely state sequence corresponding to ``X``.
         """
-        check_is_fitted(self, "startprob_")
+        _utils.check_is_fitted(self, "startprob_")
         self._check()
 
         X = check_array(X)
@@ -333,7 +332,7 @@ class _BaseHMM(BaseEstimator):
             posteriors.
         score : Compute the log probability under the model.
         """
-        check_is_fitted(self, "startprob_")
+        _utils.check_is_fitted(self, "startprob_")
         self._check()
 
         algorithm = algorithm or self.algorithm
@@ -415,7 +414,7 @@ class _BaseHMM(BaseEstimator):
         state_sequence : array, shape (n_samples, )
             State sequence produced by the model.
         """
-        check_is_fitted(self, "startprob_")
+        _utils.check_is_fitted(self, "startprob_")
         self._check()
 
         if random_state is None:

@@ -1,6 +1,7 @@
 """Private utilities."""
 
 import numpy as np
+from sklearn.utils.validation import NotFittedError
 
 
 # Copied from scikit-learn 0.19.
@@ -59,3 +60,12 @@ def distribute_covar_matrix_to_match_covariance_type(
         raise ValueError("covariance_type must be one of " +
                          "'spherical', 'tied', 'diag', 'full'")
     return cv
+
+
+# Adapted from scikit-learn 0.21.
+def check_is_fitted(estimator, attribute):
+    if not hasattr(estimator, attribute):
+        raise NotFittedError(
+            "This %s instance is not fitted yet. Call 'fit' with "
+            "appropriate arguments before using this method."
+            % type(estimator).__name__)
