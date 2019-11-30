@@ -10,6 +10,8 @@
 The :mod:`hmmlearn.hmm` module implements hidden Markov models.
 """
 
+import logging
+
 import numpy as np
 from scipy.special import logsumexp
 from sklearn import cluster
@@ -23,6 +25,8 @@ from .utils import (
 
 __all__ = ["GMMHMM", "GaussianHMM", "MultinomialHMM"]
 
+
+_log = logging.getLogger(__name__)
 COVARIANCE_TYPES = frozenset(("spherical", "diag", "full", "tied"))
 
 
@@ -781,24 +785,38 @@ class GMMHMM(_BaseHMM):
 
         if (self.covariance_type == "spherical" or
                 self.covariance_type == "diag"):
-            if np.any(self.covars_ <= 0):
+            if np.any(self.covars_ < 0):
                 raise ValueError("{!r} mixture covars must be non-negative"
                                  .format(self.covariance_type))
+            if np.any(self.covars_ == 0):
+                _log.warning("Degenerate mixture covariance")
         elif self.covariance_type == "tied":
             for i, covar in enumerate(self.covars_):
-                if (not np.allclose(covar, covar.T) or
-                        np.any(linalg.eigvalsh(covar) <= 0)):
-                    raise ValueError("'tied' mixture covars must be "
-                                     "symmetric, positive-definite")
+                if not np.allclose(covar, covar.T):
+                    raise ValueError("Covariance of state #{} is not symmetric"
+                                     .format(i))
+                min_eigvalsh = np.linalg.eigvalsh(covar).min()
+                if min_eigvalsh < 0:
+                    raise ValueError("Covariance of state #{} is not positive "
+                                     "definite".format(i))
+                if min_eigvalsh == 0:
+                    _log.warning("Covariance of state #%d has a null "
+                                 "eigenvalue.", i)
         elif self.covariance_type == "full":
             for i, mix_covars in enumerate(self.covars_):
                 for j, covar in enumerate(mix_covars):
-                    if (not np.allclose(covar, covar.T) or
-                            np.any(linalg.eigvalsh(covar) <= 0)):
+                    if not np.allclose(covar, covar.T):
                         raise ValueError(
-                            "'full' covariance matrix of mixture {} of "
-                            "component {} must be symmetric, positive-definite"
-                            .format(j, i))
+                            "Covariance of state #{}, mixture #{} is not "
+                            "symmetric".format(i, j))
+                    min_eigvalsh = np.linalg.eigvalsh(covar).min()
+                    if min_eigvalsh < 0:
+                        raise ValueError(
+                            "Covariance of state #{}, mixture #{} is not "
+                            "positive definite".format(i, j))
+                    if min_eigvalsh == 0:
+                        _log.warning("Covariance of state #%d, mixture #%d "
+                                     "has a null eigenvalue.", i, j)
 
     def _generate_sample_from_state(self, state, random_state=None):
         if random_state is None:

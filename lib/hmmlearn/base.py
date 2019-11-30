@@ -14,9 +14,9 @@ from . import _hmmc, _utils
 from .utils import normalize, log_normalize, iter_from_X_lengths, log_mask_zero
 
 
+_log = logging.getLogger(__name__)
 #: Supported decoder algorithms.
 DECODER_ALGORITHMS = frozenset(("viterbi", "map"))
-_log = logging.getLogger(__name__)
 
 
 class ConvergenceMonitor(object):
