@@ -627,50 +627,46 @@ class GMMHMM(_BaseHMM):
     def _init(self, X, lengths=None):
         _check_and_set_gaussian_n_features(self, X)
         super(GMMHMM, self)._init(X, lengths=lengths)
+        nc = self.n_components
+        nf = self.n_features
+        nm = self.n_mix
 
         # Default values for covariance prior parameters
         self._init_covar_priors()
         self._fix_priors_shape()
 
-        main_kmeans = cluster.KMeans(n_clusters=self.n_components,
+        main_kmeans = cluster.KMeans(n_clusters=nc,
                                      random_state=self.random_state)
         labels = main_kmeans.fit_predict(X)
         kmeanses = []
-        for label in range(self.n_components):
-            kmeans = cluster.KMeans(n_clusters=self.n_mix,
+        for label in range(nc):
+            kmeans = cluster.KMeans(n_clusters=nm,
                                     random_state=self.random_state)
             kmeans.fit(X[np.where(labels == label)])
             kmeanses.append(kmeans)
 
         if 'w' in self.init_params or not hasattr(self, "weights_"):
-            self.weights_ = (np.ones((self.n_components, self.n_mix)) /
-                             (np.ones((self.n_components, 1)) * self.n_mix))
+            self.weights_ = np.ones((nc, nm)) / (np.ones((nc, 1)) * nm)
 
         if 'm' in self.init_params or not hasattr(self, "means_"):
-            self.means_ = np.zeros((self.n_components, self.n_mix,
-                                    self.n_features))
-            for i, kmeans in enumerate(kmeanses):
-                self.means_[i] = kmeans.cluster_centers_
+            self.means_ = np.stack(
+                [kmeans.cluster_centers_ for kmeans in kmeanses])
 
         if 'c' in self.init_params or not hasattr(self, "covars_"):
-            cv = np.cov(X.T) + self.min_covar * np.eye(self.n_features)
+            cv = np.cov(X.T) + self.min_covar * np.eye(nf)
             if not cv.shape:
                 cv.shape = (1, 1)
-
             if self.covariance_type == 'tied':
-                self.covars_ = np.zeros((self.n_components,
-                                         self.n_features, self.n_features))
+                self.covars_ = np.zeros((nc, nf, nf))
                 self.covars_[:] = cv
             elif self.covariance_type == 'full':
-                self.covars_ = np.zeros((self.n_components, self.n_mix,
-                                         self.n_features, self.n_features))
+                self.covars_ = np.zeros((nc, nm, nf, nf))
                 self.covars_[:] = cv
             elif self.covariance_type == 'diag':
-                self.covars_ = np.zeros((self.n_components, self.n_mix,
-                                         self.n_features))
+                self.covars_ = np.zeros((nc, nm, nf))
                 self.covars_[:] = np.diag(cv)
             elif self.covariance_type == 'spherical':
-                self.covars_ = np.zeros((self.n_components, self.n_mix))
+                self.covars_ = np.zeros((nc, nm))
                 self.covars_[:] = cv.mean()
 
     def _init_covar_priors(self):
@@ -696,48 +692,47 @@ class GMMHMM(_BaseHMM):
                 self.covars_weight = 0.0
 
     def _fix_priors_shape(self):
+        nc = self.n_components
+        nf = self.n_features
+        nm = self.n_mix
+
         # If priors are numbers, this function will make them into a
         # matrix of proper shape
         self.weights_prior = np.broadcast_to(
-            self.weights_prior, (self.n_components, self.n_mix)).copy()
+            self.weights_prior, (nc, nm)).copy()
         self.means_prior = np.broadcast_to(
-            self.means_prior,
-            (self.n_components, self.n_mix, self.n_features)).copy()
+            self.means_prior, (nc, nm, nf)).copy()
         self.means_weight = np.broadcast_to(
-            self.means_weight,
-            (self.n_components, self.n_mix)).copy()
+            self.means_weight, (nc, nm)).copy()
 
         if self.covariance_type == "full":
             self.covars_prior = np.broadcast_to(
-                self.covars_prior,
-                (self.n_components, self.n_mix,
-                 self.n_features, self.n_features)).copy()
+                self.covars_prior, (nc, nm, nf, nf)).copy()
             self.covars_weight = np.broadcast_to(
-                self.covars_weight, (self.n_components, self.n_mix)).copy()
+                self.covars_weight, (nc, nm)).copy()
         elif self.covariance_type == "tied":
             self.covars_prior = np.broadcast_to(
-                self.covars_prior,
-                (self.n_components, self.n_features, self.n_features)).copy()
+                self.covars_prior, (nc, nf, nf)).copy()
             self.covars_weight = np.broadcast_to(
-                self.covars_weight, self.n_components).copy()
+                self.covars_weight, nc).copy()
         elif self.covariance_type == "diag":
             self.covars_prior = np.broadcast_to(
-                self.covars_prior,
-                (self.n_components, self.n_mix, self.n_features)).copy()
+                self.covars_prior, (nc, nm, nf)).copy()
             self.covars_weight = np.broadcast_to(
-                self.covars_weight,
-                (self.n_components, self.n_mix, self.n_features)).copy()
+                self.covars_weight, (nc, nm, nf)).copy()
         elif self.covariance_type == "spherical":
             self.covars_prior = np.broadcast_to(
-                self.covars_prior, (self.n_components, self.n_mix)).copy()
+                self.covars_prior, (nc, nm)).copy()
             self.covars_weight = np.broadcast_to(
-                self.covars_weight, (self.n_components, self.n_mix)).copy()
+                self.covars_weight, (nc, nm)).copy()
 
     def _check(self):
         super(GMMHMM, self)._check()
-
         if not hasattr(self, "n_features"):
             self.n_features = self.means_.shape[2]
+        nc = self.n_components
+        nf = self.n_features
+        nm = self.n_mix
 
         self._init_covar_priors()
         self._fix_priors_shape()
@@ -749,20 +744,18 @@ class GMMHMM(_BaseHMM):
 
         self.weights_ = np.array(self.weights_)
         # Checking mixture weights' shape
-        if self.weights_.shape != (self.n_components, self.n_mix):
+        if self.weights_.shape != (nc, nm):
             raise ValueError("mixture weights must have shape "
                              "(n_components, n_mix), actual shape: {}"
                              .format(self.weights_.shape))
 
         # Checking mixture weights' mathematical correctness
-        if not np.allclose(np.sum(self.weights_, axis=1),
-                           np.ones(self.n_components)):
+        if not np.allclose(np.sum(self.weights_, axis=1), np.ones(nc)):
             raise ValueError("mixture weights must sum up to 1")
 
         # Checking means' shape
         self.means_ = np.array(self.means_)
-        if self.means_.shape != (self.n_components, self.n_mix,
-                                 self.n_features):
+        if self.means_.shape != (nc, nm, nf):
             raise ValueError("mixture means must have shape "
                              "(n_components, n_mix, n_features), "
                              "actual shape: {}".format(self.means_.shape))
@@ -771,11 +764,10 @@ class GMMHMM(_BaseHMM):
         self.covars_ = np.array(self.covars_)
         covars_shape = self.covars_.shape
         needed_shapes = {
-            "spherical": (self.n_components, self.n_mix),
-            "tied": (self.n_components, self.n_features, self.n_features),
-            "diag": (self.n_components, self.n_mix, self.n_features),
-            "full": (self.n_components, self.n_mix,
-                     self.n_features, self.n_features)
+            "spherical": (nc, nm),
+            "tied": (nc, nf, nf),
+            "diag": (nc, nm, nf),
+            "full": (nc, nm, nf, nf),
         }
         needed_shape = needed_shapes[self.covariance_type]
         if covars_shape != needed_shape:
@@ -891,9 +883,11 @@ class GMMHMM(_BaseHMM):
 
     def _do_mstep(self, stats):
         super(GMMHMM, self)._do_mstep(stats)
+        nc = self.n_components
+        nf = self.n_features
+        nm = self.n_mix
 
         n_samples = stats['n_samples']
-        n_features = self.n_features
 
         # Maximizing weights
         alphas_minus_one = self.weights_prior - 1
@@ -916,19 +910,15 @@ class GMMHMM(_BaseHMM):
         centered_means = self.means_ - mus
 
         if self.covariance_type == 'full':
-            centered = stats['centered'].reshape((
-                n_samples, self.n_components, self.n_mix, self.n_features, 1))
-            centered_t = stats['centered'].reshape((
-                n_samples, self.n_components, self.n_mix, 1, self.n_features))
+            centered = stats['centered'].reshape((n_samples, nc, nm, nf, 1))
+            centered_t = stats['centered'].reshape((n_samples, nc, nm, 1, nf))
             centered_dots = centered * centered_t
 
             psis_t = np.transpose(self.covars_prior, axes=(0, 1, 3, 2))
             nus = self.covars_weight
 
-            centr_means_resh = centered_means.reshape((
-                self.n_components, self.n_mix, self.n_features, 1))
-            centr_means_resh_t = centered_means.reshape((
-                self.n_components, self.n_mix, 1, self.n_features))
+            centr_means_resh = centered_means.reshape((nc, nm, nf, 1))
+            centr_means_resh_t = centered_means.reshape((nc, nm, 1, nf))
             centered_means_dots = centr_means_resh * centr_means_resh_t
 
             new_cov_numer = (
@@ -938,7 +928,7 @@ class GMMHMM(_BaseHMM):
                 + lambdas[:, :, np.newaxis, np.newaxis] * centered_means_dots
             )
             new_cov_denom = (
-                stats['post_mix_sum'] + 1 + nus + self.n_features + 1
+                stats['post_mix_sum'] + 1 + nus + nf + 1
             )[:, :, np.newaxis, np.newaxis]
             new_cov = new_cov_numer / new_cov_denom
 
@@ -973,25 +963,19 @@ class GMMHMM(_BaseHMM):
                 + lambdas * centered_means_norm2
                 + 2 * betas
             )
-            new_cov_denom = (
-                n_features * (stats['post_mix_sum'] + 1) + 2 * (alphas + 1)
-            )
+            new_cov_denom = nf * (stats['post_mix_sum'] + 1) + 2 * (alphas + 1)
             new_cov = new_cov_numer / new_cov_denom
 
         elif self.covariance_type == 'tied':
-            centered = stats['centered'].reshape((
-                n_samples, self.n_components, self.n_mix, self.n_features, 1))
-            centered_t = stats['centered'].reshape((
-                n_samples, self.n_components, self.n_mix, 1, self.n_features))
+            centered = stats['centered'].reshape((n_samples, nc, nm, nf, 1))
+            centered_t = stats['centered'].reshape((n_samples, nc, nm, 1, nf))
             centered_dots = centered * centered_t
 
             psis_t = np.transpose(self.covars_prior, axes=(0, 2, 1))
             nus = self.covars_weight
 
-            centr_means_resh = centered_means.reshape((
-                self.n_components, self.n_mix, self.n_features, 1))
-            centr_means_resh_t = centered_means.reshape((
-                self.n_components, self.n_mix, 1, self.n_features))
+            centr_means_resh = centered_means.reshape((nc, nm, nf, 1))
+            centr_means_resh_t = centered_means.reshape((nc, nm, 1, nf))
             centered_means_dots = centr_means_resh * centr_means_resh_t
 
             lambdas_cmdots_prod_sum = (
@@ -1002,7 +986,7 @@ class GMMHMM(_BaseHMM):
                     'ijk,ijklm->jlm', stats['post_comp_mix'], centered_dots)
                 + lambdas_cmdots_prod_sum + psis_t)
             new_cov_denom = (
-                stats['post_sum'] + self.n_mix + nus + self.n_features + 1
+                stats['post_sum'] + nm + nus + nf + 1
             )[:, np.newaxis, np.newaxis]
             new_cov = new_cov_numer / new_cov_denom
 
