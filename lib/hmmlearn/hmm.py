@@ -177,7 +177,10 @@ class GaussianHMM(_BaseHMM):
 
     @covars_.setter
     def covars_(self, covars):
-        self._covars_ = np.asarray(covars).copy()
+        covars = np.array(covars, copy=True)
+        _utils._validate_covars(covars, self.covariance_type,
+                                self.n_components)
+        self._covars_ = covars
 
     def _check(self):
         super(GaussianHMM, self)._check()
@@ -188,9 +191,6 @@ class GaussianHMM(_BaseHMM):
         if self.covariance_type not in COVARIANCE_TYPES:
             raise ValueError('covariance_type must be one of {}'
                              .format(COVARIANCE_TYPES))
-
-        _utils._validate_covars(self._covars_, self.covariance_type,
-                                self.n_components)
 
     def _get_n_fit_scalars_per_param(self):
         nc = self.n_components
@@ -220,7 +220,7 @@ class GaussianHMM(_BaseHMM):
             cv = np.cov(X.T) + self.min_covar * np.eye(X.shape[1])
             if not cv.shape:
                 cv.shape = (1, 1)
-            self._covars_ = \
+            self.covars_ = \
                 _utils.distribute_covar_matrix_to_match_covariance_type(
                     cv, self.covariance_type, self.n_components).copy()
 
