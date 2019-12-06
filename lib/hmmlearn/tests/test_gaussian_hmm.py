@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 from unittest import TestCase
 
 import numpy as np
@@ -10,7 +8,7 @@ from hmmlearn import hmm
 from . import log_likelihood_increasing, make_covar_matrix, normalized
 
 
-class GaussianHMMTestMixin(object):
+class GaussianHMMTestMixin:
     covariance_type = None  # set by subclasses
 
     def setUp(self):

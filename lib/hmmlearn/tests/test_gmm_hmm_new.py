@@ -61,7 +61,7 @@ def prep_params(n_comps, n_mix, n_features, covar_type,
     return covs, means, startprob, transmat, weights
 
 
-class GMMHMMTestMixin(object):
+class GMMHMMTestMixin:
     def setup_method(self, method):
         self.prng = np.random.RandomState(14)
         self.n_components = 3

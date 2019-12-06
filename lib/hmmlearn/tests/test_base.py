@@ -5,7 +5,7 @@ from hmmlearn.base import _BaseHMM, ConvergenceMonitor
 from hmmlearn.utils import logsumexp
 
 
-class TestMonitor(object):
+class TestMonitor:
     def test_converged_by_iterations(self):
         m = ConvergenceMonitor(tol=1e-3, n_iter=2, verbose=False)
         assert not m.converged
@@ -56,7 +56,7 @@ class StubHMM(_BaseHMM):
         return self.framelogprob
 
 
-class TestBaseAgainstWikipedia(object):
+class TestBaseAgainstWikipedia:
     def setup_method(self, method):
         # Example from http://en.wikipedia.org/wiki/Forward-backward_algorithm
         self.framelogprob = np.log([[0.9, 0.2],
@@ -119,7 +119,7 @@ class TestBaseAgainstWikipedia(object):
         assert np.allclose(posteriors, refposteriors, atol=1e-4)
 
 
-class TestBaseConsistentWithGMM(object):
+class TestBaseConsistentWithGMM:
     def setup_method(self, method):
         n_components = 8
         n_samples = 10

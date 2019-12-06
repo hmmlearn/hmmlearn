@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 import numpy as np
 import pytest
 
@@ -8,7 +6,7 @@ from hmmlearn import hmm
 from . import log_likelihood_increasing, normalized
 
 
-class TestMultinomialAgainstWikipedia(object):
+class TestMultinomialAgainstWikipedia:
     """Using examples from Wikipedia
 
     - http://en.wikipedia.org/wiki/Hidden_Markov_model
@@ -51,7 +49,7 @@ class TestMultinomialAgainstWikipedia(object):
         ])
 
 
-class TestMultinomailHMM(object):
+class TestMultinomailHMM:
     def setup_method(self, method):
         self.n_components = 2
         self.n_features = 3

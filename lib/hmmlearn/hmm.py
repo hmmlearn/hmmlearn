@@ -183,7 +183,7 @@ class GaussianHMM(_BaseHMM):
         self._covars_ = covars
 
     def _check(self):
-        super(GaussianHMM, self)._check()
+        super()._check()
 
         self.means_ = np.asarray(self.means_)
         self.n_features = self.means_.shape[1]
@@ -209,7 +209,7 @@ class GaussianHMM(_BaseHMM):
 
     def _init(self, X, lengths=None):
         _check_and_set_gaussian_n_features(self, X)
-        super(GaussianHMM, self)._init(X, lengths=lengths)
+        super()._init(X, lengths=lengths)
 
         if 'm' in self.init_params or not hasattr(self, "means_"):
             kmeans = cluster.KMeans(n_clusters=self.n_components,
@@ -235,7 +235,7 @@ class GaussianHMM(_BaseHMM):
         )
 
     def _initialize_sufficient_statistics(self):
-        stats = super(GaussianHMM, self)._initialize_sufficient_statistics()
+        stats = super()._initialize_sufficient_statistics()
         stats['post'] = np.zeros(self.n_components)
         stats['obs'] = np.zeros((self.n_components, self.n_features))
         stats['obs**2'] = np.zeros((self.n_components, self.n_features))
@@ -246,7 +246,7 @@ class GaussianHMM(_BaseHMM):
 
     def _accumulate_sufficient_statistics(self, stats, obs, framelogprob,
                                           posteriors, fwdlattice, bwdlattice):
-        super(GaussianHMM, self)._accumulate_sufficient_statistics(
+        super()._accumulate_sufficient_statistics(
             stats, obs, framelogprob, posteriors, fwdlattice, bwdlattice)
 
         if 'm' in self.params or 'c' in self.params:
@@ -263,7 +263,7 @@ class GaussianHMM(_BaseHMM):
                     'ij,ik,il->jkl', posteriors, obs, obs)
 
     def _do_mstep(self, stats):
-        super(GaussianHMM, self)._do_mstep(stats)
+        super()._do_mstep(stats)
 
         means_prior = self.means_prior
         means_weight = self.means_weight
@@ -411,7 +411,7 @@ class MultinomialHMM(_BaseHMM):
 
     def _init(self, X, lengths=None):
         self._check_and_set_n_features(X)
-        super(MultinomialHMM, self)._init(X, lengths=lengths)
+        super()._init(X, lengths=lengths)
         self.random_state = check_random_state(self.random_state)
 
         if 'e' in self.init_params:
@@ -420,7 +420,7 @@ class MultinomialHMM(_BaseHMM):
             normalize(self.emissionprob_, axis=1)
 
     def _check(self):
-        super(MultinomialHMM, self)._check()
+        super()._check()
 
         self.emissionprob_ = np.atleast_2d(self.emissionprob_)
         n_features = getattr(self, "n_features", self.emissionprob_.shape[1])
@@ -439,20 +439,20 @@ class MultinomialHMM(_BaseHMM):
         return [(cdf > random_state.rand()).argmax()]
 
     def _initialize_sufficient_statistics(self):
-        stats = super(MultinomialHMM, self)._initialize_sufficient_statistics()
+        stats = super()._initialize_sufficient_statistics()
         stats['obs'] = np.zeros((self.n_components, self.n_features))
         return stats
 
     def _accumulate_sufficient_statistics(self, stats, X, framelogprob,
                                           posteriors, fwdlattice, bwdlattice):
-        super(MultinomialHMM, self)._accumulate_sufficient_statistics(
+        super()._accumulate_sufficient_statistics(
             stats, X, framelogprob, posteriors, fwdlattice, bwdlattice)
         if 'e' in self.params:
             for t, symbol in enumerate(np.concatenate(X)):
                 stats['obs'][:, symbol] += posteriors[t]
 
     def _do_mstep(self, stats):
-        super(MultinomialHMM, self)._do_mstep(stats)
+        super()._do_mstep(stats)
         if 'e' in self.params:
             self.emissionprob_ = (stats['obs']
                                   / stats['obs'].sum(axis=1)[:, np.newaxis])
@@ -630,7 +630,7 @@ class GMMHMM(_BaseHMM):
 
     def _init(self, X, lengths=None):
         _check_and_set_gaussian_n_features(self, X)
-        super(GMMHMM, self)._init(X, lengths=lengths)
+        super()._init(X, lengths=lengths)
         nc = self.n_components
         nf = self.n_features
         nm = self.n_mix
@@ -731,7 +731,7 @@ class GMMHMM(_BaseHMM):
                 self.covars_weight, (nc, nm)).copy()
 
     def _check(self):
-        super(GMMHMM, self)._check()
+        super()._check()
         if not hasattr(self, "n_features"):
             self.n_features = self.means_.shape[2]
         nc = self.n_components
@@ -860,7 +860,7 @@ class GMMHMM(_BaseHMM):
         return res
 
     def _initialize_sufficient_statistics(self):
-        stats = super(GMMHMM, self)._initialize_sufficient_statistics()
+        stats = super()._initialize_sufficient_statistics()
         stats['n_samples'] = 0
         stats['post_comp_mix'] = None
         stats['post_mix_sum'] = np.zeros((self.n_components, self.n_mix))
@@ -874,7 +874,7 @@ class GMMHMM(_BaseHMM):
 
         # TODO: support multiple frames
 
-        super(GMMHMM, self)._accumulate_sufficient_statistics(
+        super()._accumulate_sufficient_statistics(
             stats, X, framelogprob, post_comp, fwdlattice, bwdlattice
         )
 
@@ -900,7 +900,7 @@ class GMMHMM(_BaseHMM):
         stats['centered'] = X[:, np.newaxis, np.newaxis, :] - self.means_
 
     def _do_mstep(self, stats):
-        super(GMMHMM, self)._do_mstep(stats)
+        super()._do_mstep(stats)
         nc = self.n_components
         nf = self.n_features
         nm = self.n_mix

@@ -18,7 +18,7 @@ if LooseVersion(setuptools.__version__) < "36.2":
     raise ImportError("setuptools>=36.2 is required")
 
 
-class build_ext(build_ext, object):
+class build_ext(build_ext):
 
     def finalize_options(self):
         # The key point: here, Cython and numpy will have been installed by
@@ -34,14 +34,14 @@ class build_ext(build_ext, object):
                 setattr(ext, k, v)
             ext.include_dirs = [np.get_include()]
 
-        super(build_ext, self).finalize_options()
+        super().finalize_options()
 
     def build_extensions(self):
         try:
             self.compiler.compiler_so.remove("-Wstrict-prototypes")
         except (AttributeError, ValueError):
             pass
-        super(build_ext, self).build_extensions()
+        super().build_extensions()
 
 
 setup(

@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 import numpy as np
 import pytest
 from sklearn.mixture import GaussianMixture
@@ -21,7 +19,7 @@ def create_random_gmm(n_mix, n_features, covariance_type, prng=0):
     return g
 
 
-class GMMHMMTestMixin(object):
+class GMMHMMTestMixin:
     def setup_method(self, method):
         self.prng = np.random.RandomState(9)
         self.n_components = 3

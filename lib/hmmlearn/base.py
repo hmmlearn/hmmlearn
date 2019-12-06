@@ -1,5 +1,3 @@
-from __future__ import print_function
-
 import logging
 import string
 import sys
@@ -19,7 +17,7 @@ _log = logging.getLogger(__name__)
 DECODER_ALGORITHMS = frozenset(("viterbi", "map"))
 
 
-class ConvergenceMonitor(object):
+class ConvergenceMonitor:
     """Monitors and reports convergence to :data:`sys.stderr`.
 
     Parameters
