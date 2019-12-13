@@ -27,12 +27,10 @@ models see seqlearn_.
 
 .. _seqlearn: https://github.com/larsmans/seqlearn
 
-**Note**: this package has currently no maintainer. Nobody will answer
-questions. In particular, the person who is making this code available on
-Github will not answer questions, fix bugs, or maintain the package in any way.
-
-If you are interested in contributing, or fixing bugs, please open an issue on
-Github and we will gladly give you contributor rights.
+**Note**: This package is under limited-maintenance mode.
+Moreover, if you are able to help with testing on macOS, please have a look at
+https://github.com/hmmlearn/hmmlearn/issues/370; your help will be greatly
+appreciated.
 
 Important links
 ===============
