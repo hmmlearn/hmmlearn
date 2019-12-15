@@ -3,7 +3,6 @@ needs_sphinx = '1.8'
 extensions = [
     'sphinx.ext.autodoc',
     'sphinx.ext.autosummary',
-    'sphinx.ext.doctest',
     'sphinx.ext.napoleon',
     'sphinx_gallery.gen_gallery',
 ]
@@ -153,7 +152,3 @@ htmlhelp_basename = 'hmmlearndoc'
 
 latex_documents = [('index', 'user_guide.tex', 'hmmlearn user guide',
                     'hmmlearn developers', 'manual'), ]
-
-# -- Misc. configuration --------------------------------------------------
-
-trim_doctests_flags = True

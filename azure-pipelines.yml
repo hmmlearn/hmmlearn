@@ -50,13 +50,12 @@ steps:
 - bash: |
     pip install --upgrade pip setuptools wheel &&
       python setup.py bdist_wheel &&
-      pip install dist/*.whl &&
+      pip install -ve . &&
       pip install pytest pytest-cov
   displayName: 'Build & install'
 
 - bash: |
-    python -mpytest --doctest-modules --junitxml=junit/test-results.xml --cov \
-      --pyargs hmmlearn
+    python -mpytest --junitxml=junit/test-results.xml --cov
   displayName: 'Test'
 
 - task: PublishTestResults@2
