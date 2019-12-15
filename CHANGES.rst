@@ -6,6 +6,9 @@ Here you can see the full list of changes between each hmmlearn release.
 next
 ----
 
+Fitting of degenerate GMMHMMs appears to fail in certain cases on macOS; help
+with troubleshooting would be welcome.
+
 - Dropped support for Py2.7, Py3.4.
 - Log warning if not enough data is passed to fit() for a meaningful fit.
 - Better handle degenerate fits.
