@@ -46,7 +46,7 @@ class build_ext(build_ext):
 
 setup(
     name="hmmlearn",
-    description="",
+    description="Hidden Markov Models in Python with scikit-learn like API",
     long_description=open("README.rst", encoding="utf-8").read(),
     maintainer="Antony Lee",
     url="https://github.com/hmmlearn/hmmlearn",
