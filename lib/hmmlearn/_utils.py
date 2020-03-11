@@ -12,7 +12,7 @@ def _validate_covars(covars, covariance_type, n_components):
         if len(covars) != n_components:
             raise ValueError("'spherical' covars have length n_components")
         elif np.any(covars <= 0):
-            raise ValueError("'spherical' covars must be non-negative")
+            raise ValueError("'spherical' covars must be positive")
     elif covariance_type == 'tied':
         if covars.shape[0] != covars.shape[1]:
             raise ValueError("'tied' covars must have shape (n_dim, n_dim)")
@@ -25,7 +25,7 @@ def _validate_covars(covars, covariance_type, n_components):
             raise ValueError("'diag' covars must have shape "
                              "(n_components, n_dim)")
         elif np.any(covars <= 0):
-            raise ValueError("'diag' covars must be non-negative")
+            raise ValueError("'diag' covars must be positive")
     elif covariance_type == 'full':
         if len(covars.shape) != 3:
             raise ValueError("'full' covars must have shape "
