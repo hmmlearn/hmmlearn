@@ -13,28 +13,28 @@ strategy:
       vmImage: 'ubuntu-16.04'
       pythonVersion: '3.8'
     macOS_py35:
-      vmImage: 'macOS-10.13'
+      vmImage: 'macOS-10.14'
       pythonVersion: '3.5'
     macOS_py36:
-      vmImage: 'macOS-10.13'
+      vmImage: 'macOS-10.14'
       pythonVersion: '3.6'
     macOS_py37:
-      vmImage: 'macOS-10.13'
+      vmImage: 'macOS-10.14'
       pythonVersion: '3.7'
     macOS_py38:
-      vmImage: 'macOS-10.13'
+      vmImage: 'macOS-10.14'
       pythonVersion: '3.8'
     Windows_py35:
-      vmImage: 'vs2017-win2016'
+      vmImage: 'windows-2019'
       pythonVersion: '3.5'
     Windows_py36:
-      vmImage: 'vs2017-win2016'
+      vmImage: 'windows-2019'
       pythonVersion: '3.6'
     Windows_py37:
-      vmImage: 'vs2017-win2016'
+      vmImage: 'windows-2019'
       pythonVersion: '3.7'
     Windows_py38:
-      vmImage: 'vs2017-win2016'
+      vmImage: 'windows-2019'
       pythonVersion: '3.8'
 
 pool:
@@ -48,9 +48,9 @@ steps:
     architecture: 'x64'
 
 - bash: |
-    pip install --upgrade pip setuptools wheel &&
-      pip install -ve . &&
-      pip install pytest pytest-cov
+    python -mpip install --upgrade pip setuptools wheel &&
+      python -mpip install -ve . &&
+      python -mpip install pytest pytest-cov
   displayName: 'Build & install'
 
 - bash: |
