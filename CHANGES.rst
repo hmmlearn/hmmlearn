@@ -3,10 +3,13 @@ hmmlearn Changelog
 
 Here you can see the full list of changes between each hmmlearn release.
 
+next
+----
+
 Version 0.2.3
 -------------
 
-Released
+Released on December 17th, 2019.
 
 Fitting of degenerate GMMHMMs appears to fail in certain cases on macOS; help
 with troubleshooting would be welcome.
