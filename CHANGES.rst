@@ -6,6 +6,8 @@ Here you can see the full list of changes between each hmmlearn release.
 next
 ----
 
+- Bug fix for 'params' argument usage in GMMHMM.
+
 Version 0.2.3
 -------------
 
