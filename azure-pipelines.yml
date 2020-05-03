@@ -48,9 +48,9 @@ steps:
     architecture: 'x64'
 
 - bash: |
-    pip install --upgrade pip setuptools wheel &&
-      pip install -ve . &&
-      pip install pytest pytest-cov
+    python -mpip install --upgrade pip setuptools wheel &&
+      python -mpip install -ve . &&
+      python -mpip install pytest pytest-cov
   displayName: 'Build & install'
 
 - bash: |
