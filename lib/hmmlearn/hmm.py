@@ -182,16 +182,6 @@ class GaussianHMM(_BaseHMM):
                                 self.n_components)
         self._covars_ = covars
 
-    def _check(self):
-        super()._check()
-
-        self.means_ = np.asarray(self.means_)
-        self.n_features = self.means_.shape[1]
-
-        if self.covariance_type not in COVARIANCE_TYPES:
-            raise ValueError('covariance_type must be one of {}'
-                             .format(COVARIANCE_TYPES))
-
     def _get_n_fit_scalars_per_param(self):
         nc = self.n_components
         nf = self.n_features
@@ -223,6 +213,16 @@ class GaussianHMM(_BaseHMM):
             self.covars_ = \
                 _utils.distribute_covar_matrix_to_match_covariance_type(
                     cv, self.covariance_type, self.n_components).copy()
+
+    def _check(self):
+        super()._check()
+
+        self.means_ = np.asarray(self.means_)
+        self.n_features = self.means_.shape[1]
+
+        if self.covariance_type not in COVARIANCE_TYPES:
+            raise ValueError('covariance_type must be one of {}'
+                             .format(COVARIANCE_TYPES))
 
     def _compute_log_likelihood(self, X):
         return log_multivariate_normal_density(

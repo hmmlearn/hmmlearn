@@ -526,6 +526,15 @@ class _BaseHMM(BaseEstimator):
         with np.errstate(under="ignore"):
             return np.exp(log_gamma)
 
+    def _get_n_fit_scalars_per_param(self):
+        """Return a mapping of fittable parameter name (as in ``self.params``)
+        to the number of corresponding scalar parameters that will actually be
+        fitted.
+
+        This is used to detect whether the user did not pass enough data points
+        for a non-degenerate fit.
+        """
+
     def _init(self, X, lengths):
         """Initializes model parameters prior to fitting.
 
@@ -545,11 +554,14 @@ class _BaseHMM(BaseEstimator):
             self.transmat_ = np.full((self.n_components, self.n_components),
                                      init)
         n_fit_scalars_per_param = self._get_n_fit_scalars_per_param()
-        n_fit_scalars = sum(n_fit_scalars_per_param[p] for p in self.params)
-        if X.size < n_fit_scalars:
-            _log.warning("Fitting a model with {} free scalar parameters with "
-                         "only {} data points will result in a degenerate "
-                         "solution.".format(n_fit_scalars, X.size))
+        if n_fit_scalars_per_param is not None:
+            n_fit_scalars = sum(
+                n_fit_scalars_per_param[p] for p in self.params)
+            if X.size < n_fit_scalars:
+                _log.warning(
+                    "Fitting a model with {} free scalar parameters with only "
+                    "{} data points will result in a degenerate solution."
+                    .format(n_fit_scalars, X.size))
 
     def _check(self):
         """Validates model parameters prior to fitting.
