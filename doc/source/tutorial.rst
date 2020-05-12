@@ -143,7 +143,7 @@ in ``remodel`` will have a different order than those in the generating model.
 
 >>> remodel = hmm.GaussianHMM(n_components=3, covariance_type="full", n_iter=100)
 >>> remodel.fit(X)
-GaussianHMM(algorithm='viterbi', ...
+GaussianHMM(...
 >>> Z2 = remodel.predict(X)
 
 Monitoring convergence
@@ -193,7 +193,7 @@ then compute an array of sequence lengths:
 Finally, just call the desired method with ``X`` and ``lengths``:
 
 >>> hmm.GaussianHMM(n_components=3).fit(X, lengths)
-GaussianHMM(algorithm='viterbi', ...
+GaussianHMM(...
 
 Saving and loading HMM
 ----------------------
@@ -204,7 +204,7 @@ After training, a HMM can be easily persisted for future use with the standard
 >>> import pickle
 >>> with open("filename.pkl", "wb") as file: pickle.dump(remodel, file)
 >>> with open("filename.pkl", "rb") as file: pickle.load(file)
-GaussianHMM(algorithm='viterbi', ...
+GaussianHMM(...
 
 .. _customizing:
 
