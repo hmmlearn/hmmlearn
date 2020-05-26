@@ -84,6 +84,13 @@ class GaussianHMMTestMixin:
         h.fit(X, lengths=lengths)
         # assert log_likelihood_increasing(h, X, lengths, n_iter)
 
+    def test_fit_ignored_init_warns(self, caplog):
+        h = hmm.GaussianHMM(self.n_components, self.covariance_type)
+        h.startprob_ = self.startprob
+        h.fit(np.random.randn(100, self.n_components))
+        assert len(caplog.records) == 1
+        assert "will be overwritten" in caplog.records[0].getMessage()
+
     def test_fit_sequences_of_different_length(self):
         lengths = [3, 4, 5]
         X = self.prng.rand(sum(lengths), self.n_features)

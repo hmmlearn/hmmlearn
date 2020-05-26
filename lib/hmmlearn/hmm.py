@@ -201,12 +201,12 @@ class GaussianHMM(_BaseHMM):
         _check_and_set_gaussian_n_features(self, X)
         super()._init(X, lengths=lengths)
 
-        if 'm' in self.init_params or not hasattr(self, "means_"):
+        if self._needs_init("m", "means_"):
             kmeans = cluster.KMeans(n_clusters=self.n_components,
                                     random_state=self.random_state)
             kmeans.fit(X)
             self.means_ = kmeans.cluster_centers_
-        if 'c' in self.init_params or not hasattr(self, "covars_"):
+        if self._needs_init("c", "covars_"):
             cv = np.cov(X.T) + self.min_covar * np.eye(X.shape[1])
             if not cv.shape:
                 cv.shape = (1, 1)
@@ -648,14 +648,14 @@ class GMMHMM(_BaseHMM):
             kmeans.fit(X[np.where(labels == label)])
             kmeanses.append(kmeans)
 
-        if 'w' in self.init_params or not hasattr(self, "weights_"):
+        if self._needs_init("w", "weights_"):
             self.weights_ = np.ones((nc, nm)) / (np.ones((nc, 1)) * nm)
 
-        if 'm' in self.init_params or not hasattr(self, "means_"):
+        if self._needs_init("m", "means_"):
             self.means_ = np.stack(
                 [kmeans.cluster_centers_ for kmeans in kmeanses])
 
-        if 'c' in self.init_params or not hasattr(self, "covars_"):
+        if self._needs_init("c", "covars_"):
             cv = np.cov(X.T) + self.min_covar * np.eye(nf)
             if not cv.shape:
                 cv.shape = (1, 1)

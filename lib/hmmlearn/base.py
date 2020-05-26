@@ -526,6 +526,18 @@ class _BaseHMM(BaseEstimator):
         with np.errstate(under="ignore"):
             return np.exp(log_gamma)
 
+    def _needs_init(self, code, name):
+        if code in self.init_params:
+            if hasattr(self, name):
+                _log.warning(
+                    "Even though the %r attribute is set, it will be "
+                    "overwritten during initialization because 'init_params' "
+                    "contains %r", name, code)
+            return True
+        if not hasattr(self, name):
+            return True
+        return False
+
     def _get_n_fit_scalars_per_param(self):
         """Return a mapping of fittable parameter name (as in ``self.params``)
         to the number of corresponding scalar parameters that will actually be
@@ -548,9 +560,9 @@ class _BaseHMM(BaseEstimator):
             these should be ``n_samples``.
         """
         init = 1. / self.n_components
-        if 's' in self.init_params or not hasattr(self, "startprob_"):
+        if self._needs_init("s", "startprob_"):
             self.startprob_ = np.full(self.n_components, init)
-        if 't' in self.init_params or not hasattr(self, "transmat_"):
+        if self._needs_init("t", "transmat_"):
             self.transmat_ = np.full((self.n_components, self.n_components),
                                      init)
         n_fit_scalars_per_param = self._get_n_fit_scalars_per_param()
@@ -559,9 +571,9 @@ class _BaseHMM(BaseEstimator):
                 n_fit_scalars_per_param[p] for p in self.params)
             if X.size < n_fit_scalars:
                 _log.warning(
-                    "Fitting a model with {} free scalar parameters with only "
-                    "{} data points will result in a degenerate solution."
-                    .format(n_fit_scalars, X.size))
+                    "Fitting a model with %d free scalar parameters with only "
+                    "%d data points will result in a degenerate solution.",
+                    n_fit_scalars, X.size)
 
     def _check(self):
         """Validates model parameters prior to fitting.

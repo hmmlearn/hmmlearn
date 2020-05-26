@@ -7,6 +7,8 @@ next
 ----
 
 - Bug fix for 'params' argument usage in GMMHMM.
+- Warn when an explicitly set attribute would be overridden by
+  ``init_params_``.
 
 Version 0.2.3
 -------------
