@@ -1,5 +1,3 @@
-from unittest import TestCase
-
 import numpy as np
 import pytest
 
@@ -11,7 +9,8 @@ from . import log_likelihood_increasing, make_covar_matrix, normalized
 class GaussianHMMTestMixin:
     covariance_type = None  # set by subclasses
 
-    def setUp(self):
+    @pytest.fixture(autouse=True)
+    def setup(self):
         self.prng = prng = np.random.RandomState(10)
         self.n_components = n_components = 3
         self.n_features = n_features = 3
@@ -50,7 +49,7 @@ class GaussianHMMTestMixin:
         h._init(X)
         ll, posteriors = h.score_samples(X)
 
-        self.assertEqual(posteriors.shape, (n_samples, self.n_components))
+        assert posteriors.shape == (n_samples, self.n_components)
         assert np.allclose(posteriors.sum(axis=1), np.ones(n_samples))
 
         viterbi_ll, stateseq = h.decode(X)
@@ -66,8 +65,8 @@ class GaussianHMMTestMixin:
         h.covars_ = np.maximum(self.covars, 0.1)
 
         X, state_sequence = h.sample(n, random_state=self.prng)
-        self.assertEqual(X.shape, (n, self.n_features))
-        self.assertEqual(len(state_sequence), n)
+        assert X.shape == (n, self.n_features)
+        assert len(state_sequence) == n
 
     def test_fit(self, params='stmc', n_iter=5, **kwargs):
         h = hmm.GaussianHMM(self.n_components, self.covariance_type)
@@ -158,24 +157,24 @@ class GaussianHMMTestMixin:
 
         # Make sure we've converged to the right parameters.
         # a) means
-        self.assertTrue(np.allclose(sorted(h.means_.tolist()),
-                                    sorted(h_learn.means_.tolist()),
-                                    0.01))
+        assert np.allclose(sorted(h.means_.tolist()),
+                           sorted(h_learn.means_.tolist()),
+                           0.01)
         # b) covars are hard to estimate precisely from a relatively small
         #    sample, thus the large threshold
-        self.assertTrue(np.allclose(sorted(h._covars_.tolist()),
-                                    sorted(h_learn._covars_.tolist()),
-                                    10))
+        assert np.allclose(sorted(h._covars_.tolist()),
+                           sorted(h_learn._covars_.tolist()),
+                           10)
 
 
-class TestGaussianHMMWithSphericalCovars(GaussianHMMTestMixin, TestCase):
+class TestGaussianHMMWithSphericalCovars(GaussianHMMTestMixin):
     covariance_type = 'spherical'
 
     def test_fit_startprob_and_transmat(self):
         self.test_fit('st')
 
 
-class TestGaussianHMMWithDiagonalCovars(GaussianHMMTestMixin, TestCase):
+class TestGaussianHMMWithDiagonalCovars(GaussianHMMTestMixin):
     covariance_type = 'diag'
 
     def test_covar_is_writeable(self):
@@ -225,9 +224,9 @@ class TestGaussianHMMWithDiagonalCovars(GaussianHMMTestMixin, TestCase):
         assert np.isfinite(score)
 
 
-class TestGaussianHMMWithTiedCovars(GaussianHMMTestMixin, TestCase):
+class TestGaussianHMMWithTiedCovars(GaussianHMMTestMixin):
     covariance_type = 'tied'
 
 
-class TestGaussianHMMWithFullCovars(GaussianHMMTestMixin, TestCase):
+class TestGaussianHMMWithFullCovars(GaussianHMMTestMixin):
     covariance_type = 'full'
