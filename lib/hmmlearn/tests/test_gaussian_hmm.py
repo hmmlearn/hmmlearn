@@ -91,6 +91,17 @@ class GaussianHMMTestMixin:
         assert len(caplog.records) == 1
         assert "will be overwritten" in caplog.records[0].getMessage()
 
+    def test_fit_ignored_init_warns(self, caplog):
+        h = hmm.GaussianHMM(
+            self.n_components, self.covariance_type, init_params="")
+        h.startprob_ = self.startprob
+        h.transmat_ = self.transmat
+        h.means_ = 20 * self.means
+        h.covars_ = np.maximum(self.covars, 0.1)
+        h._init(np.random.randn(5, self.n_components))
+        assert len(caplog.records) == 1
+        assert "degenerate solution" in caplog.records[0].getMessage()
+
     def test_fit_sequences_of_different_length(self):
         lengths = [3, 4, 5]
         X = self.prng.rand(sum(lengths), self.n_features)
