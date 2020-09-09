@@ -6,6 +6,7 @@ Here you can see the full list of changes between each hmmlearn release.
 next
 ----
 
+- Bumped previously incorrect dependency bound on scipy to 0.19.
 - Bug fix for 'params' argument usage in GMMHMM.
 - Warn when an explicitly set attribute would be overridden by
   ``init_params_``.

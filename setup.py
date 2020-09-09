@@ -87,7 +87,7 @@ setup(
     install_requires=[
         "numpy>=1.10",  # np.broadcast_to.
         "scikit-learn>=0.16",  # sklearn.utils.check_array.
-        "scipy>=0.15",  # scipy.special.logsumexp(..., keepdims=True).
+        "scipy>=0.19",  # scipy.special.logsumexp.
     ],
     extras_require={
         "tests": ["pytest"],
