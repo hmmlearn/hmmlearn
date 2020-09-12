@@ -90,11 +90,8 @@ steps:
       python setup.py bdist_wheel
       ;;
     esac
-  displayName: 'Build wheels'
-
-- bash: |
-    cp dist/*.whl "$BUILD_ARTIFACTSTAGINGDIRECTORY"
-  displayName: 'Copy files'
+    cp -v dist/*.whl "$BUILD_ARTIFACTSTAGINGDIRECTORY"
+  displayName: 'Build & upload wheels'
 
 - task: PublishBuildArtifacts@1
   inputs:
