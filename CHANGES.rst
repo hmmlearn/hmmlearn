@@ -3,8 +3,10 @@ hmmlearn Changelog
 
 Here you can see the full list of changes between each hmmlearn release.
 
-next
-----
+Version 0.2.4
+-------------
+
+Released on September 12th, 2020.
 
 - Bumped previously incorrect dependency bound on scipy to 0.19.
 - Bug fix for 'params' argument usage in GMMHMM.
