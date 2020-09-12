@@ -1,9 +1,8 @@
 hmmlearn
 ========
 
-|GitHub| |PyPI|
-
-|Read the Docs| |Azure Pipelines| |CodeCov|
+| |GitHub| |PyPI|
+| |Read the Docs| |Azure Pipelines| |CodeCov|
 
 .. |GitHub|
    image:: https://img.shields.io/badge/github-hmmlearn%2Fhmmlearn-brightgreen
@@ -15,7 +14,7 @@ hmmlearn
    image:: https://readthedocs.org/projects/hmmlearn/badge/?version=latest
    :target: http://hmmlearn.readthedocs.io/en/latest/?badge=latest
 .. |Azure Pipelines|
-   image:: https://dev.azure.com/anntzer/hmmlearn/_apis/build/status/anntzer.hmmlearn
+   image:: https://dev.azure.com/anntzer/hmmlearn/_apis/build/status/hmmlearn.hmmlearn
    :target: https://dev.azure.com/anntzer/hmmlearn/_build/latest?definitionId=1
 .. |CodeCov|
    image:: https://codecov.io/gh/hmmlearn/hmmlearn/master.svg
@@ -28,9 +27,6 @@ models see seqlearn_.
 .. _seqlearn: https://github.com/larsmans/seqlearn
 
 **Note**: This package is under limited-maintenance mode.
-Moreover, if you are able to help with testing on macOS, please have a look at
-https://github.com/hmmlearn/hmmlearn/issues/370; your help will be greatly
-appreciated.
 
 Important links
 ===============
