@@ -12,6 +12,9 @@ strategy:
     Linux_py38:
       vmImage: 'ubuntu-16.04'
       pythonVersion: '3.8'
+    Linux_py39:
+      vmImage: 'ubuntu-16.04'
+      pythonVersion: '3.9'
     macOS_py35:
       vmImage: 'macOS-10.14'
       pythonVersion: '3.5'
@@ -24,6 +27,9 @@ strategy:
     macOS_py38:
       vmImage: 'macOS-10.14'
       pythonVersion: '3.8'
+    macOS_py39:
+      vmImage: 'macOS-10.14'
+      pythonVersion: '3.9'
     Windows_py35:
       vmImage: 'windows-2019'
       pythonVersion: '3.5'
@@ -36,6 +42,9 @@ strategy:
     Windows_py38:
       vmImage: 'windows-2019'
       pythonVersion: '3.8'
+    Windows_py39:
+      vmImage: 'windows-2019'
+      pythonVersion: '3.9'
 
 pool:
   vmImage: '$(vmImage)'
