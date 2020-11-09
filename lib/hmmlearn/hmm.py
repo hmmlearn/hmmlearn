@@ -10,6 +10,8 @@
 The :mod:`hmmlearn.hmm` module implements hidden Markov models.
 """
 
+import functools
+import inspect
 import logging
 
 import numpy as np
@@ -314,8 +316,32 @@ class GaussianHMM(_BaseHMM):
                                      (cvweight + stats['post'][:, None, None]))
 
 
+_MULTINOMIALHMM_DOC_SUFFIX = """
+
+Notes
+-----
+Unlike other HMM classes, `MultinomialHMM` ``X`` arrays have shape
+``(n_samples, 1)`` (instead of ``(n_samples, n_features)``).  Consider using
+`sklearn.preprocessing.LabelEncoder` to transform your input to the right
+format.
+"""
+
+
+def _multinomialhmm_fix_docstring_shape(func):
+    doc = inspect.getdoc(func)
+    if doc is None:
+        wrapper = func
+    else:
+        wrapper = functools.wraps(func)(
+            lambda *args, **kwargs: func(*args, **kwargs))
+        wrapper.__doc__ = (
+            doc.replace("(n_samples, n_features)", "(n_samples, 1)")
+            + _MULTINOMIALHMM_DOC_SUFFIX)
+    return wrapper
+
+
 class MultinomialHMM(_BaseHMM):
-    r"""Hidden Markov Model with multinomial (discrete) emissions
+    r"""Hidden Markov Model with multinomial (discrete) emissions.
 
     Parameters
     ----------
@@ -398,6 +424,17 @@ class MultinomialHMM(_BaseHMM):
                           random_state=random_state,
                           n_iter=n_iter, tol=tol, verbose=verbose,
                           params=params, init_params=init_params)
+
+    score_samples, score, decode, predict, predict_proba, sample, fit = map(
+        _multinomialhmm_fix_docstring_shape, [
+            _BaseHMM.score_samples,
+            _BaseHMM.score,
+            _BaseHMM.decode,
+            _BaseHMM.predict,
+            _BaseHMM.predict_proba,
+            _BaseHMM.sample,
+            _BaseHMM.fit,
+        ])
 
     def _get_n_fit_scalars_per_param(self):
         nc = self.n_components

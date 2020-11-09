@@ -22,6 +22,7 @@ _BaseHMM
 .. autoclass:: hmmlearn.base._BaseHMM
    :exclude-members: set_params, get_params, _get_param_names
    :private-members:
+   :no-inherited-members:
 
 hmmlearn.hmm
 ------------

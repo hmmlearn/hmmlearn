@@ -3,11 +3,16 @@ needs_sphinx = '1.8'
 extensions = [
     'sphinx.ext.autodoc',
     'sphinx.ext.autosummary',
+    'sphinx.ext.intersphinx',
     'sphinx.ext.napoleon',
     'sphinx_gallery.gen_gallery',
 ]
 
 autodoc_default_options = {'members': None, 'inherited-members': None}
+
+intersphinx_mapping = {
+    'sklearn': ('https://scikit-learn.org/stable/', None),
+}
 
 sphinx_gallery_conf = {
     'examples_dirs': '../../examples',
@@ -51,7 +56,7 @@ exclude_trees = ['_build', 'includes']
 
 # The reST default role (used for this markup: `text`) to use for all
 # documents.
-#default_role = None
+default_role = 'any'
 
 # If true, '()' will be appended to :func: etc. cross-reference text.
 add_function_parentheses = False
