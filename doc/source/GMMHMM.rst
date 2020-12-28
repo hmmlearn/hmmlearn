@@ -262,7 +262,7 @@ Combining the two, we get:
 .. math::
   \frac {\partial \text {IW} (\Sigma | \Psi, \nu)} {\partial \Sigma} = -\frac {(\nu + D + 1)} {2} \Sigma^{-T} \text {IW} (\Sigma | \Psi, \nu) + \frac {1} {2} \Sigma^{-T} \Psi^T \Sigma^{-T} \text {IW} (\Sigma | \Psi, \nu)
 
-Now, finally, we can get the whole derivative of prior distrution w. r. t. :math:`\Sigma_{pt}`:
+Now, finally, we can get the whole derivative of prior distribution w. r. t. :math:`\Sigma_{pt}`:
 
 .. math::
   \frac {\partial \ln p(\theta)} {\partial \Sigma_{pt}} = \Big(-\frac {1} {2}\Big) \Sigma_{pt}^{-T} + \frac {\lambda_{pt}} {2} \Sigma_{pt}^{-T} (\mu_{pt} - \mu_{pt0}) (\mu_{pt} - \mu_{pt0})^T \Sigma_{pt}^{-T} + \Big(-\frac {(\nu_{pt} + D + 1)} {2}\Big) \Sigma_{pt}^{-T} + \frac {1} {2} \Sigma_{pt}^{-T} \Psi_{pt}^T \Sigma_{pt}^{-T}  
