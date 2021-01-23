@@ -2,8 +2,8 @@
 Sampling from HMM
 -----------------
 
-This script shows how to sample points from a Hiden Markov Model (HMM):
-we use a 4-components with specified mean and covariance.
+This script shows how to sample points from a Hidden Markov Model (HMM):
+we use a 4-state model with specified mean and covariance.
 
 The plot show the sequence of observations generated with the transitions
 between them. We can see that, as specified by our transition matrix,
