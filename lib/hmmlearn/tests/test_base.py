@@ -1,8 +1,8 @@
 import numpy as np
 import pytest
+from scipy import special
 
 from hmmlearn.base import _BaseHMM, ConvergenceMonitor
-from hmmlearn.utils import logsumexp
 
 
 class TestMonitor:
@@ -144,7 +144,7 @@ class TestBaseConsistentWithGMM:
         n_samples, n_components = self.framelogprob.shape
         assert np.allclose(hmmposteriors.sum(axis=1), np.ones(n_samples))
 
-        norm = logsumexp(self.framelogprob, axis=1)[:, np.newaxis]
+        norm = special.logsumexp(self.framelogprob, axis=1)[:, np.newaxis]
         gmmposteriors = np.exp(self.framelogprob
                                - np.tile(norm, (1, n_components)))
         assert np.allclose(hmmposteriors, gmmposteriors)
@@ -153,7 +153,7 @@ class TestBaseConsistentWithGMM:
         _logprob, state_sequence = self.hmm.decode(self.framelogprob)
 
         n_samples, n_components = self.framelogprob.shape
-        norm = logsumexp(self.framelogprob, axis=1)[:, np.newaxis]
+        norm = special.logsumexp(self.framelogprob, axis=1)[:, np.newaxis]
         gmmposteriors = np.exp(self.framelogprob -
                                np.tile(norm, (1, n_components)))
         gmmstate_sequence = gmmposteriors.argmax(axis=1)

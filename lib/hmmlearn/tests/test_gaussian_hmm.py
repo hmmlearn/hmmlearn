@@ -91,7 +91,7 @@ class GaussianHMMTestMixin:
         assert len(caplog.records) == 1
         assert "will be overwritten" in caplog.records[0].getMessage()
 
-    def test_fit_ignored_init_warns(self, caplog):
+    def test_fit_too_little_data(self, caplog):
         h = hmm.GaussianHMM(
             self.n_components, self.covariance_type, init_params="")
         h.startprob_ = self.startprob

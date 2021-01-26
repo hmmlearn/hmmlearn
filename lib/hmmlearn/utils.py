@@ -1,5 +1,5 @@
 import numpy as np
-from scipy.special import logsumexp
+from scipy import special
 
 
 def normalize(a, axis=None):
@@ -51,7 +51,7 @@ def log_normalize(a, axis=None):
         a[:] = 0
     else:
         with np.errstate(under="ignore"):
-            a_lse = logsumexp(a, axis, keepdims=True)
+            a_lse = special.logsumexp(a, axis, keepdims=True)
         a -= a_lse
 
 

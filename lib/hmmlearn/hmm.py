@@ -15,15 +15,14 @@ import inspect
 import logging
 
 import numpy as np
-from scipy.special import logsumexp
+from scipy import linalg, special
 from sklearn import cluster
 from sklearn.utils import check_random_state
 
 from . import _utils
 from .stats import log_multivariate_normal_density
 from .base import _BaseHMM
-from .utils import (
-    fill_covars, iter_from_X_lengths, log_mask_zero, log_normalize, normalize)
+from .utils import fill_covars, log_mask_zero, log_normalize, normalize
 
 __all__ = ["GMMHMM", "GaussianHMM", "MultinomialHMM"]
 
@@ -817,8 +816,6 @@ class GMMHMM(_BaseHMM):
                                      needed_shape, covars_shape))
 
         # Checking covariances' mathematical correctness
-        from scipy import linalg
-
         if (self.covariance_type == "spherical" or
                 self.covariance_type == "diag"):
             if np.any(self.covars_ < 0):
@@ -831,7 +828,7 @@ class GMMHMM(_BaseHMM):
                 if not np.allclose(covar, covar.T):
                     raise ValueError("Covariance of state #{} is not symmetric"
                                      .format(i))
-                min_eigvalsh = np.linalg.eigvalsh(covar).min()
+                min_eigvalsh = linalg.eigvalsh(covar).min()
                 if min_eigvalsh < 0:
                     raise ValueError("Covariance of state #{} is not positive "
                                      "definite".format(i))
@@ -845,7 +842,7 @@ class GMMHMM(_BaseHMM):
                         raise ValueError(
                             "Covariance of state #{}, mixture #{} is not "
                             "symmetric".format(i, j))
-                    min_eigvalsh = np.linalg.eigvalsh(covar).min()
+                    min_eigvalsh = linalg.eigvalsh(covar).min()
                     if min_eigvalsh < 0:
                         raise ValueError(
                             "Covariance of state #{}, mixture #{} is not "
@@ -891,7 +888,7 @@ class GMMHMM(_BaseHMM):
         for i in range(self.n_components):
             log_denses = self._compute_log_weighted_gaussian_densities(X, i)
             with np.errstate(under="ignore"):
-                res[:, i] = logsumexp(log_denses, axis=1)
+                res[:, i] = special.logsumexp(log_denses, axis=1)
 
         return res
 

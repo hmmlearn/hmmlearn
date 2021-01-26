@@ -120,5 +120,5 @@ class TestMultinomailHMM:
         self.h._check_and_set_n_features(np.array([[0, 0, 1, 3, 1]], np.uint8))
         with pytest.raises(ValueError):  # non-integral
             self.h._check_and_set_n_features(np.array([[0., 2., 1., 3.]]))
-        with pytest.raises(ValueError): # negative integers
+        with pytest.raises(ValueError):  # negative integers
             self.h._check_and_set_n_features(np.array([[0, -2, 1, 3, 1, 1]]))
