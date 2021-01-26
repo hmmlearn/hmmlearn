@@ -48,6 +48,7 @@ class TestMonitor:
         out, err = capsys.readouterr()
         assert not out
         assert len(err.splitlines()) == n_iter
+        assert len(m.history) == n_iter
 
 
 class StubHMM(_BaseHMM):
