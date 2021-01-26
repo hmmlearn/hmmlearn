@@ -971,8 +971,8 @@ class GMMHMM(_BaseHMM):
         if 'c' in self.params:
             centered_means = self.means_ - mus
 
-        def outer_f(x):  # Outer product over features.
-            return x[..., :, None] * x[..., None, :]
+            def outer_f(x):  # Outer product over features.
+                return x[..., :, None] * x[..., None, :]
 
             if self.covariance_type == 'full':
                 centered_dots = outer_f(stats['centered'])

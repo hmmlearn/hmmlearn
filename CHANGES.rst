@@ -3,6 +3,11 @@ hmmlearn Changelog
 
 Here you can see the full list of changes between each hmmlearn release.
 
+next
+----
+
+- Fixed typo in implementation of covariance maximization for GMMHMM.
+
 Version 0.2.4
 -------------
 
