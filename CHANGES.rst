@@ -7,6 +7,7 @@ next
 ----
 
 - Fixed typo in implementation of covariance maximization for GMMHMM.
+- Changed history of ConvergenceMonitor to include the whole history for evaluation purposes. It can no longer be assumed that it has a maximum length of two.
 
 Version 0.2.4
 -------------
