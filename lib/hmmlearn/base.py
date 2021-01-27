@@ -4,7 +4,7 @@ import sys
 from collections import deque
 
 import numpy as np
-from scipy.special import logsumexp
+from scipy import linalg, special
 from sklearn.base import BaseEstimator
 from sklearn.utils import check_array, check_random_state
 
@@ -209,7 +209,7 @@ class _BaseHMM(BaseEstimator):
         # associated with the largest eigenvalue (i.e., 1) of the transition
         # matrix.
         _utils.check_is_fitted(self, "transmat_")
-        eigvals, eigvecs = np.linalg.eig(self.transmat_.T)
+        eigvals, eigvecs = linalg.eig(self.transmat_.T)
         eigvec = np.real_if_close(eigvecs[:, np.argmax(eigvals)])
         return eigvec / eigvec.sum()
 
@@ -505,7 +505,7 @@ class _BaseHMM(BaseEstimator):
                        log_mask_zero(self.transmat_),
                        framelogprob, fwdlattice)
         with np.errstate(under="ignore"):
-            return logsumexp(fwdlattice[-1]), fwdlattice
+            return special.logsumexp(fwdlattice[-1]), fwdlattice
 
     def _do_backward_pass(self, framelogprob):
         n_samples, n_components = framelogprob.shape

@@ -34,7 +34,8 @@ sphinx_gallery_conf = {
 html_theme = 'alabaster'
 html_sidebars = {'**': ['about.html', 'navigation.html', 'localtoc.html']}
 html_theme_options = {
-    'description': 'Unsupervised learning and inference of Hidden Markov Models',
+    'description':
+        'Unsupervised learning and inference of Hidden Markov Models',
     'github_user': 'hmmlearn',
     'github_repo': 'hmmlearn',
     'github_banner': True,
