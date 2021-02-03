@@ -117,7 +117,7 @@ class GMMHMMTestMixin:
 
     def test_fit(self):
         n_iter = 5
-        n_samples = 10000
+        n_samples = 1000
         lengths = None
         X, _state_sequence = self.h.sample(n_samples)
 
