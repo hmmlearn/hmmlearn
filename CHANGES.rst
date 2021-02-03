@@ -3,16 +3,24 @@ hmmlearn Changelog
 
 Here you can see the full list of changes between each hmmlearn release.
 
-next
-----
+Version 0.2.5
+-------------
+
+Released on February 3, 2021.
 
 - Fixed typo in implementation of covariance maximization for GMMHMM.
-- Changed history of ConvergenceMonitor to include the whole history for evaluation purposes. It can no longer be assumed that it has a maximum length of two.
+- Changed history of ConvergenceMonitor to include the whole history for
+  evaluation purposes.  It can no longer be assumed that it has a maximum
+  length of two.
 
 Version 0.2.4
 -------------
 
 Released on September 12th, 2020.
+
+.. warning::
+   GMMHMM covariance maximization was incorrect in this release.  This bug was
+   fixed in the following release.
 
 - Bumped previously incorrect dependency bound on scipy to 0.19.
 - Bug fix for 'params' argument usage in GMMHMM.
