@@ -609,7 +609,7 @@ class GMMHMM(_BaseHMM):
     weights\_ : array, shape (n_components, n_mix)
         Mixture weights for each state.
 
-    means\_ : array, shape (n_components, n_mix)
+    means\_ : array, shape (n_components, n_mix, n_features)
         Mean parameters for each mixture component in each state.
 
     covars\_ : array
@@ -961,6 +961,14 @@ class GMMHMM(_BaseHMM):
             )
             new_means_denom = (stats['post_mix_sum'] + lambdas)[:, :, None]
             new_means = new_means_numer / new_means_denom
+
+            # If a componenent has zero weight, then replace nan (0/0) means
+            # by 0.  The actual value is irrelevant as the component will be
+            # unused.  This needs to be done before maximizing covariances as
+            # nans would otherwise propagate to other components if covariances
+            # are tied.
+            new_means[(self.weights_[:, :, None] == 0)
+                      & (new_means_numer == 0) & (new_means_denom == 0)] = 0
 
             self.means_ = new_means
 
