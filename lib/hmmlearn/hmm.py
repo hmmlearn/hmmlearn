@@ -284,34 +284,32 @@ class GaussianHMM(_BaseHMM):
             meandiff = self.means_ - means_prior
 
             if self.covariance_type in ('spherical', 'diag'):
-                cv_num = (means_weight * meandiff**2
-                          + stats['obs**2']
-                          - 2 * self.means_ * stats['obs']
-                          + self.means_**2 * denom)
-                cv_den = max(covars_weight - 1, 0) + denom
-                self._covars_ = \
-                    (covars_prior + cv_num) / np.maximum(cv_den, 1e-5)
+                c_n = (means_weight * meandiff**2
+                       + stats['obs**2']
+                       - 2 * self.means_ * stats['obs']
+                       + self.means_**2 * denom)
+                c_d = max(covars_weight - 1, 0) + denom
+                self._covars_ = (covars_prior + c_n) / np.maximum(c_d, 1e-5)
                 if self.covariance_type == 'spherical':
                     self._covars_ = np.tile(self._covars_.mean(1)[:, None],
                                             (1, self._covars_.shape[1]))
             elif self.covariance_type in ('tied', 'full'):
-                cv_num = np.empty((self.n_components, self.n_features,
-                                  self.n_features))
+                c_n = np.empty((self.n_components, self.n_features,
+                                self.n_features))
                 for c in range(self.n_components):
                     obsmean = np.outer(stats['obs'][c], self.means_[c])
-
-                    cv_num[c] = (means_weight * np.outer(meandiff[c],
-                                                         meandiff[c])
-                                 + stats['obs*obs.T'][c]
-                                 - obsmean - obsmean.T
-                                 + np.outer(self.means_[c], self.means_[c])
-                                 * stats['post'][c])
+                    c_n[c] = (means_weight * np.outer(meandiff[c],
+                                                      meandiff[c])
+                              + stats['obs*obs.T'][c]
+                              - obsmean - obsmean.T
+                              + np.outer(self.means_[c], self.means_[c])
+                              * stats['post'][c])
                 cvweight = max(covars_weight - self.n_features, 0)
                 if self.covariance_type == 'tied':
-                    self._covars_ = ((covars_prior + cv_num.sum(axis=0)) /
+                    self._covars_ = ((covars_prior + c_n.sum(axis=0)) /
                                      (cvweight + stats['post'].sum()))
                 elif self.covariance_type == 'full':
-                    self._covars_ = ((covars_prior + cv_num) /
+                    self._covars_ = ((covars_prior + c_n) /
                                      (cvweight + stats['post'][:, None, None]))
 
 
@@ -685,7 +683,7 @@ class GMMHMM(_BaseHMM):
             kmeanses.append(kmeans)
 
         if self._needs_init("w", "weights_"):
-            self.weights_ = np.ones((nc, nm)) / (np.ones((nc, 1)) * nm)
+            self.weights_ = np.full((nc, nm), 1 / nm)
 
         if self._needs_init("m", "means_"):
             self.means_ = np.stack(
@@ -789,7 +787,7 @@ class GMMHMM(_BaseHMM):
                              .format(self.weights_.shape))
 
         # Checking mixture weights' mathematical correctness
-        if not np.allclose(np.sum(self.weights_, axis=1), np.ones(nc)):
+        if not np.allclose(self.weights_.sum(axis=1), 1):
             raise ValueError("mixture weights must sum up to 1")
 
         # Checking means' shape
@@ -927,8 +925,8 @@ class GMMHMM(_BaseHMM):
             post_comp_mix = post_comp[:, :, None] * post_mix
         stats['post_comp_mix'] = post_comp_mix
 
-        stats['post_mix_sum'] = np.sum(post_comp_mix, axis=0)
-        stats['post_sum'] = np.sum(post_comp, axis=0)
+        stats['post_mix_sum'] = post_comp_mix.sum(axis=0)
+        stats['post_sum'] = post_comp.sum(axis=0)
 
         stats['centered'] = X[:, None, None, :] - self.means_
 
@@ -938,39 +936,29 @@ class GMMHMM(_BaseHMM):
         nf = self.n_features
         nm = self.n_mix
 
-        n_samples = stats['n_samples']
-
         # Maximizing weights
         if 'w' in self.params:
             alphas_minus_one = self.weights_prior - 1
-            new_weights_numer = stats['post_mix_sum'] + alphas_minus_one
-            new_weights_denom = (
-                stats['post_sum'] + np.sum(alphas_minus_one, axis=1)
-            )[:, None]
-            new_weights = new_weights_numer / new_weights_denom
-
-            self.weights_ = new_weights
+            w_n = stats['post_mix_sum'] + alphas_minus_one
+            w_d = (stats['post_sum'] + alphas_minus_one.sum(axis=1))[:, None]
+            self.weights_ = w_n / w_d
 
         # Maximizing means
         if 'm' in self.params:
             lambdas, mus = self.means_weight, self.means_prior
-            new_means_numer = (
+            m_n = (
                 np.einsum('ijk,il->jkl',
                           stats['post_comp_mix'], stats['samples'])
                 + lambdas[:, :, None] * mus
             )
-            new_means_denom = (stats['post_mix_sum'] + lambdas)[:, :, None]
-            new_means = new_means_numer / new_means_denom
-
-            # If a componenent has zero weight, then replace nan (0/0) means
-            # by 0.  The actual value is irrelevant as the component will be
-            # unused.  This needs to be done before maximizing covariances as
-            # nans would otherwise propagate to other components if covariances
-            # are tied.
-            new_means[(self.weights_[:, :, None] == 0)
-                      & (new_means_numer == 0) & (new_means_denom == 0)] = 0
-
-            self.means_ = new_means
+            m_d = stats['post_mix_sum'] + lambdas
+            # If a componenent has zero weight, then replace nan (0/0?) means
+            # by 0 (0/1).  The actual value is irrelevant as the component will
+            # be unused.  This needs to be done before maximizing covariances
+            # as nans would otherwise propagate to other components if
+            # covariances are tied.
+            m_d[(self.weights_ == 0) & (m_n == 0).all(axis=-1)] = 1
+            self.means_ = m_n / m_d[:, :, None]
 
         # Maximizing covariances
         if 'c' in self.params:
@@ -986,15 +974,15 @@ class GMMHMM(_BaseHMM):
                 psis_t = np.transpose(self.covars_prior, axes=(0, 1, 3, 2))
                 nus = self.covars_weight
 
-                new_cov_numer = (
+                c_n = (
                     np.einsum('ijk,ijklm->jklm',
                               stats['post_comp_mix'], centered_dots)
                     + psis_t
                     + lambdas[:, :, None, None] * centered_means_dots
                 )
-                new_cov_denom = (
-                    stats['post_mix_sum'] + 1 + nus + nf + 1)[:, :, None, None]
-                new_cov = new_cov_numer / new_cov_denom
+                c_d = (
+                    stats['post_mix_sum'] + 1 + nus + nf + 1
+                )[:, :, None, None]
 
             elif self.covariance_type == 'diag':
                 centered2 = stats['centered'] ** 2
@@ -1003,32 +991,28 @@ class GMMHMM(_BaseHMM):
                 alphas = self.covars_prior
                 betas = self.covars_weight
 
-                new_cov_numer = (
+                c_n = (
                     np.einsum('ijk,ijkl->jkl',
                               stats['post_comp_mix'], centered2)
                     + lambdas[:, :, None] * centered_means2
                     + 2 * betas
                 )
-                new_cov_denom = (
-                    stats['post_mix_sum'][:, :, None] + 1 + 2 * (alphas + 1))
-                new_cov = new_cov_numer / new_cov_denom
+                c_d = stats['post_mix_sum'][:, :, None] + 1 + 2 * (alphas + 1)
 
             elif self.covariance_type == 'spherical':
-                centered_norm2 = np.sum(stats['centered'] ** 2, axis=-1)
-                centered_means_norm2 = np.sum(centered_means ** 2, axis=-1)
+                centered_norm2 = (stats['centered'] ** 2).sum(axis=-1)
+                centered_means_norm2 = (centered_means ** 2).sum(axis=-1)
 
                 alphas = self.covars_prior
                 betas = self.covars_weight
 
-                new_cov_numer = (
+                c_n = (
                     np.einsum(
                         'ijk,ijk->jk', stats['post_comp_mix'], centered_norm2)
                     + lambdas * centered_means_norm2
                     + 2 * betas
                 )
-                new_cov_denom = (
-                    nf * (stats['post_mix_sum'] + 1) + 2 * (alphas + 1))
-                new_cov = new_cov_numer / new_cov_denom
+                c_d = nf * (stats['post_mix_sum'] + 1) + 2 * (alphas + 1)
 
             elif self.covariance_type == 'tied':
                 centered_dots = outer_f(stats['centered'])
@@ -1037,15 +1021,12 @@ class GMMHMM(_BaseHMM):
                 psis_t = np.transpose(self.covars_prior, axes=(0, 2, 1))
                 nus = self.covars_weight
 
-                lambdas_cmdots_prod_sum = (
-                    np.einsum('ij,ijkl->ikl', lambdas, centered_means_dots))
-
-                new_cov_numer = (
+                c_n = (
                     np.einsum('ijk,ijklm->jlm',
                               stats['post_comp_mix'], centered_dots)
-                    + lambdas_cmdots_prod_sum + psis_t)
-                new_cov_denom = (
-                    stats['post_sum'] + nm + nus + nf + 1)[:, None, None]
-                new_cov = new_cov_numer / new_cov_denom
+                    + np.einsum('ij,ijkl->ikl', lambdas, centered_means_dots)
+                    + psis_t
+                )
+                c_d = (stats['post_sum'] + nm + nus + nf + 1)[:, None, None]
 
-            self.covars_ = new_cov
+            self.covars_ = c_n / c_d
