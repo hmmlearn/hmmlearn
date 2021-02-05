@@ -90,10 +90,11 @@ steps:
     linux)
       PV="${PYTHONVERSION/./}" &&
       ABI="$(python -c "import sys; print(sys.abiflags)")" &&
-      docker run --volume="$(pwd)":/io:Z --workdir=/io quay.io/pypa/manylinux1_x86_64 \
-        /opt/python/cp"$PV"-cp"$PV$ABI"/bin/python setup.py bdist_wheel --verbose &&
-      docker run --volume="$(pwd)":/io:Z --workdir=/io quay.io/pypa/manylinux1_x86_64 \
-        auditwheel --verbose repair --wheel-dir=/io/dist /io/dist/$(ls dist)
+      docker run --interactive --volume="$(pwd)":/io:Z --workdir=/io \
+        quay.io/pypa/manylinux1_x86_64 bash <<EOF
+    /opt/python/cp"$PV"-cp"$PV$ABI"/bin/python setup.py bdist_wheel --verbose
+    auditwheel --verbose repair --wheel-dir=/io/dist /io/dist/\*.whl
+    EOF
       ;;
     *)
       python setup.py bdist_wheel
