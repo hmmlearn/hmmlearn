@@ -5,17 +5,11 @@
 #               2018- Antony Lee
 
 
-from distutils.version import LooseVersion
 from io import open
 
 import setuptools
 from setuptools import Extension, find_packages, setup
 from setuptools.command.build_ext import build_ext
-
-
-# Added support for environment markers in install_requires.
-if LooseVersion(setuptools.__version__) < "36.2":
-    raise ImportError("setuptools>=36.2 is required")
 
 
 class build_ext(build_ext):
