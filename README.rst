@@ -2,7 +2,7 @@ hmmlearn
 ========
 
 | |GitHub| |PyPI|
-| |Read the Docs| |Azure Pipelines| |CodeCov|
+| |Read the Docs| |Build| |CodeCov|
 
 .. |GitHub|
    image:: https://img.shields.io/badge/github-hmmlearn%2Fhmmlearn-brightgreen
@@ -13,9 +13,9 @@ hmmlearn
 .. |Read the Docs|
    image:: https://readthedocs.org/projects/hmmlearn/badge/?version=latest
    :target: http://hmmlearn.readthedocs.io/en/latest/?badge=latest
-.. |Azure Pipelines|
-   image:: https://dev.azure.com/anntzer/hmmlearn/_apis/build/status/hmmlearn.hmmlearn
-   :target: https://dev.azure.com/anntzer/hmmlearn/_build/latest?definitionId=1
+.. |Build|
+   image:: https://img.shields.io/github/workflow/status/hmmlearn/hmmlearn/build
+   :target: https://github.com/hmmlearn/hmmlearn/actions
 .. |CodeCov|
    image:: https://codecov.io/gh/hmmlearn/hmmlearn/master.svg
    :target: https://codecov.io/gh/hmmlearn/hmmlearn
