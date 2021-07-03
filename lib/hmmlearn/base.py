@@ -238,21 +238,7 @@ class _BaseHMM(BaseEstimator):
         score : Compute the log probability under the model.
         decode : Find most likely state sequence corresponding to ``X``.
         """
-        _utils.check_is_fitted(self, "startprob_")
-        self._check()
-
-        X = check_array(X)
-        n_samples = X.shape[0]
-        logprob = 0
-        posteriors = np.zeros((n_samples, self.n_components))
-        for i, j in iter_from_X_lengths(X, lengths):
-            framelogprob = self._compute_log_likelihood(X[i:j])
-            logprobij, fwdlattice = self._do_forward_pass(framelogprob)
-            logprob += logprobij
-
-            bwdlattice = self._do_backward_pass(framelogprob)
-            posteriors[i:j] = self._compute_posteriors(fwdlattice, bwdlattice)
-        return logprob, posteriors
+        return self._score(X, lengths, compute_posteriors=True)
 
     def score(self, X, lengths=None):
         """Compute the log probability under the model.
@@ -277,17 +263,31 @@ class _BaseHMM(BaseEstimator):
             posteriors.
         decode : Find most likely state sequence corresponding to ``X``.
         """
+        return self._score(X, lengths, compute_posteriors=False)[0]
+
+    def _score(self, X, lengths=None, *, compute_posteriors):
+        """Helper for `score` and `score_samples`.
+
+        Compute the log probability under the model, as well as posteriors if
+        *compute_posteriors* is True (otherwise, an array of zeros is returned
+        for the latter).
+        """
         _utils.check_is_fitted(self, "startprob_")
         self._check()
 
         X = check_array(X)
-        # XXX we can unroll forward pass for speed and memory efficiency.
+        n_samples = X.shape[0]
         logprob = 0
+        posteriors = np.zeros((n_samples, self.n_components))
         for i, j in iter_from_X_lengths(X, lengths):
             framelogprob = self._compute_log_likelihood(X[i:j])
-            logprobij, _fwdlattice = self._do_forward_pass(framelogprob)
+            logprobij, fwdlattice = self._do_forward_pass(framelogprob)
             logprob += logprobij
-        return logprob
+            if compute_posteriors:
+                bwdlattice = self._do_backward_pass(framelogprob)
+                posteriors[i:j] = self._compute_posteriors(
+                    fwdlattice, bwdlattice)
+        return logprob, posteriors
 
     def _decode_viterbi(self, X):
         framelogprob = self._compute_log_likelihood(X)
