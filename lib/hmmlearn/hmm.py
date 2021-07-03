@@ -874,17 +874,42 @@ class GMMHMM(_BaseHMM):
     def _initialize_sufficient_statistics(self):
         stats = super()._initialize_sufficient_statistics()
         stats['n_samples'] = 0
-        stats['post_comp_mix'] = None
         stats['post_mix_sum'] = np.zeros((self.n_components, self.n_mix))
         stats['post_sum'] = np.zeros(self.n_components)
-        stats['samples'] = None
-        stats['centered'] = None
+
+        # The following statistics are stored in lists so we can
+        # accumulate chunks of data for multiple sequences (aka
+        # multiple frames) during fitting. The fit(X, lengths) method
+        # in the _BaseHMM class will call
+        # _accumulate_sufficient_statistics once per sequence in the
+        # training samples. Data from all sequences needs to be
+        # accumulated and fed into _do_mstep.
+        #
+        # Suppose fit(X, lengths) is called with M>=1 sequences, where
+        # each sequence s=0, ..., M-1 contains L[s] = lengths[s]
+        # ordered samples. Then after M calls to
+        # _accumulate_sufficient_statistics, one per sequence, we
+        # expect each list statistic to contain M items, all arrays,
+        # with the following shapes:
+        #
+        # stat              shape of s-th item
+        #
+        # post_comp_mix     (L[s], n_components, n_mix)
+        # samples           (L[s], n_features)
+        # centred           (L[s], n_components, n_mix, n_features)
+        #
+        # FIXME this encoding requires memory proportional to the
+        # number of samples. It would be preferable to rework the
+        # calculations in _do_mstep to reduce over the samples axis
+        # earlier during _accumulate_sufficient_statistics in order to
+        # make memory consumption independent of the number of samples.
+        stats['post_comp_mix'] = []
+        stats['samples'] = []
+        stats['centered'] = []
         return stats
 
     def _accumulate_sufficient_statistics(self, stats, X, framelogprob,
                                           post_comp, fwdlattice, bwdlattice):
-
-        # TODO: support multiple frames
 
         super()._accumulate_sufficient_statistics(
             stats, X, framelogprob, post_comp, fwdlattice, bwdlattice
@@ -892,8 +917,8 @@ class GMMHMM(_BaseHMM):
 
         n_samples, _ = X.shape
 
-        stats['n_samples'] = n_samples
-        stats['samples'] = X
+        stats['n_samples'] += n_samples
+        stats['samples'].append(X)
 
         post_mix = np.zeros((n_samples, self.n_components, self.n_mix))
         for p in range(self.n_components):
@@ -904,18 +929,31 @@ class GMMHMM(_BaseHMM):
 
         with np.errstate(under="ignore"):
             post_comp_mix = post_comp[:, :, None] * post_mix
-        stats['post_comp_mix'] = post_comp_mix
+        stats['post_comp_mix'].append(post_comp_mix)
 
-        stats['post_mix_sum'] = post_comp_mix.sum(axis=0)
-        stats['post_sum'] = post_comp.sum(axis=0)
+        stats['post_mix_sum'] += post_comp_mix.sum(axis=0)
+        stats['post_sum'] += post_comp.sum(axis=0)
 
-        stats['centered'] = X[:, None, None, :] - self.means_
+        stats['centered'].append(X[:, None, None, :] - self.means_)
 
     def _do_mstep(self, stats):
         super()._do_mstep(stats)
+        ns = stats['n_samples']
         nc = self.n_components
         nf = self.n_features
         nm = self.n_mix
+
+        # Aggregate post_comp_mix data from multiple sequences
+        post_comp_mix = np.vstack(stats['post_comp_mix'])
+        assert post_comp_mix.shape == (ns, nc, nm)
+
+        # Aggregate samples data from multiple sequences
+        samples = np.vstack(stats['samples'])
+        assert samples.shape == (ns, nf)
+
+        # Aggregate centered data from multiple sequences
+        centered = np.vstack(stats['centered'])
+        assert centered.shape == (ns, nc, nm, nf)
 
         # Maximizing weights
         if 'w' in self.params:
@@ -929,7 +967,7 @@ class GMMHMM(_BaseHMM):
             lambdas, mus = self.means_weight, self.means_prior
             m_n = (
                 np.einsum('ijk,il->jkl',
-                          stats['post_comp_mix'], stats['samples'])
+                          post_comp_mix, samples)
                 + lambdas[:, :, None] * mus
             )
             m_d = stats['post_mix_sum'] + lambdas
@@ -949,7 +987,7 @@ class GMMHMM(_BaseHMM):
                 return x[..., :, None] * x[..., None, :]
 
             if self.covariance_type == 'full':
-                centered_dots = outer_f(stats['centered'])
+                centered_dots = outer_f(centered)
                 centered_means_dots = outer_f(centered_means)
 
                 psis_t = np.transpose(self.covars_prior, axes=(0, 1, 3, 2))
@@ -957,7 +995,7 @@ class GMMHMM(_BaseHMM):
 
                 c_n = (
                     np.einsum('ijk,ijklm->jklm',
-                              stats['post_comp_mix'], centered_dots)
+                              post_comp_mix, centered_dots)
                     + psis_t
                     + lambdas[:, :, None, None] * centered_means_dots
                 )
@@ -966,7 +1004,7 @@ class GMMHMM(_BaseHMM):
                 )[:, :, None, None]
 
             elif self.covariance_type == 'diag':
-                centered2 = stats['centered'] ** 2
+                centered2 = centered ** 2
                 centered_means2 = centered_means ** 2
 
                 alphas = self.covars_prior
@@ -974,14 +1012,14 @@ class GMMHMM(_BaseHMM):
 
                 c_n = (
                     np.einsum('ijk,ijkl->jkl',
-                              stats['post_comp_mix'], centered2)
+                              post_comp_mix, centered2)
                     + lambdas[:, :, None] * centered_means2
                     + 2 * betas
                 )
                 c_d = stats['post_mix_sum'][:, :, None] + 1 + 2 * (alphas + 1)
 
             elif self.covariance_type == 'spherical':
-                centered_norm2 = (stats['centered'] ** 2).sum(axis=-1)
+                centered_norm2 = (centered ** 2).sum(axis=-1)
                 centered_means_norm2 = (centered_means ** 2).sum(axis=-1)
 
                 alphas = self.covars_prior
@@ -989,14 +1027,14 @@ class GMMHMM(_BaseHMM):
 
                 c_n = (
                     np.einsum(
-                        'ijk,ijk->jk', stats['post_comp_mix'], centered_norm2)
+                        'ijk,ijk->jk', post_comp_mix, centered_norm2)
                     + lambdas * centered_means_norm2
                     + 2 * betas
                 )
                 c_d = nf * (stats['post_mix_sum'] + 1) + 2 * (alphas + 1)
 
             elif self.covariance_type == 'tied':
-                centered_dots = outer_f(stats['centered'])
+                centered_dots = outer_f(centered)
                 centered_means_dots = outer_f(centered_means)
 
                 psis_t = np.transpose(self.covars_prior, axes=(0, 2, 1))
@@ -1004,7 +1042,7 @@ class GMMHMM(_BaseHMM):
 
                 c_n = (
                     np.einsum('ijk,ijklm->jlm',
-                              stats['post_comp_mix'], centered_dots)
+                              post_comp_mix, centered_dots)
                     + np.einsum('ij,ijkl->ikl', lambdas, centered_means_dots)
                     + psis_t
                 )
