@@ -9,7 +9,7 @@ from sklearn.base import BaseEstimator
 from sklearn.utils import check_array, check_random_state
 
 from . import _hmmc, _utils
-from .utils import normalize, log_normalize, iter_from_X_lengths, log_mask_zero
+from .utils import normalize, log_normalize, log_mask_zero
 
 
 _log = logging.getLogger(__name__)
@@ -269,25 +269,24 @@ class _BaseHMM(BaseEstimator):
         """Helper for `score` and `score_samples`.
 
         Compute the log probability under the model, as well as posteriors if
-        *compute_posteriors* is True (otherwise, an array of zeros is returned
+        *compute_posteriors* is True (otherwise, an empty array is returned
         for the latter).
         """
         _utils.check_is_fitted(self, "startprob_")
         self._check()
 
         X = check_array(X)
-        n_samples = X.shape[0]
         logprob = 0
-        posteriors = np.zeros((n_samples, self.n_components))
-        for i, j in iter_from_X_lengths(X, lengths):
-            framelogprob = self._compute_log_likelihood(X[i:j])
+        sub_posteriors = [np.empty((0, self.n_components))]
+        for sub_X in _utils.split_X_lengths(X, lengths):
+            framelogprob = self._compute_log_likelihood(sub_X)
             logprobij, fwdlattice = self._do_forward_pass(framelogprob)
             logprob += logprobij
             if compute_posteriors:
                 bwdlattice = self._do_backward_pass(framelogprob)
-                posteriors[i:j] = self._compute_posteriors(
-                    fwdlattice, bwdlattice)
-        return logprob, posteriors
+                sub_posteriors.append(
+                    self._compute_posteriors(fwdlattice, bwdlattice))
+        return logprob, np.concatenate(sub_posteriors)
 
     def _decode_viterbi(self, X):
         framelogprob = self._compute_log_likelihood(X)
@@ -343,16 +342,15 @@ class _BaseHMM(BaseEstimator):
         }[algorithm]
 
         X = check_array(X)
-        n_samples = X.shape[0]
         logprob = 0
-        state_sequence = np.empty(n_samples, dtype=int)
-        for i, j in iter_from_X_lengths(X, lengths):
+        sub_state_sequences = []
+        for sub_X in _utils.split_X_lengths(X, lengths):
             # XXX decoder works on a single sample at a time!
-            logprobij, state_sequenceij = decoder(X[i:j])
-            logprob += logprobij
-            state_sequence[i:j] = state_sequenceij
+            sub_logprob, sub_state_sequence = decoder(sub_X)
+            logprob += sub_logprob
+            sub_state_sequences.append(sub_state_sequence)
 
-        return logprob, state_sequence
+        return logprob, np.concatenate(sub_state_sequences)
 
     def predict(self, X, lengths=None):
         """Find most likely state sequence corresponding to ``X``.
@@ -466,14 +464,14 @@ class _BaseHMM(BaseEstimator):
         for iter in range(self.n_iter):
             stats = self._initialize_sufficient_statistics()
             curr_logprob = 0
-            for i, j in iter_from_X_lengths(X, lengths):
-                framelogprob = self._compute_log_likelihood(X[i:j])
+            for sub_X in _utils.split_X_lengths(X, lengths):
+                framelogprob = self._compute_log_likelihood(sub_X)
                 logprob, fwdlattice = self._do_forward_pass(framelogprob)
                 curr_logprob += logprob
                 bwdlattice = self._do_backward_pass(framelogprob)
                 posteriors = self._compute_posteriors(fwdlattice, bwdlattice)
                 self._accumulate_sufficient_statistics(
-                    stats, X[i:j], framelogprob, posteriors, fwdlattice,
+                    stats, sub_X, framelogprob, posteriors, fwdlattice,
                     bwdlattice)
 
             # XXX must be before convergence check, because otherwise

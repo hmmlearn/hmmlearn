@@ -3,6 +3,14 @@ hmmlearn Changelog
 
 Here you can see the full list of changes between each hmmlearn release.
 
+next
+----
+
+- Deprecated ``utils.iter_from_X_lengths``.
+- Previously, APIs taking a *lengths* parameter would silently drop the last
+  samples if the total length was less than the number of samples.  This
+  behavior is deprecated and will raise an exception in the future.
+
 Version 0.2.5
 -------------
 

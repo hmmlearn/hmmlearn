@@ -1,7 +1,27 @@
 """Private utilities."""
 
+import warnings
+
 import numpy as np
 from sklearn.utils.validation import NotFittedError
+
+
+def split_X_lengths(X, lengths):
+    if lengths is None:
+        return [X]
+    else:
+        cs = np.cumsum(lengths)
+        n_samples = len(X)
+        if cs[-1] > n_samples:
+            raise ValueError("more than {} samples in lengths array {}"
+                             .format(n_samples, lengths))
+        elif cs[-1] != n_samples:
+            warnings.warn(
+                "less that {} samples in lengths array {}; support for "
+                "silently dropping samples is deprecated and will be removed"
+                .format(n_samples, lengths),
+                DeprecationWarning, stacklevel=3)
+        return np.split(X, cs)[:-1]
 
 
 # Copied from scikit-learn 0.19.

@@ -1,3 +1,5 @@
+import warnings
+
 import numpy as np
 from scipy import special
 
@@ -56,6 +58,9 @@ def log_normalize(a, axis=None):
 
 
 def iter_from_X_lengths(X, lengths):
+    warnings.warn(
+        "iter_from_X_lengths is deprecated and will be removed in the future.",
+        DeprecationWarning, stacklevel=2)
     if lengths is None:
         yield 0, len(X)
     else:
