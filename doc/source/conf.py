@@ -18,11 +18,17 @@ language = 'en'
 
 # -- Options for extensions --------------------------------------------------
 
-autodoc_default_options = {'members': None, 'inherited-members': None}
+autodoc_default_options = {
+    'members': None,
+    'inherited-members': None,
+    'special-members': '__init__',
+}
 
 intersphinx_mapping = {
     'sklearn': ('https://scikit-learn.org/stable/', None),
 }
+
+napoleon_use_ivar = True
 
 sphinx_gallery_conf = {
     'examples_dirs': '../../examples',
@@ -31,16 +37,9 @@ sphinx_gallery_conf = {
 
 # -- Options for HTML output -------------------------------------------------
 
-html_theme = 'alabaster'
-html_sidebars = {'**': ['about.html', 'navigation.html', 'localtoc.html']}
+html_theme = 'pydata_sphinx_theme'
 html_theme_options = {
-    'description':
-        'Unsupervised learning and inference of Hidden Markov Models',
-    'github_user': 'hmmlearn',
-    'github_repo': 'hmmlearn',
-    'github_banner': True,
-    'github_button': False,
-    'code_font_size': '80%',
+    'github_url': 'https://github.com/hmmlearn/hmmlearn',
 }
 htmlhelp_basename = 'hmmlearn_doc'
 

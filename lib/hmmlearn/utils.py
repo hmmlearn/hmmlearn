@@ -6,7 +6,7 @@ from scipy import special
 
 def normalize(a, axis=None):
     """
-    Normalizes the input array so that it sums to 1.
+    Normalize the input array so that it sums to 1.
 
     Parameters
     ----------
@@ -33,7 +33,7 @@ def normalize(a, axis=None):
 
 def log_normalize(a, axis=None):
     """
-    Normalizes the input array so that ``sum(exp(a)) == 1``.
+    Normalize the input array so that ``sum(exp(a)) == 1``.
 
     Parameters
     ----------
@@ -76,7 +76,8 @@ def iter_from_X_lengths(X, lengths):
 
 
 def log_mask_zero(a):
-    """Computes the log of input probabilities masking divide by zero in log.
+    """
+    Compute the log of input probabilities masking divide by zero in log.
 
     Notes
     -----

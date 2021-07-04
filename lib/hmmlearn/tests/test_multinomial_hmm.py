@@ -7,7 +7,8 @@ from . import log_likelihood_increasing, normalized
 
 
 class TestMultinomialAgainstWikipedia:
-    """Using examples from Wikipedia
+    """
+    Examples from Wikipedia:
 
     - http://en.wikipedia.org/wiki/Hidden_Markov_model
     - http://en.wikipedia.org/wiki/Viterbi_algorithm

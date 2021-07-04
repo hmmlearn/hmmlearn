@@ -40,107 +40,35 @@ def _check_and_set_gaussian_n_features(model, X):
 
 
 class GaussianHMM(_BaseHMM):
-    r"""Hidden Markov Model with Gaussian emissions.
-
-    Parameters
-    ----------
-    n_components : int
-        Number of states.
-
-    covariance_type : string, optional
-        String describing the type of covariance parameters to
-        use.  Must be one of
-
-        * "spherical" --- each state uses a single variance value that
-          applies to all features.
-        * "diag" --- each state uses a diagonal covariance matrix.
-        * "full" --- each state uses a full (i.e. unrestricted)
-          covariance matrix.
-        * "tied" --- all states use **the same** full covariance matrix.
-
-        Defaults to "diag".
-
-    min_covar : float, optional
-        Floor on the diagonal of the covariance matrix to prevent
-        overfitting. Defaults to 1e-3.
-
-    startprob_prior : array, shape (n_components, ), optional
-        Parameters of the Dirichlet prior distribution for
-        :attr:`startprob_`.
-
-    transmat_prior : array, shape (n_components, n_components), optional
-        Parameters of the Dirichlet prior distribution for each row
-        of the transition probabilities :attr:`transmat_`.
-
-    means_prior, means_weight : array, shape (n_components, ), optional
-        Mean and precision of the Normal prior distribtion for
-        :attr:`means_`.
-
-    covars_prior, covars_weight : array, shape (n_components, ), optional
-        Parameters of the prior distribution for the covariance matrix
-        :attr:`covars_`.
-
-        If :attr:`covariance_type` is "spherical" or "diag" the prior is
-        the inverse gamma distribution, otherwise --- the inverse Wishart
-        distribution.
-
-    algorithm : string, optional
-        Decoder algorithm. Must be one of "viterbi" or`"map".
-        Defaults to "viterbi".
-
-    random_state: RandomState or an int seed, optional
-        A random number generator instance.
-
-    n_iter : int, optional
-        Maximum number of iterations to perform.
-
-    tol : float, optional
-        Convergence threshold. EM will stop if the gain in log-likelihood
-        is below this value.
-
-    verbose : bool, optional
-        When ``True`` per-iteration convergence reports are printed
-        to :data:`sys.stderr`. You can diagnose convergence via the
-        :attr:`monitor_` attribute.
-
-    params : string, optional
-        Controls which parameters are updated in the training
-        process.  Can contain any combination of 's' for startprob,
-        't' for transmat, 'm' for means and 'c' for covars. Defaults
-        to all parameters.
-
-    init_params : string, optional
-        Controls which parameters are initialized prior to
-        training.  Can contain any combination of 's' for
-        startprob, 't' for transmat, 'm' for means and 'c' for covars.
-        Defaults to all parameters.
+    """
+    Hidden Markov Model with Gaussian emissions.
 
     Attributes
     ----------
     n_features : int
         Dimensionality of the Gaussian emissions.
 
-    monitor\_ : ConvergenceMonitor
+    monitor_ : ConvergenceMonitor
         Monitor object used to check the convergence of EM.
 
-    startprob\_ : array, shape (n_components, )
+    startprob_ : array, shape (n_components, )
         Initial state occupation distribution.
 
-    transmat\_ : array, shape (n_components, n_components)
+    transmat_ : array, shape (n_components, n_components)
         Matrix of transition probabilities between states.
 
-    means\_ : array, shape (n_components, n_features)
+    means_ : array, shape (n_components, n_features)
         Mean parameters for each state.
 
-    covars\_ : array
+    covars_ : array
         Covariance parameters for each state.
 
-        The shape depends on :attr:`covariance_type`::
+        The shape depends on :attr:`covariance_type`:
 
-            (n_components, )                        if "spherical",
-            (n_components, n_features)              if "diag",
-            (n_components, n_features, n_features)  if "full"
-            (n_features, n_features)                if "tied",
+        * (n_components, )                        if "spherical",
+        * (n_components, n_features)              if "diag",
+        * (n_components, n_features, n_features)  if "full",
+        * (n_features, n_features)                if "tied".
 
     Examples
     --------
@@ -148,6 +76,7 @@ class GaussianHMM(_BaseHMM):
     >>> GaussianHMM(n_components=2)  #doctest: +ELLIPSIS
     GaussianHMM(algorithm='viterbi',...
     """
+
     def __init__(self, n_components=1, covariance_type='diag',
                  min_covar=1e-3,
                  startprob_prior=1.0, transmat_prior=1.0,
@@ -156,13 +85,76 @@ class GaussianHMM(_BaseHMM):
                  algorithm="viterbi", random_state=None,
                  n_iter=10, tol=1e-2, verbose=False,
                  params="stmc", init_params="stmc"):
+        """
+        Parameters
+        ----------
+        n_components : int
+            Number of states.
+
+        covariance_type : {"sperical", "diag", "full", "tied"}, optional
+            The type of covariance parameters to use:
+
+            * "spherical" --- each state uses a single variance value that
+              applies to all features (default).
+            * "diag" --- each state uses a diagonal covariance matrix.
+            * "full" --- each state uses a full (i.e. unrestricted)
+              covariance matrix.
+            * "tied" --- all states use **the same** full covariance matrix.
+
+        min_covar : float, optional
+            Floor on the diagonal of the covariance matrix to prevent
+            overfitting. Defaults to 1e-3.
+
+        startprob_prior : array, shape (n_components, ), optional
+            Parameters of the Dirichlet prior distribution for
+            :attr:`startprob_`.
+
+        transmat_prior : array, shape (n_components, n_components), optional
+            Parameters of the Dirichlet prior distribution for each row
+            of the transition probabilities :attr:`transmat_`.
+
+        means_prior, means_weight : array, shape (n_components, ), optional
+            Mean and precision of the Normal prior distribtion for
+            :attr:`means_`.
+
+        covars_prior, covars_weight : array, shape (n_components, ), optional
+            Parameters of the prior distribution for the covariance matrix
+            :attr:`covars_`.
+
+            If :attr:`covariance_type` is "spherical" or "diag" the prior is
+            the inverse gamma distribution, otherwise --- the inverse Wishart
+            distribution.
+
+        algorithm : {"viterbi", "map"}, optional
+            Decoder algorithm.
+
+        random_state: RandomState or an int seed, optional
+            A random number generator instance.
+
+        n_iter : int, optional
+            Maximum number of iterations to perform.
+
+        tol : float, optional
+            Convergence threshold. EM will stop if the gain in log-likelihood
+            is below this value.
+
+        verbose : bool, optional
+            Whether per-iteration convergence reports are printed to
+            :data:`sys.stderr`.  Convergence can also be diagnosed using the
+            :attr:`monitor_` attribute.
+
+        params, init_params : string, optional
+            The parameters that get updated during (``params``) or initialized
+            before (``init_params``) the training.  Can contain any combination
+            of 's' for startprob, 't' for transmat, 'm' for means, and 'c' for
+            covars.  Defaults to all parameters.
+        """
         _BaseHMM.__init__(self, n_components,
                           startprob_prior=startprob_prior,
                           transmat_prior=transmat_prior, algorithm=algorithm,
                           random_state=random_state, n_iter=n_iter,
                           tol=tol, params=params, verbose=verbose,
                           init_params=init_params)
-
         self.covariance_type = covariance_type
         self.min_covar = min_covar
         self.means_prior = means_prior
@@ -338,68 +330,24 @@ def _multinomialhmm_fix_docstring_shape(func):
 
 
 class MultinomialHMM(_BaseHMM):
-    r"""Hidden Markov Model with multinomial (discrete) emissions.
-
-    Parameters
-    ----------
-
-    n_components : int
-        Number of states.
-
-    startprob_prior : array, shape (n_components, ), optional
-        Parameters of the Dirichlet prior distribution for
-        :attr:`startprob_`.
-
-    transmat_prior : array, shape (n_components, n_components), optional
-        Parameters of the Dirichlet prior distribution for each row
-        of the transition probabilities :attr:`transmat_`.
-
-    algorithm : string, optional
-        Decoder algorithm. Must be one of "viterbi" or "map".
-        Defaults to "viterbi".
-
-    random_state: RandomState or an int seed, optional
-        A random number generator instance.
-
-    n_iter : int, optional
-        Maximum number of iterations to perform.
-
-    tol : float, optional
-        Convergence threshold. EM will stop if the gain in log-likelihood
-        is below this value.
-
-    verbose : bool, optional
-        When ``True`` per-iteration convergence reports are printed
-        to :data:`sys.stderr`. You can diagnose convergence via the
-        :attr:`monitor_` attribute.
-
-    params : string, optional
-        Controls which parameters are updated in the training
-        process.  Can contain any combination of 's' for startprob,
-        't' for transmat, 'e' for emissionprob.
-        Defaults to all parameters.
-
-    init_params : string, optional
-        Controls which parameters are initialized prior to
-        training.  Can contain any combination of 's' for
-        startprob, 't' for transmat, 'e' for emissionprob.
-        Defaults to all parameters.
+    """
+    Hidden Markov Model with multinomial (discrete) emissions.
 
     Attributes
     ----------
     n_features : int
         Number of possible symbols emitted by the model (in the samples).
 
-    monitor\_ : ConvergenceMonitor
+    monitor_ : ConvergenceMonitor
         Monitor object used to check the convergence of EM.
 
-    startprob\_ : array, shape (n_components, )
+    startprob_ : array, shape (n_components, )
         Initial state occupation distribution.
 
-    transmat\_ : array, shape (n_components, n_components)
+    transmat_ : array, shape (n_components, n_components)
         Matrix of transition probabilities between states.
 
-    emissionprob\_ : array, shape (n_components, n_features)
+    emissionprob_ : array, shape (n_components, n_features)
         Probability of emitting a given symbol when in each state.
 
     Examples
@@ -408,12 +356,51 @@ class MultinomialHMM(_BaseHMM):
     >>> MultinomialHMM(n_components=2)  #doctest: +ELLIPSIS
     MultinomialHMM(algorithm='viterbi',...
     """
+
     # TODO: accept the prior on emissionprob_ for consistency.
     def __init__(self, n_components=1,
                  startprob_prior=1.0, transmat_prior=1.0,
                  algorithm="viterbi", random_state=None,
                  n_iter=10, tol=1e-2, verbose=False,
                  params="ste", init_params="ste"):
+        """
+        Parameters
+        ----------
+        n_components : int
+            Number of states.
+
+        startprob_prior : array, shape (n_components, ), optional
+            Parameters of the Dirichlet prior distribution for
+            :attr:`startprob_`.
+
+        transmat_prior : array, shape (n_components, n_components), optional
+            Parameters of the Dirichlet prior distribution for each row
+            of the transition probabilities :attr:`transmat_`.
+
+        algorithm : {"viterbi", "map"}, optional
+            Decoder algorithm.
+
+        random_state: RandomState or an int seed, optional
+            A random number generator instance.
+
+        n_iter : int, optional
+            Maximum number of iterations to perform.
+
+        tol : float, optional
+            Convergence threshold. EM will stop if the gain in log-likelihood
+            is below this value.
+
+        verbose : bool, optional
+            Whether per-iteration convergence reports are printed to
+            :data:`sys.stderr`.  Convergence can also be diagnosed using the
+            :attr:`monitor_` attribute.
+
+        params, init_params : string, optional
+            The parameters that get updated during (``params``) or initialized
+            before (``init_params``) the training.  Can contain any
+            combination of 's' for startprob, 't' for transmat, and 'e' for
+            emissionprob.  Defaults to all parameters.
+        """
         _BaseHMM.__init__(self, n_components,
                           startprob_prior=startprob_prior,
                           transmat_prior=transmat_prior,
@@ -492,7 +479,7 @@ class MultinomialHMM(_BaseHMM):
 
     def _check_and_set_n_features(self, X):
         """
-        Check if ``X`` is a sample from a Multinomial distribution, i.e. an
+        Check if ``X`` is a sample from a multinomial distribution, i.e. an
         array of non-negative integers.
         """
         if not np.issubdtype(X.dtype, np.integer):
@@ -509,116 +496,35 @@ class MultinomialHMM(_BaseHMM):
 
 
 class GMMHMM(_BaseHMM):
-    r"""Hidden Markov Model with Gaussian mixture emissions.
-
-    Parameters
-    ----------
-    n_components : int
-        Number of states in the model.
-
-    n_mix : int
-        Number of states in the GMM.
-
-    covariance_type : string, optional
-        String describing the type of covariance parameters to
-        use.  Must be one of
-
-        * "spherical" --- each state uses a single variance value that
-          applies to all features.
-        * "diag" --- each state uses a diagonal covariance matrix.
-        * "full" --- each state uses a full (i.e. unrestricted)
-          covariance matrix.
-        * "tied" --- all mixture components of each state use **the same** full
-          covariance matrix (note that this is not the same as for
-          `GaussianHMM`).
-
-        Defaults to "diag".
-
-    min_covar : float, optional
-        Floor on the diagonal of the covariance matrix to prevent
-        overfitting. Defaults to 1e-3.
-
-    startprob_prior : array, shape (n_components, ), optional
-        Parameters of the Dirichlet prior distribution for
-        :attr:`startprob_`.
-
-    transmat_prior : array, shape (n_components, n_components), optional
-        Parameters of the Dirichlet prior distribution for each row
-        of the transition probabilities :attr:`transmat_`.
-
-    weights_prior : array, shape (n_mix, ), optional
-        Parameters of the Dirichlet prior distribution for
-        :attr:`weights_`.
-
-    means_prior, means_weight : array, shape (n_mix, ), optional
-        Mean and precision of the Normal prior distribtion for
-        :attr:`means_`.
-
-    covars_prior, covars_weight : array, shape (n_mix, ), optional
-        Parameters of the prior distribution for the covariance matrix
-        :attr:`covars_`.
-
-        If :attr:`covariance_type` is "spherical" or "diag" the prior is
-        the inverse gamma distribution, otherwise --- the inverse Wishart
-        distribution.
-
-    algorithm : string, optional
-        Decoder algorithm. Must be one of "viterbi" or "map".
-        Defaults to "viterbi".
-
-    random_state: RandomState or an int seed, optional
-        A random number generator instance.
-
-    n_iter : int, optional
-        Maximum number of iterations to perform.
-
-    tol : float, optional
-        Convergence threshold. EM will stop if the gain in log-likelihood
-        is below this value.
-
-    verbose : bool, optional
-        When ``True`` per-iteration convergence reports are printed
-        to :data:`sys.stderr`. You can diagnose convergence via the
-        :attr:`monitor_` attribute.
-
-    init_params : string, optional
-        Controls which parameters are initialized prior to training. Can
-        contain any combination of 's' for startprob, 't' for transmat, 'm'
-        for means, 'c' for covars, and 'w' for GMM mixing weights.
-        Defaults to all parameters.
-
-    params : string, optional
-        Controls which parameters are updated in the training process.  Can
-        contain any combination of 's' for startprob, 't' for transmat, 'm' for
-        means, and 'c' for covars, and 'w' for GMM mixing weights.
-        Defaults to all parameters.
+    """
+    Hidden Markov Model with Gaussian mixture emissions.
 
     Attributes
     ----------
-    monitor\_ : ConvergenceMonitor
+    monitor_ : ConvergenceMonitor
         Monitor object used to check the convergence of EM.
 
-    startprob\_ : array, shape (n_components, )
+    startprob_ : array, shape (n_components, )
         Initial state occupation distribution.
 
-    transmat\_ : array, shape (n_components, n_components)
+    transmat_ : array, shape (n_components, n_components)
         Matrix of transition probabilities between states.
 
-    weights\_ : array, shape (n_components, n_mix)
+    weights_ : array, shape (n_components, n_mix)
         Mixture weights for each state.
 
-    means\_ : array, shape (n_components, n_mix, n_features)
+    means_ : array, shape (n_components, n_mix, n_features)
         Mean parameters for each mixture component in each state.
 
-    covars\_ : array
+    covars_ : array
         Covariance parameters for each mixture components in each state.
 
-        The shape depends on :attr:`covariance_type`::
+        The shape depends on :attr:`covariance_type`:
 
-            (n_components, n_mix)                          if "spherical",
-            (n_components, n_mix, n_features)              if "diag",
-            (n_components, n_mix, n_features, n_features)  if "full"
-            (n_components, n_features, n_features)         if "tied",
+        * (n_components, n_mix)                          if "spherical",
+        * (n_components, n_mix, n_features)              if "diag",
+        * (n_components, n_mix, n_features, n_features)  if "full"
+        * (n_components, n_features, n_features)         if "tied".
     """
 
     def __init__(self, n_components=1, n_mix=1,
@@ -629,6 +535,81 @@ class GMMHMM(_BaseHMM):
                  random_state=None, n_iter=10, tol=1e-2,
                  verbose=False, params="stmcw",
                  init_params="stmcw"):
+        """
+        Parameters
+        ----------
+        n_components : int
+            Number of states in the model.
+
+        n_mix : int
+            Number of states in the GMM.
+
+        covariance_type : {"sperical", "diag", "full", "tied"}, optional
+            The type of covariance parameters to use:
+
+            * "spherical" --- each state uses a single variance value that
+              applies to all features.
+            * "diag" --- each state uses a diagonal covariance matrix
+              (default).
+            * "full" --- each state uses a full (i.e. unrestricted)
+              covariance matrix.
+            * "tied" --- all mixture components of each state use **the same**
+              full covariance matrix (note that this is not the same as for
+              `GaussianHMM`).
+
+        min_covar : float, optional
+            Floor on the diagonal of the covariance matrix to prevent
+            overfitting. Defaults to 1e-3.
+
+        startprob_prior : array, shape (n_components, ), optional
+            Parameters of the Dirichlet prior distribution for
+            :attr:`startprob_`.
+
+        transmat_prior : array, shape (n_components, n_components), optional
+            Parameters of the Dirichlet prior distribution for each row
+            of the transition probabilities :attr:`transmat_`.
+
+        weights_prior : array, shape (n_mix, ), optional
+            Parameters of the Dirichlet prior distribution for
+            :attr:`weights_`.
+
+        means_prior, means_weight : array, shape (n_mix, ), optional
+            Mean and precision of the Normal prior distribtion for
+            :attr:`means_`.
+
+        covars_prior, covars_weight : array, shape (n_mix, ), optional
+            Parameters of the prior distribution for the covariance matrix
+            :attr:`covars_`.
+
+            If :attr:`covariance_type` is "spherical" or "diag" the prior is
+            the inverse gamma distribution, otherwise --- the inverse Wishart
+            distribution.
+
+        algorithm : {"viterbi", "map"}, optional
+            Decoder algorithm.
+
+        random_state: RandomState or an int seed, optional
+            A random number generator instance.
+
+        n_iter : int, optional
+            Maximum number of iterations to perform.
+
+        tol : float, optional
+            Convergence threshold. EM will stop if the gain in log-likelihood
+            is below this value.
+
+        verbose : bool, optional
+            Whether per-iteration convergence reports are printed to
+            :data:`sys.stderr`.  Convergence can also be diagnosed using the
+            :attr:`monitor_` attribute.
+
+        params, init_params : string, optional
+            The parameters that get updated during (``params``) or initialized
+            before (``init_params``) the training.  Can contain any combination
+            of 's' for startprob, 't' for transmat, 'm' for means, 'c'
+            for covars, and 'w' for GMM mixing weights.  Defaults to all
+            parameters.
+        """
         _BaseHMM.__init__(self, n_components,
                           startprob_prior=startprob_prior,
                           transmat_prior=transmat_prior,

@@ -1,3 +1,4 @@
 matplotlib
+pydata-sphinx-theme
 sphinx>=2.0
 sphinx-gallery

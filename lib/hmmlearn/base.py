@@ -18,22 +18,8 @@ DECODER_ALGORITHMS = frozenset(("viterbi", "map"))
 
 
 class ConvergenceMonitor:
-    """Monitors and reports convergence to :data:`sys.stderr`.
-
-    Parameters
-    ----------
-    tol : double
-        Convergence threshold. EM has converged either if the maximum
-        number of iterations is reached or the log probability
-        improvement between the two consecutive iterations is less
-        than threshold.
-
-    n_iter : int
-        Maximum number of iterations to perform.
-
-    verbose : bool
-        If ``True`` then per-iteration convergence reports are printed,
-        otherwise the monitor is mute.
+    """
+    Monitor and report convergence to :data:`sys.stderr`.
 
     Attributes
     ----------
@@ -41,7 +27,6 @@ class ConvergenceMonitor:
         The log probability of the data for the last two training
         iterations. If the values are not strictly increasing, the
         model did not converge.
-
     iter : int
         Number of iterations performed while training the model.
 
@@ -66,9 +51,22 @@ class ConvergenceMonitor:
     ...                                   model.monitor_.n_iter,
     ...                                   model.monitor_.verbose)
     """
+
     _template = "{iter:>10d} {logprob:>16.4f} {delta:>+16.4f}"
 
     def __init__(self, tol, n_iter, verbose):
+        """
+        Parameters
+        ----------
+        tol : double
+            Convergence threshold.  EM has converged either if the maximum
+            number of iterations is reached or the log probability improvement
+            between the two consecutive iterations is less than threshold.
+        n_iter : int
+            Maximum number of iterations to perform.
+        verbose : bool
+            Whether per-iteration convergence reports are printed.
+        """
         self.tol = tol
         self.n_iter = n_iter
         self.verbose = verbose
@@ -88,7 +86,8 @@ class ConvergenceMonitor:
         self.history.clear()
 
     def report(self, logprob):
-        """Reports convergence to :data:`sys.stderr`.
+        """
+        Report convergence to :data:`sys.stderr`.
 
         The output consists of three columns: iteration number, log
         probability of the data at the current iteration and convergence
@@ -106,13 +105,12 @@ class ConvergenceMonitor:
             message = self._template.format(
                 iter=self.iter + 1, logprob=logprob, delta=delta)
             print(message, file=sys.stderr)
-
         self.history.append(logprob)
         self.iter += 1
 
     @property
     def converged(self):
-        """``True`` if the EM algorithm converged and ``False`` otherwise."""
+        """Whether the EM algorithm converged."""
         # XXX we might want to check that ``logprob`` is non-decreasing.
         return (self.iter == self.n_iter or
                 (len(self.history) >= 2 and
@@ -120,7 +118,8 @@ class ConvergenceMonitor:
 
 
 class _BaseHMM(BaseEstimator):
-    r"""Base class for Hidden Markov Models.
+    """
+    Base class for Hidden Markov Models.
 
     This class allows for easy evaluation of, sampling from, and
     maximum a posteriori estimation of the parameters of a HMM.
@@ -128,68 +127,52 @@ class _BaseHMM(BaseEstimator):
     See the instance documentation for details specific to a
     particular object.
 
-    Parameters
-    ----------
-    n_components : int
-        Number of states in the model.
-
-    startprob_prior : array, shape (n_components, ), optional
-        Parameters of the Dirichlet prior distribution for
-        :attr:`startprob_`.
-
-    transmat_prior : array, shape (n_components, n_components), optional
-        Parameters of the Dirichlet prior distribution for each row
-        of the transition probabilities :attr:`transmat_`.
-
-    algorithm : string, optional
-        Decoder algorithm. Must be one of "viterbi" or "map".
-        Defaults to "viterbi".
-
-    random_state: RandomState or an int seed, optional
-        A random number generator instance.
-
-    n_iter : int, optional
-        Maximum number of iterations to perform.
-
-    tol : float, optional
-        Convergence threshold. EM will stop if the gain in log-likelihood
-        is below this value.
-
-    verbose : bool, optional
-        When ``True`` per-iteration convergence reports are printed
-        to :data:`sys.stderr`. You can diagnose convergence via the
-        :attr:`monitor_` attribute.
-
-    params : string, optional
-        Controls which parameters are updated in the training
-        process.  Can contain any combination of 's' for startprob,
-        't' for transmat, and other characters for subclass-specific
-        emission parameters. Defaults to all parameters.
-
-    init_params : string, optional
-        Controls which parameters are initialized prior to
-        training.  Can contain any combination of 's' for
-        startprob, 't' for transmat, and other characters for
-        subclass-specific emission parameters. Defaults to all
-        parameters.
-
     Attributes
     ----------
-    monitor\_ : ConvergenceMonitor
+    monitor_ : ConvergenceMonitor
         Monitor object used to check the convergence of EM.
-
-    startprob\_ : array, shape (n_components, )
+    startprob_ : array, shape (n_components, )
         Initial state occupation distribution.
-
-    transmat\_ : array, shape (n_components, n_components)
+    transmat_ : array, shape (n_components, n_components)
         Matrix of transition probabilities between states.
     """
+
     def __init__(self, n_components=1,
                  startprob_prior=1.0, transmat_prior=1.0,
                  algorithm="viterbi", random_state=None,
                  n_iter=10, tol=1e-2, verbose=False,
                  params=string.ascii_letters,
                  init_params=string.ascii_letters):
+        """
+        Parameters
+        ----------
+        n_components : int
+            Number of states in the model.
+        startprob_prior : array, shape (n_components, ), optional
+            Parameters of the Dirichlet prior distribution for
+            :attr:`startprob_`.
+        transmat_prior : array, shape (n_components, n_components), optional
+            Parameters of the Dirichlet prior distribution for each row
+            of the transition probabilities :attr:`transmat_`.
+        algorithm : {"viterbi", "map"}, optional
+            Decoder algorithm.
+        random_state: RandomState or an int seed, optional
+            A random number generator instance.
+        n_iter : int, optional
+            Maximum number of iterations to perform.
+        tol : float, optional
+            Convergence threshold. EM will stop if the gain in log-likelihood
+            is below this value.
+        verbose : bool, optional
+            Whether per-iteration convergence reports are printed to
+            :data:`sys.stderr`.  Convergence can also be diagnosed using the
+            :attr:`monitor_` attribute.
+        params, init_params : string, optional
+            The parameters that get updated during (``params``) or initialized
+            before (``init_params``) the training.  Can contain any combination
+            of 's' for startprob, 't' for transmat, and other characters for
+            subclass-specific emission parameters.  Defaults to all parameters.
+        """
         self.n_components = n_components
         self.params = params
         self.init_params = init_params
@@ -203,8 +186,7 @@ class _BaseHMM(BaseEstimator):
         self.monitor_ = ConvergenceMonitor(self.tol, self.n_iter, self.verbose)
 
     def get_stationary_distribution(self):
-        """Compute the stationary distribution of states.
-        """
+        """Compute the stationary distribution of states."""
         # The stationary distribution is proportional to the left-eigenvector
         # associated with the largest eigenvalue (i.e., 1) of the transition
         # matrix.
@@ -214,13 +196,13 @@ class _BaseHMM(BaseEstimator):
         return eigvec / eigvec.sum()
 
     def score_samples(self, X, lengths=None):
-        """Compute the log probability under the model and compute posteriors.
+        """
+        Compute the log probability under the model and compute posteriors.
 
         Parameters
         ----------
         X : array-like, shape (n_samples, n_features)
             Feature matrix of individual samples.
-
         lengths : array-like of integers, shape (n_sequences, ), optional
             Lengths of the individual sequences in ``X``. The sum of
             these should be ``n_samples``.
@@ -229,7 +211,6 @@ class _BaseHMM(BaseEstimator):
         -------
         logprob : float
             Log likelihood of ``X``.
-
         posteriors : array, shape (n_samples, n_components)
             State-membership probabilities for each sample in ``X``.
 
@@ -241,13 +222,13 @@ class _BaseHMM(BaseEstimator):
         return self._score(X, lengths, compute_posteriors=True)
 
     def score(self, X, lengths=None):
-        """Compute the log probability under the model.
+        """
+        Compute the log probability under the model.
 
         Parameters
         ----------
         X : array-like, shape (n_samples, n_features)
             Feature matrix of individual samples.
-
         lengths : array-like of integers, shape (n_sequences, ), optional
             Lengths of the individual sequences in ``X``. The sum of
             these should be ``n_samples``.
@@ -266,7 +247,8 @@ class _BaseHMM(BaseEstimator):
         return self._score(X, lengths, compute_posteriors=False)[0]
 
     def _score(self, X, lengths=None, *, compute_posteriors):
-        """Helper for `score` and `score_samples`.
+        """
+        Helper for `score` and `score_samples`.
 
         Compute the log probability under the model, as well as posteriors if
         *compute_posteriors* is True (otherwise, an empty array is returned
@@ -299,17 +281,16 @@ class _BaseHMM(BaseEstimator):
         return logprob, state_sequence
 
     def decode(self, X, lengths=None, algorithm=None):
-        """Find most likely state sequence corresponding to ``X``.
+        """
+        Find most likely state sequence corresponding to ``X``.
 
         Parameters
         ----------
         X : array-like, shape (n_samples, n_features)
             Feature matrix of individual samples.
-
         lengths : array-like of integers, shape (n_sequences, ), optional
             Lengths of the individual sequences in ``X``. The sum of
             these should be ``n_samples``.
-
         algorithm : string
             Decoder algorithm. Must be one of "viterbi" or "map".
             If not given, :attr:`decoder` is used.
@@ -318,7 +299,6 @@ class _BaseHMM(BaseEstimator):
         -------
         logprob : float
             Log probability of the produced state sequence.
-
         state_sequence : array, shape (n_samples, )
             Labels for each sample from ``X`` obtained via a given
             decoder ``algorithm``.
@@ -353,13 +333,13 @@ class _BaseHMM(BaseEstimator):
         return logprob, np.concatenate(sub_state_sequences)
 
     def predict(self, X, lengths=None):
-        """Find most likely state sequence corresponding to ``X``.
+        """
+        Find most likely state sequence corresponding to ``X``.
 
         Parameters
         ----------
         X : array-like, shape (n_samples, n_features)
             Feature matrix of individual samples.
-
         lengths : array-like of integers, shape (n_sequences, ), optional
             Lengths of the individual sequences in ``X``. The sum of
             these should be ``n_samples``.
@@ -373,11 +353,13 @@ class _BaseHMM(BaseEstimator):
         return state_sequence
 
     def predict_proba(self, X, lengths=None):
-        """Compute the posterior probability for each state in the model.
+        """
+        Compute the posterior probability for each state in the model.
 
+        Parameters
+        ----------
         X : array-like, shape (n_samples, n_features)
             Feature matrix of individual samples.
-
         lengths : array-like of integers, shape (n_sequences, ), optional
             Lengths of the individual sequences in ``X``. The sum of
             these should be ``n_samples``.
@@ -391,13 +373,13 @@ class _BaseHMM(BaseEstimator):
         return posteriors
 
     def sample(self, n_samples=1, random_state=None):
-        """Generate random samples from the model.
+        """
+        Generate random samples from the model.
 
         Parameters
         ----------
         n_samples : int
             Number of samples to generate.
-
         random_state : RandomState or an int seed
             A random number generator instance. If ``None``, the object's
             ``random_state`` is used.
@@ -406,7 +388,6 @@ class _BaseHMM(BaseEstimator):
         -------
         X : array, shape (n_samples, n_features)
             Feature matrix.
-
         state_sequence : array, shape (n_samples, )
             State sequence produced by the model.
         """
@@ -435,7 +416,8 @@ class _BaseHMM(BaseEstimator):
         return np.atleast_2d(X), np.array(state_sequence, dtype=int)
 
     def fit(self, X, lengths=None):
-        """Estimate model parameters.
+        """
+        Estimate model parameters.
 
         An initialization step is performed before entering the
         EM algorithm. If you want to avoid this step for a subset of
@@ -446,7 +428,6 @@ class _BaseHMM(BaseEstimator):
         ----------
         X : array-like, shape (n_samples, n_features)
             Feature matrix of individual samples.
-
         lengths : array-like of integers, shape (n_sequences, )
             Lengths of the individual sequences in ``X``. The sum of
             these should be ``n_samples``.
@@ -537,7 +518,8 @@ class _BaseHMM(BaseEstimator):
         return False
 
     def _get_n_fit_scalars_per_param(self):
-        """Return a mapping of fittable parameter name (as in ``self.params``)
+        """
+        Return a mapping of fittable parameter names (as in ``self.params``)
         to the number of corresponding scalar parameters that will actually be
         fitted.
 
@@ -546,13 +528,13 @@ class _BaseHMM(BaseEstimator):
         """
 
     def _init(self, X, lengths):
-        """Initializes model parameters prior to fitting.
+        """
+        Initialize model parameters prior to fitting.
 
         Parameters
         ----------
         X : array-like, shape (n_samples, n_features)
             Feature matrix of individual samples.
-
         lengths : array-like of integers, shape (n_sequences, )
             Lengths of the individual sequences in ``X``. The sum of
             these should be ``n_samples``.
@@ -574,11 +556,11 @@ class _BaseHMM(BaseEstimator):
                     n_fit_scalars, X.size)
 
     def _check(self):
-        """Validates model parameters prior to fitting.
+        """
+        Validate model parameters prior to fitting.
 
         Raises
         ------
-
         ValueError
             If any of the parameters are invalid, e.g. if :attr:`startprob_`
             don't sum to 1.
@@ -599,7 +581,8 @@ class _BaseHMM(BaseEstimator):
                              .format(self.transmat_.sum(axis=1)))
 
     def _compute_log_likelihood(self, X):
-        """Computes per-component log probability under the model.
+        """
+        Compute per-component log probability under the model.
 
         Parameters
         ----------
@@ -614,13 +597,13 @@ class _BaseHMM(BaseEstimator):
         """
 
     def _generate_sample_from_state(self, state, random_state=None):
-        """Generates a random sample from a given component.
+        """
+        Generate a random sample from a given component.
 
         Parameters
         ----------
         state : int
             Index of the component to condition on.
-
         random_state: RandomState or an int seed
             A random number generator instance. If ``None``, the object's
             ``random_state`` is used.
@@ -635,7 +618,8 @@ class _BaseHMM(BaseEstimator):
     # Methods used by self.fit()
 
     def _initialize_sufficient_statistics(self):
-        """Initializes sufficient statistics required for M-step.
+        """
+        Initialize sufficient statistics required for M-step.
 
         The method is *pure*, meaning that it doesn't change the state of
         the instance.  For extensibility computed statistics are stored
@@ -645,16 +629,12 @@ class _BaseHMM(BaseEstimator):
         -------
         nobs : int
             Number of samples in the data.
-
         start : array, shape (n_components, )
             An array where the i-th element corresponds to the posterior
-            probability of the first sample being generated by the i-th
-            state.
-
+            probability of the first sample being generated by the i-th state.
         trans : array, shape (n_components, n_components)
-            An array where the (i, j)-th element corresponds to the
-            posterior probability of transitioning between the i-th to j-th
-            states.
+            An array where the (i, j)-th element corresponds to the posterior
+            probability of transitioning between the i-th to j-th states.
         """
         stats = {'nobs': 0,
                  'start': np.zeros(self.n_components),
@@ -663,24 +643,21 @@ class _BaseHMM(BaseEstimator):
 
     def _accumulate_sufficient_statistics(self, stats, X, framelogprob,
                                           posteriors, fwdlattice, bwdlattice):
-        """Updates sufficient statistics from a given sample.
+        """
+        Update sufficient statistics from a given sample.
 
         Parameters
         ----------
         stats : dict
             Sufficient statistics as returned by
             :meth:`~base._BaseHMM._initialize_sufficient_statistics`.
-
         X : array, shape (n_samples, n_features)
             Sample sequence.
-
         framelogprob : array, shape (n_samples, n_components)
             Log-probabilities of each sample under each of the model states.
-
         posteriors : array, shape (n_samples, n_components)
             Posterior probabilities of each sample being generated by each
             of the model states.
-
         fwdlattice, bwdlattice : array, shape (n_samples, n_components)
             Log-forward and log-backward probabilities.
         """
@@ -703,7 +680,8 @@ class _BaseHMM(BaseEstimator):
                 stats['trans'] += np.exp(log_xi_sum)
 
     def _do_mstep(self, stats):
-        """Performs the M-step of EM algorithm.
+        """
+        Perform the M-step of EM algorithm.
 
         Parameters
         ----------
