@@ -1,4 +1,5 @@
 import itertools
+
 import numpy as np
 import pytest
 
@@ -249,7 +250,7 @@ def test_gmmhmm_multi_sequence_fit_invariant_to_sequence_ordering(
     for p in make_permutations(sequence_data):
         sequences = sequence_data[p]
         X = np.concatenate(sequences)
-        lengths = np.asarray([len(seq) for seq in sequences])
+        lengths = [len(seq) for seq in sequences]
 
         model = hmm.GMMHMM(
             n_components=2,

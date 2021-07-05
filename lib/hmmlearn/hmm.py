@@ -994,8 +994,7 @@ class GMMHMM(_BaseHMM):
                 nus = self.covars_weight
 
                 c_n = (
-                    np.einsum('ijk,ijklm->jklm',
-                              post_comp_mix, centered_dots)
+                    np.einsum('ijk,ijklm->jklm', post_comp_mix, centered_dots)
                     + psis_t
                     + lambdas[:, :, None, None] * centered_means_dots
                 )
@@ -1011,8 +1010,7 @@ class GMMHMM(_BaseHMM):
                 betas = self.covars_weight
 
                 c_n = (
-                    np.einsum('ijk,ijkl->jkl',
-                              post_comp_mix, centered2)
+                    np.einsum('ijk,ijkl->jkl', post_comp_mix, centered2)
                     + lambdas[:, :, None] * centered_means2
                     + 2 * betas
                 )
@@ -1026,8 +1024,7 @@ class GMMHMM(_BaseHMM):
                 betas = self.covars_weight
 
                 c_n = (
-                    np.einsum(
-                        'ijk,ijk->jk', post_comp_mix, centered_norm2)
+                    np.einsum('ijk,ijk->jk', post_comp_mix, centered_norm2)
                     + lambdas * centered_means_norm2
                     + 2 * betas
                 )
@@ -1041,8 +1038,7 @@ class GMMHMM(_BaseHMM):
                 nus = self.covars_weight
 
                 c_n = (
-                    np.einsum('ijk,ijklm->jlm',
-                              post_comp_mix, centered_dots)
+                    np.einsum('ijk,ijklm->jlm', post_comp_mix, centered_dots)
                     + np.einsum('ij,ijkl->ikl', lambdas, centered_means_dots)
                     + psis_t
                 )
