@@ -1017,8 +1017,10 @@ class GMMHMM(_BaseHMM):
                 c_d = stats['post_mix_sum'][:, :, None] + 1 + 2 * (alphas + 1)
 
             elif self.covariance_type == 'spherical':
-                centered_norm2 = (centered ** 2).sum(axis=-1)
-                centered_means_norm2 = (centered_means ** 2).sum(axis=-1)
+                # Much faster than (x**2).sum(-1).
+                def norm_last(x): return np.einsum('...i,...i', x, x)
+                centered_norm2 = norm_last(centered)
+                centered_means_norm2 = norm_last(centered_means)
 
                 alphas = self.covars_prior
                 betas = self.covars_weight
