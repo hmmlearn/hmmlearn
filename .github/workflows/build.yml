@@ -44,10 +44,12 @@ jobs:
           python setup.py bdist_wheel
           ;;
         esac
+      if: ${{ always() }}
     - uses: actions/upload-artifact@v2
       with:
         name: wheels
         path: dist/*.whl
+      if: ${{ always() }}
   build_aarch64:
     name: "Build wheel on ${{ matrix.pyver }} aarch64"
     strategy:
@@ -83,3 +85,4 @@ jobs:
       with:
         name: wheels
         path: dist/*.whl
+      if: ${{ always() }}
