@@ -3,8 +3,10 @@ hmmlearn Changelog
 
 Here you can see the full list of changes between each hmmlearn release.
 
-next
-----
+Version 0.2.6
+-------------
+
+Released on July 18th, 2021.
 
 - Fixed support for multi-sequence GMM-HMM fit.
 - Deprecated ``utils.iter_from_X_lengths``.
@@ -15,7 +17,7 @@ next
 Version 0.2.5
 -------------
 
-Released on February 3, 2021.
+Released on February 3rd, 2021.
 
 - Fixed typo in implementation of covariance maximization for GMMHMM.
 - Changed history of ConvergenceMonitor to include the whole history for
