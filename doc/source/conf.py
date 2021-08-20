@@ -41,6 +41,8 @@ html_theme = 'pydata_sphinx_theme'
 html_theme_options = {
     'github_url': 'https://github.com/hmmlearn/hmmlearn',
 }
+html_css_files = ['hide_some_gallery_elements.css']
+html_static_path = ['_static']
 htmlhelp_basename = 'hmmlearn_doc'
 
 # -- Options for LaTeX output ------------------------------------------------

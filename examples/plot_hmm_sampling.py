@@ -9,14 +9,12 @@ The plot show the sequence of observations generated with the transitions
 between them. We can see that, as specified by our transition matrix,
 there are no transition between component 1 and 3.
 """
-print(__doc__)
 
 import numpy as np
 import matplotlib.pyplot as plt
 
 from hmmlearn import hmm
 
-##############################################################
 # Prepare parameters for a 4-components HMM
 # Initial population probability
 startprob = np.array([0.6, 0.3, 0.1, 0.0])
@@ -43,7 +41,6 @@ model.startprob_ = startprob
 model.transmat_ = transmat
 model.means_ = means
 model.covars_ = covars
-###############################################################
 
 # Generate samples
 X, Z = model.sample(500)
