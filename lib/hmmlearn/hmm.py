@@ -1,11 +1,3 @@
-# Hidden Markov Models
-#
-# Author: Ron Weiss <ronweiss@gmail.com>
-#         Shiqiao Du <lucidfrontier.45@gmail.com>
-# API changes: Jaques Grobler <jaquesgrobler@gmail.com>
-# Modifications to create of the HMMLearn module: Gael Varoquaux
-# More API changes: Sergei Lebedev <superbobry@gmail.com>
-
 """
 The :mod:`hmmlearn.hmm` module implements hidden Markov models.
 """
