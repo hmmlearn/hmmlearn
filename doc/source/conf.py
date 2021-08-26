@@ -29,6 +29,7 @@ intersphinx_mapping = {
 }
 
 napoleon_use_ivar = True
+napoleon_use_rtype = False
 
 sphinx_gallery_conf = {
     'examples_dirs': '../../examples',
