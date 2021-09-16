@@ -25,10 +25,13 @@ COVARIANCE_TYPES = frozenset(("spherical", "diag", "full", "tied"))
 
 def _check_and_set_gaussian_n_features(model, X):
     _, n_features = X.shape
-    if hasattr(model, "n_features") and model.n_features != n_features:
-        raise ValueError("Unexpected number of dimensions, got {} but "
-                         "expected {}".format(n_features, model.n_features))
-    model.n_features = n_features
+    if hasattr(model, "n_features"):
+        if model.n_features != n_features:
+            raise ValueError(
+                "Unexpected number of dimensions, got {} but expected {}"
+                .format(n_features, model.n_features))
+    else:
+        model.n_features = n_features
 
 
 class GaussianHMM(_BaseHMM):
@@ -422,7 +425,7 @@ class MultinomialHMM(_BaseHMM):
         }
 
     def _init(self, X, lengths=None):
-        self._check_and_set_n_features(X)
+        self._check_and_set_multinomial_n_features(X)
         super()._init(X, lengths=lengths)
         self.random_state = check_random_state(self.random_state)
 
@@ -469,7 +472,7 @@ class MultinomialHMM(_BaseHMM):
             self.emissionprob_ = (
                 stats['obs'] / stats['obs'].sum(axis=1, keepdims=True))
 
-    def _check_and_set_n_features(self, X):
+    def _check_and_set_multinomial_n_features(self, X):
         """
         Check if ``X`` is a sample from a multinomial distribution, i.e. an
         array of non-negative integers.
@@ -481,10 +484,10 @@ class MultinomialHMM(_BaseHMM):
         if hasattr(self, "n_features"):
             if self.n_features - 1 < X.max():
                 raise ValueError(
-                    "Largest symbol is {} but the model only emits "
-                    "symbols up to {}"
-                    .format(X.max(), self.n_features - 1))
-        self.n_features = X.max() + 1
+                    "Largest symbol is {} but the model only emits symbols up "
+                    "to {}".format(X.max(), self.n_features - 1))
+        else:
+            self.n_features = X.max() + 1
 
 
 class GMMHMM(_BaseHMM):

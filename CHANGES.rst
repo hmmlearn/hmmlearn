@@ -3,6 +3,11 @@ hmmlearn Changelog
 
 Here you can see the full list of changes between each hmmlearn release.
 
+next
+----
+
+- MultinomialHMM no longer overwrites preset ``n_features``.
+
 Version 0.2.6
 -------------
 
