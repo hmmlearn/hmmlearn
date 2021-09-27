@@ -1,7 +1,6 @@
 import numpy as np
 import pytest
 from scipy import special
-
 from hmmlearn.base import _BaseHMM, ConvergenceMonitor
 
 
@@ -60,20 +59,36 @@ class StubHMM(_BaseHMM):
 class TestBaseAgainstWikipedia:
     def setup_method(self, method):
         # Example from http://en.wikipedia.org/wiki/Forward-backward_algorithm
-        self.framelogprob = np.log([[0.9, 0.2],
-                                    [0.9, 0.2],
-                                    [0.1, 0.8],
-                                    [0.9, 0.2],
-                                    [0.9, 0.2]])
+        self.frameprob = np.asarray([[0.9, 0.2],
+                                     [0.9, 0.2],
+                                     [0.1, 0.8],
+                                     [0.9, 0.2],
+                                     [0.9, 0.2]])
+        self.framelogprob = np.log(self.frameprob)
 
         h = StubHMM(2)
         h.transmat_ = [[0.7, 0.3], [0.3, 0.7]]
         h.startprob_ = [0.5, 0.5]
         h.framelogprob = self.framelogprob
+        h.frameprob = self.frameprob
         self.hmm = h
 
+    def test_do_forward_scaling_pass(self):
+
+        logprob, fwdlattice, scaling_factors = \
+                self.hmm._do_forward_scaling_pass(self.frameprob)
+
+        reflogprob = -3.3725
+        assert round(logprob, 4) == reflogprob
+        reffwdlattice = np.exp([[0.4500, 0.1000],
+                                [0.3105, 0.0410],
+                                [0.0230, 0.0975],
+                                [0.0408, 0.0150],
+                                [0.0298, 0.0046]])
+        assert np.allclose(np.exp(fwdlattice), reffwdlattice, 4)
+
     def test_do_forward_pass(self):
-        logprob, fwdlattice = self.hmm._do_forward_pass(self.framelogprob)
+        logprob, fwdlattice = self.hmm._do_forward_log_pass(self.framelogprob)
 
         reflogprob = -3.3725
         assert round(logprob, 4) == reflogprob
@@ -84,8 +99,23 @@ class TestBaseAgainstWikipedia:
                                   [0.0298, 0.0046]])
         assert np.allclose(np.exp(fwdlattice), reffwdlattice, 4)
 
-    def test_do_backward_pass(self):
-        bwdlattice = self.hmm._do_backward_pass(self.framelogprob)
+    def test_do_backward_scaling_pass(self):
+        logprob, fwdlattice, scaling_factors = \
+                self.hmm._do_forward_scaling_pass(self.frameprob)
+        bwdlattice = self.hmm._do_backward_scaling_pass(
+            self.frameprob, scaling_factors)
+        refbwdlattice = np.array([[0.0661, 0.0455],
+                                  [0.0906, 0.1503],
+                                  [0.4593, 0.2437],
+                                  [0.6900, 0.4100],
+                                  [1.0000, 1.0000]])
+        scaling_factors = np.cumprod(scaling_factors[::-1])[::-1]
+        bwdlattice_scaled = bwdlattice / scaling_factors[:, None]
+        # Answer will be equivalent when the scaling factor is accounted for
+        assert np.allclose(bwdlattice_scaled, refbwdlattice, 4)
+
+    def test_do_backward_log_pass(self):
+        bwdlattice = self.hmm._do_backward_log_pass(self.framelogprob)
 
         refbwdlattice = np.array([[0.0661, 0.0455],
                                   [0.0906, 0.1503],
