@@ -24,3 +24,4 @@ Authors and contributors, in no particular order:
 * Christopher Farrow
 * Alexandr Yanenko
 * Antony Lee
+* Matthew Danielson

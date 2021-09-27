@@ -45,9 +45,9 @@ def assert_log_likelihood_increasing(h, X, lengths, n_iter):
     # XXX the rounding is necessary because LL can oscillate in the
     #     fractional part, failing the tests.
     diff = np.diff(log_likelihoods)
-    rounded_diff = np.round(diff, 10)
-    diff_greater_than_zero = rounded_diff >= 0
-    assert diff_greater_than_zero.all(),  f"Non-increasing log-likelihoods:\n" \
-                                          f"diff={diff}\n" \
-                                          f"rounded_diff={rounded_diff}\n" \
-                                          f"diff>0={diff_greater_than_zero}"
+    value = np.finfo(float).eps ** (1/2)
+    assert diff.max() > value, f"Non-increasing log-likelihoods:\n" \
+                               f"lls={log_likelihoods}\n" \
+                               f"diff={diff}\n" \
+                               f"diff.max() < value={diff.min() < value}\n" \
+                               f"np.finfo(float).eps={value}\n"

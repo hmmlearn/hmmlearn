@@ -38,6 +38,10 @@ algorithm, known as the Baum-Welch algorithm.
   - Jeff A. Bilmes, "A gentle tutorial of the EM algorithm and its application
     to parameter estimation for Gaussian mixture and hidden Markov models.",
     1998.
+  - Mark Stamp. "A revealing introduction to hidden Markov models". Tech. rep.
+    Department of Computer Science, San Jose State University, 2018.
+    url: http://www.cs.sjsu.edu/~stamp/RUA/HMM.pdf.
+
 
 Available models
 ----------------
@@ -220,6 +224,11 @@ subclass :class:`~base._BaseHMM` and override the following methods
    base._BaseHMM._check
    base._BaseHMM._generate_sample_from_state
    base._BaseHMM._compute_log_likelihood
+   base._BaseHMM._compute_likelihood
    base._BaseHMM._initialize_sufficient_statistics
    base._BaseHMM._accumulate_sufficient_statistics
    base._BaseHMM._do_mstep
+
+Optionally, only one of `base._BaseHMM._compute_likelihood` and
+`base._BaseHMM._compute_log_likelihood` need to be overridden, and the
+base implementation will provide the other.

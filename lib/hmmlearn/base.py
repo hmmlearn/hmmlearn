@@ -142,7 +142,8 @@ class _BaseHMM(BaseEstimator):
                  algorithm="viterbi", random_state=None,
                  n_iter=10, tol=1e-2, verbose=False,
                  params=string.ascii_letters,
-                 init_params=string.ascii_letters):
+                 init_params=string.ascii_letters,
+                 implementation="log"):
         """
         Parameters
         ----------
@@ -172,6 +173,11 @@ class _BaseHMM(BaseEstimator):
             before (``init_params``) the training.  Can contain any combination
             of 's' for startprob, 't' for transmat, and other characters for
             subclass-specific emission parameters.  Defaults to all parameters.
+        implementation: string, optional
+            Determines if the forward-backward algorithm is implemented with
+            logarithms ("log"), or using scaling ("scaling").  The default is
+            to use logarithms for backwards compatability.  However, the
+            scaling implementation is generally faster.
         """
         self.n_components = n_components
         self.params = params
@@ -183,6 +189,7 @@ class _BaseHMM(BaseEstimator):
         self.n_iter = n_iter
         self.tol = tol
         self.verbose = verbose
+        self.implementation = implementation
         self.monitor_ = ConvergenceMonitor(self.tol, self.n_iter, self.verbose)
 
     def get_stationary_distribution(self):
@@ -258,16 +265,44 @@ class _BaseHMM(BaseEstimator):
         self._check()
 
         X = check_array(X)
+        impl = {
+            "scaling": self._score_scaling,
+            "log": self._score_log,
+        }[self.implementation]
+        return impl(X=X, lengths=lengths, compute_posteriors=compute_posteriors)
+
+    def _score_log(self, X, lengths=None, *, compute_posteriors):
+        """
+        Compute the log probability under the model, as well as posteriors if
+        *compute_posteriors* is True (otherwise, an empty array is returned
+        for the latter).
+        """
         logprob = 0
         sub_posteriors = [np.empty((0, self.n_components))]
         for sub_X in _utils.split_X_lengths(X, lengths):
             framelogprob = self._compute_log_likelihood(sub_X)
-            logprobij, fwdlattice = self._do_forward_pass(framelogprob)
+            logprobij, fwdlattice = self._do_forward_log_pass(framelogprob)
             logprob += logprobij
             if compute_posteriors:
-                bwdlattice = self._do_backward_pass(framelogprob)
+                bwdlattice = self._do_backward_log_pass(framelogprob)
                 sub_posteriors.append(
-                    self._compute_posteriors(fwdlattice, bwdlattice))
+                    self._compute_posteriors_log(fwdlattice, bwdlattice))
+        return logprob, np.concatenate(sub_posteriors)
+
+    def _score_scaling(self, X, lengths=None, *, compute_posteriors):
+        logprob = 0
+        sub_posteriors = [np.empty((0, self.n_components))]
+        for sub_X in _utils.split_X_lengths(X, lengths):
+            frameprob = self._compute_likelihood(sub_X)
+            logprobij, fwdlattice, scaling_factors = \
+                    self._do_forward_scaling_pass(frameprob)
+            logprob += logprobij
+            if compute_posteriors:
+                bwdlattice = self._do_backward_scaling_pass(
+                    frameprob, scaling_factors)
+                sub_posteriors.append(
+                    self._compute_posteriors_scaling(fwdlattice, bwdlattice))
+
         return logprob, np.concatenate(sub_posteriors)
 
     def _decode_viterbi(self, X):
@@ -453,18 +488,24 @@ class _BaseHMM(BaseEstimator):
         self._check()
 
         self.monitor_._reset()
+
+        impl = {
+            "scaling": self._fit_scaling,
+            "log": self._fit_log,
+        }[self.implementation]
         for iter in range(self.n_iter):
             stats = self._initialize_sufficient_statistics()
             curr_logprob = 0
             for sub_X in _utils.split_X_lengths(X, lengths):
-                framelogprob = self._compute_log_likelihood(sub_X)
-                logprob, fwdlattice = self._do_forward_pass(framelogprob)
-                curr_logprob += logprob
-                bwdlattice = self._do_backward_pass(framelogprob)
-                posteriors = self._compute_posteriors(fwdlattice, bwdlattice)
+                lattice, logprob, posteriors, fwdlattice, bwdlattice = \
+                        impl(sub_X)
+                # Derived HMM classes will implement the following method to
+                # update their probability distributions, so keep
+                # a single call to this method for simplicity.
                 self._accumulate_sufficient_statistics(
-                    stats, sub_X, framelogprob, posteriors, fwdlattice,
+                    stats, sub_X, lattice, posteriors, fwdlattice,
                     bwdlattice)
+                curr_logprob += logprob
 
             # XXX must be before convergence check, because otherwise
             #     there won't be any updates for the case ``n_iter=1``.
@@ -480,6 +521,21 @@ class _BaseHMM(BaseEstimator):
 
         return self
 
+    def _fit_scaling(self, X):
+        frameprob = self._compute_likelihood(X)
+        logprob, fwdlattice, scaling_factors = \
+                self._do_forward_scaling_pass(frameprob)
+        bwdlattice = self._do_backward_scaling_pass(frameprob, scaling_factors)
+        posteriors = self._compute_posteriors_scaling(fwdlattice, bwdlattice)
+        return frameprob, logprob, posteriors, fwdlattice, bwdlattice
+
+    def _fit_log(self, X):
+        framelogprob = self._compute_log_likelihood(X)
+        logprob, fwdlattice = self._do_forward_log_pass(framelogprob)
+        bwdlattice = self._do_backward_log_pass(framelogprob)
+        posteriors = self._compute_posteriors_log(fwdlattice, bwdlattice)
+        return framelogprob, logprob, posteriors, fwdlattice, bwdlattice
+
     def _do_viterbi_pass(self, framelogprob):
         n_samples, n_components = framelogprob.shape
         state_sequence, logprob = _hmmc._viterbi(
@@ -487,26 +543,56 @@ class _BaseHMM(BaseEstimator):
             log_mask_zero(self.transmat_), framelogprob)
         return logprob, state_sequence
 
-    def _do_forward_pass(self, framelogprob):
+    def _do_forward_scaling_pass(self, frameprob):
+        n_samples, n_components = frameprob.shape
+        fwdlattice = np.zeros((n_samples, n_components))
+        scaling_factors = np.zeros(n_samples)
+        success = _hmmc._forward_scaling(n_samples, n_components,
+                                         np.asarray(self.startprob_),
+                                         np.asarray(self.transmat_),
+                                         frameprob,
+                                         fwdlattice,
+                                         scaling_factors)
+        if not success:
+            raise ValueError('Forward pass failed with underflow,'
+                             'consider using implementation="log" instead')
+        log_prob = -np.sum(np.log(scaling_factors))
+        return log_prob, fwdlattice, scaling_factors
+
+    def _do_forward_log_pass(self, framelogprob):
         n_samples, n_components = framelogprob.shape
         fwdlattice = np.zeros((n_samples, n_components))
-        _hmmc._forward(n_samples, n_components,
-                       log_mask_zero(self.startprob_),
-                       log_mask_zero(self.transmat_),
-                       framelogprob, fwdlattice)
+        _hmmc._forward_log(n_samples, n_components,
+                           log_mask_zero(self.startprob_),
+                           log_mask_zero(self.transmat_),
+                           framelogprob, fwdlattice)
         with np.errstate(under="ignore"):
             return special.logsumexp(fwdlattice[-1]), fwdlattice
 
-    def _do_backward_pass(self, framelogprob):
+    def _do_backward_scaling_pass(self, frameprob, scaling_factors):
+        n_samples, n_components = frameprob.shape
+        bwdlattice = np.zeros((n_samples, n_components))
+        _hmmc._backward_scaling(n_samples, n_components,
+                                np.asarray(self.startprob_),
+                                np.asarray(self.transmat_),
+                                frameprob, scaling_factors, bwdlattice)
+        return bwdlattice
+
+    def _do_backward_log_pass(self, framelogprob):
         n_samples, n_components = framelogprob.shape
         bwdlattice = np.zeros((n_samples, n_components))
-        _hmmc._backward(n_samples, n_components,
+        _hmmc._backward_log(n_samples, n_components,
                         log_mask_zero(self.startprob_),
                         log_mask_zero(self.transmat_),
                         framelogprob, bwdlattice)
         return bwdlattice
 
-    def _compute_posteriors(self, fwdlattice, bwdlattice):
+    def _compute_posteriors_scaling(self, fwdlattice, bwdlattice):
+        posteriors = fwdlattice * bwdlattice
+        normalize(posteriors, axis=1)
+        return posteriors
+
+    def _compute_posteriors_log(self, fwdlattice, bwdlattice):
         # gamma is guaranteed to be correctly normalized by logprob at
         # all frames, unless we do approximate inference using pruning.
         # So, we will normalize each frame explicitly in case we
@@ -591,6 +677,27 @@ class _BaseHMM(BaseEstimator):
             raise ValueError("rows of transmat_ must sum to 1.0 (got {})"
                              .format(self.transmat_.sum(axis=1)))
 
+    def _compute_likelihood(self, X):
+        """Computes per-component probability under the model.
+
+        Parameters
+        ----------
+        X : array-like, shape (n_samples, n_features)
+            Feature matrix of individual samples.
+
+        Returns
+        -------
+        logprob : array, shape (n_samples, n_components)
+            Log probability of each sample in ``X`` for each of the
+            model states.
+        """
+        if self._compute_log_likelihood != \
+           _BaseHMM._compute_log_likelihood.__get__(self):  # prevent recursion
+            return np.exp(self._compute_log_likelihood(X))
+        else:
+            raise NotImplementedError("Must be overridden in subclass")
+
+
     def _compute_log_likelihood(self, X):
         """
         Compute per-component emission log probability under the model.
@@ -606,6 +713,11 @@ class _BaseHMM(BaseEstimator):
             Emission log probability of each sample in ``X`` for each of the
             model states, i.e., ``log(p(X|state))``.
         """
+        if self._compute_likelihood != \
+           _BaseHMM._compute_likelihood.__get__(self):  # prevent recursion
+            return np.log(self._compute_likelihood(X))
+        else:
+            raise NotImplementedError("Must be overridden in subclass")
 
     def _generate_sample_from_state(self, state, random_state=None):
         """
@@ -652,31 +764,76 @@ class _BaseHMM(BaseEstimator):
                  'trans': np.zeros((self.n_components, self.n_components))}
         return stats
 
-    def _accumulate_sufficient_statistics(self, stats, X, framelogprob,
+    def _accumulate_sufficient_statistics(self, stats, X, lattice,
                                           posteriors, fwdlattice, bwdlattice):
-        """
-        Update sufficient statistics from a given sample.
+        """Updates sufficient statistics from a given sample.
 
         Parameters
         ----------
         stats : dict
             Sufficient statistics as returned by
             :meth:`~base._BaseHMM._initialize_sufficient_statistics`.
+
         X : array, shape (n_samples, n_features)
             Sample sequence.
-        framelogprob : array, shape (n_samples, n_components)
-            Log-probabilities of each sample under each of the model states.
+
+        lattice : array, shape (n_samples, n_components)
+            Probabilities OR Log Probabilities of each sample
+            under each of the model states.  Depends on the choice
+            of implementation of the Forward-Backward algorithm
+
         posteriors : array, shape (n_samples, n_components)
             Posterior probabilities of each sample being generated by each
             of the model states.
+
         fwdlattice, bwdlattice : array, shape (n_samples, n_components)
-            Log-forward and log-backward probabilities.
+            forward and backward probabilities.
+        """
+
+        impl = {
+            "scaling": self._accumulate_sufficient_statistics_scaling,
+            "log": self._accumulate_sufficient_statistics_log,
+        }[self.implementation]
+
+        return impl(stats=stats, X=X, lattice=lattice, posteriors=posteriors,
+                    fwdlattice=fwdlattice, bwdlattice=bwdlattice)
+
+    def _accumulate_sufficient_statistics_scaling(self, stats, X, lattice,
+                                                  posteriors, fwdlattice,
+                                                  bwdlattice):
+        """
+        Implementation of `_accumulate_sufficient_statistics`
+        for ``implementation = "log"``.
         """
         stats['nobs'] += 1
         if 's' in self.params:
             stats['start'] += posteriors[0]
         if 't' in self.params:
-            n_samples, n_components = framelogprob.shape
+            n_samples, n_components = lattice.shape
+            # when the sample is of length 1, it contains no transitions
+            # so there is no reason to update our trans. matrix estimate
+            if n_samples <= 1:
+                return
+
+            xi_sum = np.full((n_components, n_components), 0.)
+            _hmmc._compute_xi_sum_scaling(n_samples, n_components, fwdlattice,
+                                      self.transmat_,
+                                      bwdlattice, lattice,
+                                      xi_sum)
+            stats['trans'] += xi_sum
+
+    def _accumulate_sufficient_statistics_log(self, stats, X, lattice,
+                                              posteriors, fwdlattice,
+                                              bwdlattice):
+        """
+        Implementation of `_accumulate_sufficient_statistics`
+        for ``implementation = "log"``.
+        """
+        stats['nobs'] += 1
+        if 's' in self.params:
+            stats['start'] += posteriors[0]
+        if 't' in self.params:
+            n_samples, n_components = lattice.shape
             # when the sample is of length 1, it contains no transitions
             # so there is no reason to update our trans. matrix estimate
             if n_samples <= 1:
@@ -685,7 +842,7 @@ class _BaseHMM(BaseEstimator):
             log_xi_sum = np.full((n_components, n_components), -np.inf)
             _hmmc._compute_log_xi_sum(n_samples, n_components, fwdlattice,
                                       log_mask_zero(self.transmat_),
-                                      bwdlattice, framelogprob,
+                                      bwdlattice, lattice,
                                       log_xi_sum)
             with np.errstate(under="ignore"):
                 stats['trans'] += np.exp(log_xi_sum)

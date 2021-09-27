@@ -79,7 +79,8 @@ class GaussianHMM(_BaseHMM):
                  covars_prior=1e-2, covars_weight=1,
                  algorithm="viterbi", random_state=None,
                  n_iter=10, tol=1e-2, verbose=False,
-                 params="stmc", init_params="stmc"):
+                 params="stmc", init_params="stmc",
+                 implementation="log"):
         """
         Parameters
         ----------
@@ -143,13 +144,19 @@ class GaussianHMM(_BaseHMM):
             before (``init_params``) the training.  Can contain any combination
             of 's' for startprob, 't' for transmat, 'm' for means, and 'c' for
             covars.  Defaults to all parameters.
+
+        implementation: string, optional
+            Determines if the forward-backward algorithm is implemented with
+            logarithms ("log"), or using scaling ("scaling").  The default is
+            to use logarithms for backwards compatability.
         """
         _BaseHMM.__init__(self, n_components,
                           startprob_prior=startprob_prior,
                           transmat_prior=transmat_prior, algorithm=algorithm,
                           random_state=random_state, n_iter=n_iter,
                           tol=tol, params=params, verbose=verbose,
-                          init_params=init_params)
+                          init_params=init_params,
+                          implementation=implementation)
         self.covariance_type = covariance_type
         self.min_covar = min_covar
         self.means_prior = means_prior
@@ -232,10 +239,10 @@ class GaussianHMM(_BaseHMM):
                                            self.n_features))
         return stats
 
-    def _accumulate_sufficient_statistics(self, stats, obs, framelogprob,
+    def _accumulate_sufficient_statistics(self, stats, obs, lattice,
                                           posteriors, fwdlattice, bwdlattice):
         super()._accumulate_sufficient_statistics(
-            stats, obs, framelogprob, posteriors, fwdlattice, bwdlattice)
+            stats, obs, lattice, posteriors, fwdlattice, bwdlattice)
 
         if 'm' in self.params or 'c' in self.params:
             stats['post'] += posteriors.sum(axis=0)
@@ -357,7 +364,8 @@ class MultinomialHMM(_BaseHMM):
                  startprob_prior=1.0, transmat_prior=1.0,
                  algorithm="viterbi", random_state=None,
                  n_iter=10, tol=1e-2, verbose=False,
-                 params="ste", init_params="ste"):
+                 params="ste", init_params="ste",
+                 implementation="log"):
         """
         Parameters
         ----------
@@ -395,6 +403,11 @@ class MultinomialHMM(_BaseHMM):
             before (``init_params``) the training.  Can contain any
             combination of 's' for startprob, 't' for transmat, and 'e' for
             emissionprob.  Defaults to all parameters.
+
+        implementation: string, optional
+            Determines if the forward-backward algorithm is implemented with
+            logarithms ("log"), or using scaling ("scaling").  The default is
+            to use logarithms for backwards compatability.
         """
         _BaseHMM.__init__(self, n_components,
                           startprob_prior=startprob_prior,
@@ -402,8 +415,8 @@ class MultinomialHMM(_BaseHMM):
                           algorithm=algorithm,
                           random_state=random_state,
                           n_iter=n_iter, tol=tol, verbose=verbose,
-                          params=params, init_params=init_params)
-
+                          params=params, init_params=init_params,
+                          implementation=implementation)
     score_samples, score, decode, predict, predict_proba, sample, fit = map(
         _multinomialhmm_fix_docstring_shape, [
             _BaseHMM.score_samples,
@@ -448,6 +461,9 @@ class MultinomialHMM(_BaseHMM):
     def _compute_log_likelihood(self, X):
         return log_mask_zero(self.emissionprob_)[:, np.concatenate(X)].T
 
+    def _compute_likelihood(self, X):
+        return self.emissionprob_[:, np.concatenate(X)].T
+
     def _generate_sample_from_state(self, state, random_state=None):
         cdf = np.cumsum(self.emissionprob_[state, :])
         random_state = check_random_state(random_state)
@@ -458,10 +474,10 @@ class MultinomialHMM(_BaseHMM):
         stats['obs'] = np.zeros((self.n_components, self.n_features))
         return stats
 
-    def _accumulate_sufficient_statistics(self, stats, X, framelogprob,
+    def _accumulate_sufficient_statistics(self, stats, X, lattice,
                                           posteriors, fwdlattice, bwdlattice):
         super()._accumulate_sufficient_statistics(
-            stats, X, framelogprob, posteriors, fwdlattice, bwdlattice)
+            stats, X, lattice, posteriors, fwdlattice, bwdlattice)
         if 'e' in self.params:
             for t, symbol in enumerate(np.concatenate(X)):
                 stats['obs'][:, symbol] += posteriors[t]
@@ -529,7 +545,8 @@ class GMMHMM(_BaseHMM):
                  algorithm="viterbi", covariance_type="diag",
                  random_state=None, n_iter=10, tol=1e-2,
                  verbose=False, params="stmcw",
-                 init_params="stmcw"):
+                 init_params="stmcw",
+                 implementation="log"):
         """
         Parameters
         ----------
@@ -604,13 +621,19 @@ class GMMHMM(_BaseHMM):
             of 's' for startprob, 't' for transmat, 'm' for means, 'c'
             for covars, and 'w' for GMM mixing weights.  Defaults to all
             parameters.
+
+        implementation: string, optional
+            Determines if the forward-backward algorithm is implemented with
+            logarithms ("log"), or using scaling ("scaling").  The default is
+            to use logarithms for backwards compatability.
         """
         _BaseHMM.__init__(self, n_components,
                           startprob_prior=startprob_prior,
                           transmat_prior=transmat_prior,
                           algorithm=algorithm, random_state=random_state,
                           n_iter=n_iter, tol=tol, verbose=verbose,
-                          params=params, init_params=init_params)
+                          params=params, init_params=init_params,
+                          implementation=implementation)
         self.covariance_type = covariance_type
         self.min_covar = min_covar
         self.n_mix = n_mix
@@ -903,11 +926,10 @@ class GMMHMM(_BaseHMM):
         stats['centered'] = []
         return stats
 
-    def _accumulate_sufficient_statistics(self, stats, X, framelogprob,
+    def _accumulate_sufficient_statistics(self, stats, X, lattice,
                                           post_comp, fwdlattice, bwdlattice):
-
         super()._accumulate_sufficient_statistics(
-            stats, X, framelogprob, post_comp, fwdlattice, bwdlattice
+            stats, X, lattice, post_comp, fwdlattice, bwdlattice
         )
 
         n_samples, _ = X.shape
