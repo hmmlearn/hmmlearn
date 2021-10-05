@@ -7,7 +7,7 @@ jobs:
     strategy:
       matrix:
         os: [ubuntu-latest, macos-latest, windows-latest]
-        python-version: [3.5, 3.6, 3.7, 3.8, 3.9]
+        python-version: ["3.5", "3.6", "3.7", "3.8", "3.9", "3.10"]
       fail-fast: false
     runs-on: ${{ matrix.os }}
     steps:
@@ -54,7 +54,7 @@ jobs:
     name: "Build wheel on ${{ matrix.pyver }} aarch64"
     strategy:
       matrix:
-        pyver: [cp36-cp36m, cp37-cp37m, cp38-cp38, cp39-cp39]
+        pyver: [cp36-cp36m, cp37-cp37m, cp38-cp38, cp39-cp39, cp310-cp310]
         arch: [aarch64]
       fail-fast: false
     runs-on: ubuntu-latest
