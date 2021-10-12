@@ -18,3 +18,9 @@ If you are reporting a bug, please
 
 Issues not reproducible with the latest release of hmmlearn or without a short,
 self-contained, correct example **will be closed**.
+
+## I have a question
+
+The maintainers cannot offer advice regarding the use of hmmlearn or of hidden
+Markov models in general.  Consider asking on a general forum, e.g.
+https://stats.stackexchange.com/.
