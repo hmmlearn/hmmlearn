@@ -582,7 +582,7 @@ class _BaseHMM(BaseEstimator):
 
     def _compute_log_likelihood(self, X):
         """
-        Compute per-component log probability under the model.
+        Compute per-component emission log probability under the model.
 
         Parameters
         ----------
@@ -592,8 +592,8 @@ class _BaseHMM(BaseEstimator):
         Returns
         -------
         logprob : array, shape (n_samples, n_components)
-            Log probability of each sample in ``X`` for each of the
-            model states.
+            Emission log probability of each sample in ``X`` for each of the
+            model states, i.e., ``log(p(X|state))``.
         """
 
     def _generate_sample_from_state(self, state, random_state=None):
