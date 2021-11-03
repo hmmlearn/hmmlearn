@@ -310,6 +310,7 @@ class _BaseHMM(BaseEstimator):
 
         return logprobs
 
+
     def _score(self, X, lengths=None, *, compute_posteriors):
         """
         Helper for `score` and `score_samples`.
