@@ -15,19 +15,9 @@ from setuptools.command.build_ext import build_ext
 class build_ext(build_ext):
 
     def finalize_options(self):
-        # The key point: here, Cython and numpy will have been installed by
-        # pip.
-        from Cython.Build import cythonize
-        import numpy as np
-        import numpy.distutils
-
-        self.distribution.ext_modules[:] = cythonize("**/*.pyx")
-        # Sadly, this part needs to be done manually.
-        for ext in self.distribution.ext_modules:
-            for k, v in np.distutils.misc_util.get_info("npymath").items():
-                setattr(ext, k, v)
-            ext.include_dirs = [np.get_include()]
-
+        from pybind11.setup_helpers import Pybind11Extension
+        self.distribution.ext_modules[:] = [Pybind11Extension(
+            "hmmlearn._hmmc", ["src/_hmmc.cpp"], cxx_std=11)]
         super().finalize_options()
 
     def build_extensions(self):
@@ -52,7 +42,6 @@ setup(
         "Intended Audience :: Science/Research",
         "Topic :: Software Development",
         "Topic :: Scientific/Engineering",
-        "Programming Language :: Cython",
         "Programming Language :: Python",
         "Programming Language :: Python :: 3",
     ],
@@ -64,8 +53,7 @@ setup(
     package_data={},
     python_requires=">=3.6",
     setup_requires=[
-        "Cython",
-        "numpy>=1.10",
+        "pybind11>=2.6",
         "setuptools_scm>=3.3",  # fallback_version.
     ],
     use_scm_version=lambda: {  # xref __init__.py
