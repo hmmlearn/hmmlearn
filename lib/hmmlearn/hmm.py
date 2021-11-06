@@ -28,8 +28,8 @@ def _check_and_set_gaussian_n_features(model, X):
     if hasattr(model, "n_features"):
         if model.n_features != n_features:
             raise ValueError(
-                "Unexpected number of dimensions, got {} but expected {}"
-                .format(n_features, model.n_features))
+                f"Unexpected number of dimensions, got {n_features} but "
+                f"expected {model.n_features}")
     else:
         model.n_features = n_features
 
@@ -216,8 +216,8 @@ class GaussianHMM(_BaseHMM):
         self.n_features = self.means_.shape[1]
 
         if self.covariance_type not in COVARIANCE_TYPES:
-            raise ValueError('covariance_type must be one of {}'
-                             .format(COVARIANCE_TYPES))
+            raise ValueError(
+                f"covariance_type must be one of {COVARIANCE_TYPES}")
 
     def _compute_log_likelihood(self, X):
         return log_multivariate_normal_density(
@@ -500,8 +500,8 @@ class MultinomialHMM(_BaseHMM):
         if hasattr(self, "n_features"):
             if self.n_features - 1 < X.max():
                 raise ValueError(
-                    "Largest symbol is {} but the model only emits symbols up "
-                    "to {}".format(X.max(), self.n_features - 1))
+                    f"Largest symbol is {X.max()} but the model only emits "
+                    f"symbols up to {self.n_features - 1}")
         else:
             self.n_features = X.max() + 1
 
@@ -775,15 +775,15 @@ class GMMHMM(_BaseHMM):
 
         # Checking covariance type
         if self.covariance_type not in COVARIANCE_TYPES:
-            raise ValueError("covariance_type must be one of {}"
-                             .format(COVARIANCE_TYPES))
+            raise ValueError(
+                f"covariance_type must be one of {COVARIANCE_TYPES}")
 
         self.weights_ = np.array(self.weights_)
         # Checking mixture weights' shape
         if self.weights_.shape != (nc, nm):
-            raise ValueError("mixture weights must have shape "
-                             "(n_components, n_mix), actual shape: {}"
-                             .format(self.weights_.shape))
+            raise ValueError(f"mixture weights must have shape "
+                             f"(n_components, n_mix), "
+                             f"actual shape: {self.weights_.shape}")
 
         # Checking mixture weights' mathematical correctness
         if not np.allclose(self.weights_.sum(axis=1), 1):
@@ -792,9 +792,9 @@ class GMMHMM(_BaseHMM):
         # Checking means' shape
         self.means_ = np.array(self.means_)
         if self.means_.shape != (nc, nm, nf):
-            raise ValueError("mixture means must have shape "
-                             "(n_components, n_mix, n_features), "
-                             "actual shape: {}".format(self.means_.shape))
+            raise ValueError(f"mixture means must have shape "
+                             f"(n_components, n_mix, n_features), "
+                             f"actual shape: {self.means_.shape}")
 
         # Checking covariances' shape
         self.covars_ = np.array(self.covars_)
@@ -807,28 +807,27 @@ class GMMHMM(_BaseHMM):
         }
         needed_shape = needed_shapes[self.covariance_type]
         if covars_shape != needed_shape:
-            raise ValueError("{!r} mixture covars must have shape {}, "
-                             "actual shape: {}"
-                             .format(self.covariance_type,
-                                     needed_shape, covars_shape))
+            raise ValueError(f"{self.covariance_type!r} mixture covars must "
+                             f"have shape {needed_shape}, "
+                             f"actual shape: {covars_shape}")
 
         # Checking covariances' mathematical correctness
         if (self.covariance_type == "spherical" or
                 self.covariance_type == "diag"):
             if np.any(self.covars_ < 0):
-                raise ValueError("{!r} mixture covars must be non-negative"
-                                 .format(self.covariance_type))
+                raise ValueError(f"{self.covariance_type!r} mixture covars "
+                                 f"must be non-negative")
             if np.any(self.covars_ == 0):
                 _log.warning("Degenerate mixture covariance")
         elif self.covariance_type == "tied":
             for i, covar in enumerate(self.covars_):
                 if not np.allclose(covar, covar.T):
-                    raise ValueError("Covariance of state #{} is not symmetric"
-                                     .format(i))
+                    raise ValueError(
+                        f"Covariance of state #{i} is not symmetric")
                 min_eigvalsh = linalg.eigvalsh(covar).min()
                 if min_eigvalsh < 0:
-                    raise ValueError("Covariance of state #{} is not positive "
-                                     "definite".format(i))
+                    raise ValueError(
+                        f"Covariance of state #{i} is not positive definite")
                 if min_eigvalsh == 0:
                     _log.warning("Covariance of state #%d has a null "
                                  "eigenvalue.", i)
@@ -837,13 +836,13 @@ class GMMHMM(_BaseHMM):
                 for j, covar in enumerate(mix_covars):
                     if not np.allclose(covar, covar.T):
                         raise ValueError(
-                            "Covariance of state #{}, mixture #{} is not "
-                            "symmetric".format(i, j))
+                            f"Covariance of state #{i}, mixture #{j} is not "
+                            f"symmetric")
                     min_eigvalsh = linalg.eigvalsh(covar).min()
                     if min_eigvalsh < 0:
                         raise ValueError(
-                            "Covariance of state #{}, mixture #{} is not "
-                            "positive definite".format(i, j))
+                            f"Covariance of state #{i}, mixture #{j} is not "
+                            f"positive definite")
                     if min_eigvalsh == 0:
                         _log.warning("Covariance of state #%d, mixture #%d "
                                      "has a null eigenvalue.", i, j)

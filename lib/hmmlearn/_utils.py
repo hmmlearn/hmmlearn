@@ -13,14 +13,13 @@ def split_X_lengths(X, lengths):
         cs = np.cumsum(lengths)
         n_samples = len(X)
         if cs[-1] > n_samples:
-            raise ValueError("more than {} samples in lengths array {}"
-                             .format(n_samples, lengths))
+            raise ValueError(
+                f"more than {n_samples} samples in lengths array {lengths}")
         elif cs[-1] != n_samples:
             warnings.warn(
-                "less that {} samples in lengths array {}; support for "
-                "silently dropping samples is deprecated and will be removed"
-                .format(n_samples, lengths),
-                DeprecationWarning, stacklevel=3)
+                f"less that {n_samples} samples in lengths array {lengths}; "
+                f"support for silently dropping samples is deprecated and "
+                f"will be removed", DeprecationWarning, stacklevel=3)
         return np.split(X, cs)[:-1]
 
 

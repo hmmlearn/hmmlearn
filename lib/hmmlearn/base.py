@@ -76,7 +76,7 @@ class ConvergenceMonitor:
     def __repr__(self):
         class_name = self.__class__.__name__
         params = sorted(dict(vars(self), history=list(self.history)).items())
-        return ("{}(\n".format(class_name)
+        return (f"{class_name}(\n"
                 + "".join(map("    {}={},\n".format, *zip(*params)))
                 + ")")
 
@@ -350,7 +350,7 @@ class _BaseHMM(BaseEstimator):
 
         algorithm = algorithm or self.algorithm
         if algorithm not in DECODER_ALGORITHMS:
-            raise ValueError("Unknown decoder {!r}".format(algorithm))
+            raise ValueError(f"Unknown decoder {algorithm!r}")
 
         decoder = {
             "viterbi": self._decode_viterbi,
