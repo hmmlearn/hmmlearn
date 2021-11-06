@@ -60,7 +60,7 @@ setup(
     package_dir={"": "lib"},
     ext_modules=[Extension("", [])],
     package_data={},
-    python_requires=">=3.5",
+    python_requires=">=3.6",
     setup_requires=[
         "Cython",
         "numpy>=1.10",

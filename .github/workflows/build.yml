@@ -7,7 +7,7 @@ jobs:
     strategy:
       matrix:
         os: [ubuntu-latest, macos-latest, windows-latest]
-        python-version: ["3.5", "3.6", "3.7", "3.8", "3.9", "3.10"]
+        python-version: ["3.6", "3.7", "3.8", "3.9", "3.10"]
       fail-fast: false
     runs-on: ${{ matrix.os }}
     steps:
@@ -35,7 +35,7 @@ jobs:
           PV="$(python -c 'import sys; print("".join(map(str, sys.version_info[:2])))')" &&
           ABI="$(python -c 'import sys; print(sys.abiflags)')" &&
           docker run --interactive --volume="$(pwd)":/io:Z --workdir=/io \
-            quay.io/pypa/manylinux1_x86_64 bash <<EOF
+            quay.io/pypa/manylinux2010_x86_64 bash <<EOF
         /opt/python/cp"$PV"-cp"$PV$ABI"/bin/python setup.py bdist_wheel --verbose &&
           auditwheel --verbose repair --wheel-dir=/io/dist /io/dist/*.whl
         EOF

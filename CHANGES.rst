@@ -6,6 +6,8 @@ Here you can see the full list of changes between each hmmlearn release.
 next
 ----
 
+- Dropped support for Py3.5 (due to the absence of manylinux wheel supporting
+  both Py3.5 and Py3.10).
 - MultinomialHMM no longer overwrites preset ``n_features``.
 
 Version 0.2.6
