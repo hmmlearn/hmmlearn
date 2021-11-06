@@ -144,6 +144,7 @@ class GMMHMMTestMixin:
         self.h._init(X)
         self.h.fit(X)
 
+    @pytest.mark.xfail
     def test_fit_zero_variance(self):
         # Example from issue #2 on GitHub.
         # this data has singular covariance matrix
