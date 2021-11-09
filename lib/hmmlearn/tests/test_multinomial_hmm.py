@@ -3,7 +3,7 @@ import pytest
 
 from hmmlearn import hmm
 
-from . import log_likelihood_increasing, normalized
+from . import assert_log_likelihood_increasing, normalized
 
 
 class TestMultinomialAgainstWikipedia:
@@ -100,7 +100,7 @@ class TestMultinomailHMM:
             np.random.random((self.n_components, self.n_features)),
             axis=1)
 
-        assert log_likelihood_increasing(h, X, lengths, n_iter)
+        assert_log_likelihood_increasing(h, X, lengths, n_iter)
 
     def test_fit_emissionprob(self):
         self.test_fit('e')
@@ -114,7 +114,7 @@ class TestMultinomailHMM:
                                init_params=params)
         h._init(X, lengths=lengths)
 
-        assert log_likelihood_increasing(h, X, lengths, n_iter)
+        assert_log_likelihood_increasing(h, X, lengths, n_iter)
 
     def test__check_and_set_multinomial_n_features(self):
         self.h._check_and_set_multinomial_n_features(

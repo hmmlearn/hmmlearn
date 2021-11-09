@@ -5,7 +5,7 @@ from sklearn.utils import check_random_state
 
 from hmmlearn import hmm
 
-from . import log_likelihood_increasing, make_covar_matrix, normalized
+from . import assert_log_likelihood_increasing, make_covar_matrix, normalized
 
 pytestmark = pytest.mark.xfail()
 
@@ -88,7 +88,7 @@ class GMMHMMTestMixin:
                                                 self.n_components), axis=1)
         h.startprob_ = normalized(self.prng.rand(self.n_components))
 
-        assert log_likelihood_increasing(h, X, lengths, n_iter)
+        assert_log_likelihood_increasing(h, X, lengths, n_iter)
 
     def test_fit_works_on_sequences_of_different_length(self):
         lengths = [3, 4, 5]

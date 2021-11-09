@@ -3,7 +3,7 @@ import pytest
 
 from hmmlearn import hmm
 
-from . import log_likelihood_increasing, make_covar_matrix, normalized
+from . import assert_log_likelihood_increasing, make_covar_matrix, normalized
 
 
 class GaussianHMMTestMixin:
@@ -82,7 +82,7 @@ class GaussianHMMTestMixin:
         # Mess up the parameters and see if we can re-learn them.
         # TODO: change the params and uncomment the check
         h.fit(X, lengths=lengths)
-        # assert log_likelihood_increasing(h, X, lengths, n_iter)
+        # assert_log_likelihood_increasing(h, X, lengths, n_iter)
 
     def test_fit_ignored_init_warns(self, caplog):
         h = hmm.GaussianHMM(self.n_components, self.covariance_type)
@@ -171,7 +171,7 @@ class GaussianHMMTestMixin:
         h_learn.n_iter = 0
         h_learn.fit(X, lengths=lengths)
 
-        assert log_likelihood_increasing(h_learn, X, lengths, n_iter)
+        assert_log_likelihood_increasing(h_learn, X, lengths, n_iter)
 
         # Make sure we've converged to the right parameters.
         # a) means
