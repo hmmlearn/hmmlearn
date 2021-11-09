@@ -1,7 +1,7 @@
 import numpy as np
 import pytest
 
-from . import log_likelihood_increasing
+from . import assert_log_likelihood_increasing
 from . import normalized
 from ..hmm import GMMHMM
 
@@ -132,7 +132,7 @@ class GMMHMMTestMixin:
         self.h.startprob_ = priors0
         self.h.transmat_ = trans0
         self.h.weights_ = weights0
-        assert log_likelihood_increasing(self.h, X, lengths, n_iter)
+        assert_log_likelihood_increasing(self.h, X, lengths, n_iter)
 
     def test_fit_sparse_data(self):
         n_samples = 1000

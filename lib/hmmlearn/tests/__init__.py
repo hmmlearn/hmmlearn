@@ -34,7 +34,7 @@ def normalized(X, axis=None):
     return X_copy
 
 
-def log_likelihood_increasing(h, X, lengths, n_iter):
+def assert_log_likelihood_increasing(h, X, lengths, n_iter):
     h.n_iter = 1        # make sure we do a single iteration at a time
     h.init_params = ''  # and don't re-init params
     log_likelihoods = np.empty(n_iter, dtype=float)
@@ -44,5 +44,10 @@ def log_likelihood_increasing(h, X, lengths, n_iter):
 
     # XXX the rounding is necessary because LL can oscillate in the
     #     fractional part, failing the tests.
-    diff = np.round(np.diff(log_likelihoods), 10) >= 0
-    return diff.all()
+    diff = np.diff(log_likelihoods)
+    rounded_diff = np.round(diff, 10)
+    diff_greater_than_zero = rounded_diff >= 0
+    assert diff_greater_than_zero.all(),  f"Non-increasing log-likelihoods:\n" \
+                                          f"diff={diff}\n" \
+                                          f"rounded_diff={rounded_diff}\n" \
+                                          f"diff>0={diff_greater_than_zero}"
