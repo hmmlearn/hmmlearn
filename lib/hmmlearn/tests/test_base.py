@@ -117,7 +117,12 @@ class TestBaseAgainstWikipedia:
                                   [0.3075, 0.6925],
                                   [0.8204, 0.1796],
                                   [0.8673, 0.1327]])
-        assert np.allclose(posteriors, refposteriors, atol=1e-4)
+        assert np.allclose(posteriors, refposteriors, atol=1e-4)     
+        
+    def test_generate_samples(self):
+        X0, Z0 = self.hmm.sample(n_samples=10)
+        X, Z = self.hmm.sample(n_samples=10, currstate=Z0[-1])
+        assert len(Z0) == len(Z) == 10 and Z[0] == Z0[-1]
 
 
 class TestBaseConsistentWithGMM:
@@ -209,17 +214,3 @@ def test_stationary_distribution():
     assert stationary.dtype == float
     assert np.dot(h.get_stationary_distribution().T, h.transmat_) \
         == pytest.approx(stationary)
-
-    
-def test_generate_samples():
-    n_components = 5
-    h = StubHMM(n_components)
-    transmat = np.random.random((n_components, n_components))
-    transmat /= np.tile(transmat.sum(axis=1)[:, np.newaxis], (1, n_components))
-    h.transmat_ = transmat
-    startprob = np.random.random(n_components)
-    startprob /= startprob.sum()
-    h.startprob_ = startprob
-    X0, Z0 = h.sample(n_samples=10)
-    X, Z = h.sample(n_samples=10, currstate=Z0[-1])
-    assert len(Z0) == len(Z) == 10 and Z[0] == Z0[-1]
