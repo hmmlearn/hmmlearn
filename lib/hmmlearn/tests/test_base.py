@@ -209,3 +209,17 @@ def test_stationary_distribution():
     assert stationary.dtype == float
     assert np.dot(h.get_stationary_distribution().T, h.transmat_) \
         == pytest.approx(stationary)
+
+    
+def test_generate_samples():
+    n_components = 5
+    h = StubHMM(n_components)
+    transmat = np.random.random((n_components, n_components))
+    transmat /= np.tile(transmat.sum(axis=1)[:, np.newaxis], (1, n_components))
+    h.transmat_ = transmat
+    startprob = np.random.random(n_components)
+    startprob /= startprob.sum()
+    h.startprob_ = startprob
+    X0, Z0 = h.sample(n_samples=10)
+    X, Z = h.sample(n_samples=10, currstate=Z0[-1])
+    assert len(Z0) == len(Z) == 10 and Z[0] == Z[0] == -1
