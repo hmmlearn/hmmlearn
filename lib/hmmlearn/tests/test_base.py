@@ -119,6 +119,11 @@ class TestBaseAgainstWikipedia:
                                   [0.8673, 0.1327]])
         assert np.allclose(posteriors, refposteriors, atol=1e-4)
 
+    def test_generate_samples(self):
+        X0, Z0 = self.hmm.sample(n_samples=10)
+        X, Z = self.hmm.sample(n_samples=10, currstate=Z0[-1])
+        assert len(Z0) == len(Z) == 10 and Z[0] == Z0[-1]
+
 
 class TestBaseConsistentWithGMM:
     def setup_method(self, method):

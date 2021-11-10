@@ -372,7 +372,7 @@ class _BaseHMM(BaseEstimator):
         _, posteriors = self.score_samples(X, lengths)
         return posteriors
 
-    def sample(self, n_samples=1, random_state=None):
+    def sample(self, n_samples=1, random_state=None, currstate=None):
         """
         Generate random samples from the model.
 
@@ -383,6 +383,8 @@ class _BaseHMM(BaseEstimator):
         random_state : RandomState or an int seed
             A random number generator instance. If ``None``, the object's
             ``random_state`` is used.
+        currstate : int
+            Current state, as the initial state of the samples.
 
         Returns
         -------
@@ -390,6 +392,13 @@ class _BaseHMM(BaseEstimator):
             Feature matrix.
         state_sequence : array, shape (n_samples, )
             State sequence produced by the model.
+
+        Examples
+        --------
+        ::
+            # generate samples continuously
+            _, Z = model.sample(n_samples=10)
+            X, Z = model.sample(n_samples=10, currstate=Z[-1])
         """
         _utils.check_is_fitted(self, "startprob_")
         self._check()
@@ -398,10 +407,12 @@ class _BaseHMM(BaseEstimator):
             random_state = self.random_state
         random_state = check_random_state(random_state)
 
-        startprob_cdf = np.cumsum(self.startprob_)
         transmat_cdf = np.cumsum(self.transmat_, axis=1)
 
-        currstate = (startprob_cdf > random_state.rand()).argmax()
+        if currstate is None:
+            startprob_cdf = np.cumsum(self.startprob_)
+            currstate = (startprob_cdf > random_state.rand()).argmax()
+
         state_sequence = [currstate]
         X = [self._generate_sample_from_state(
             currstate, random_state=random_state)]
