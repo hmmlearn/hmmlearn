@@ -222,4 +222,4 @@ def test_generate_samples():
     h.startprob_ = startprob
     X0, Z0 = h.sample(n_samples=10)
     X, Z = h.sample(n_samples=10, currstate=Z0[-1])
-    assert len(Z0) == len(Z) == 10 and Z[0] == Z[0] == -1
+    assert len(Z0) == len(Z) == 10 and Z[0] == Z0[-1]
