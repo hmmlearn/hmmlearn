@@ -6,7 +6,7 @@ from hmmlearn import hmm
 from . import assert_log_likelihood_increasing, normalized
 
 
-class TestMultinomialAgainstWikipedia:
+class TestCategoricalAgainstWikipedia:
     """
     Examples from Wikipedia:
 
@@ -16,7 +16,7 @@ class TestMultinomialAgainstWikipedia:
     def setup_method(self, method):
         n_components = 2   # ['Rainy', 'Sunny']
         n_features = 3     # ['walk', 'shop', 'clean']
-        self.h = hmm.MultinomialHMM(n_components)
+        self.h = hmm.CategoricalHMM(n_components)
         self.h.n_features = n_features
         self.h.startprob_ = np.array([0.6, 0.4])
         self.h.transmat_ = np.array([[0.7, 0.3], [0.4, 0.6]])
@@ -50,11 +50,11 @@ class TestMultinomialAgainstWikipedia:
         ])
 
 
-class TestMultinomailHMM:
+class TestCategoricalHMM:
     def setup_method(self, method):
         self.n_components = 2
         self.n_features = 3
-        self.h = hmm.MultinomialHMM(self.n_components)
+        self.h = hmm.CategoricalHMM(self.n_components)
         self.h.startprob_ = np.array([0.6, 0.4])
         self.h.transmat_ = np.array([[0.7, 0.3], [0.4, 0.6]])
         self.h.emissionprob_ = np.array([[0.1, 0.4, 0.5], [0.6, 0.3, 0.1]])
@@ -110,20 +110,20 @@ class TestMultinomailHMM:
         X, _state_sequence = self.h.sample(sum(lengths))
 
         # use init_function to initialize paramerters
-        h = hmm.MultinomialHMM(self.n_components, params=params,
+        h = hmm.CategoricalHMM(self.n_components, params=params,
                                init_params=params)
         h._init(X, lengths=lengths)
 
         assert_log_likelihood_increasing(h, X, lengths, n_iter)
 
-    def test__check_and_set_multinomial_n_features(self):
-        self.h._check_and_set_multinomial_n_features(
+    def test__check_and_set_categorical_n_features(self):
+        self.h._check_and_set_categorical_n_features(
             np.array([[0, 0, 2, 1, 3, 1, 1]]))
-        self.h._check_and_set_multinomial_n_features(
+        self.h._check_and_set_categorical_n_features(
             np.array([[0, 0, 1, 3, 1]], np.uint8))
         with pytest.raises(ValueError):  # non-integral
-            self.h._check_and_set_multinomial_n_features(
+            self.h._check_and_set_categorical_n_features(
                 np.array([[0., 2., 1., 3.]]))
         with pytest.raises(ValueError):  # negative integers
-            self.h._check_and_set_multinomial_n_features(
+            self.h._check_and_set_categorical_n_features(
                 np.array([[0, -2, 1, 3, 1, 1]]))

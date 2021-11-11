@@ -16,7 +16,7 @@ from .stats import log_multivariate_normal_density
 from .base import _BaseHMM
 from .utils import fill_covars, log_mask_zero, log_normalize, normalize
 
-__all__ = ["GMMHMM", "GaussianHMM", "MultinomialHMM"]
+__all__ = ["GMMHMM", "GaussianHMM", "CategoricalHMM"]
 
 
 _log = logging.getLogger(__name__)
@@ -300,18 +300,18 @@ class GaussianHMM(_BaseHMM):
                                      (cvweight + stats['post'][:, None, None]))
 
 
-_MULTINOMIALHMM_DOC_SUFFIX = """
+_CATEGORICALHMM_DOC_SUFFIX = """
 
 Notes
 -----
-Unlike other HMM classes, `MultinomialHMM` ``X`` arrays have shape
+Unlike other HMM classes, `CategoricalHMM` ``X`` arrays have shape
 ``(n_samples, 1)`` (instead of ``(n_samples, n_features)``).  Consider using
 `sklearn.preprocessing.LabelEncoder` to transform your input to the right
 format.
 """
 
 
-def _multinomialhmm_fix_docstring_shape(func):
+def _categoricalhmm_fix_docstring_shape(func):
     doc = inspect.getdoc(func)
     if doc is None:
         wrapper = func
@@ -320,13 +320,13 @@ def _multinomialhmm_fix_docstring_shape(func):
             lambda *args, **kwargs: func(*args, **kwargs))
         wrapper.__doc__ = (
             doc.replace("(n_samples, n_features)", "(n_samples, 1)")
-            + _MULTINOMIALHMM_DOC_SUFFIX)
+            + _CATEGORICALHMM_DOC_SUFFIX)
     return wrapper
 
 
-class MultinomialHMM(_BaseHMM):
+class CategoricalHMM(_BaseHMM):
     """
-    Hidden Markov Model with multinomial (discrete) emissions.
+    Hidden Markov Model with categorical (discrete) emissions.
 
     Attributes
     ----------
@@ -347,9 +347,9 @@ class MultinomialHMM(_BaseHMM):
 
     Examples
     --------
-    >>> from hmmlearn.hmm import MultinomialHMM
-    >>> MultinomialHMM(n_components=2)  #doctest: +ELLIPSIS
-    MultinomialHMM(algorithm='viterbi',...
+    >>> from hmmlearn.hmm import CategoricalHMM
+    >>> CategoricalHMM(n_components=2)  #doctest: +ELLIPSIS
+    CategoricalHMM(algorithm='viterbi',...
     """
 
     # TODO: accept the prior on emissionprob_ for consistency.
@@ -405,7 +405,7 @@ class MultinomialHMM(_BaseHMM):
                           params=params, init_params=init_params)
 
     score_samples, score, decode, predict, predict_proba, sample, fit = map(
-        _multinomialhmm_fix_docstring_shape, [
+        _categoricalhmm_fix_docstring_shape, [
             _BaseHMM.score_samples,
             _BaseHMM.score,
             _BaseHMM.decode,
@@ -425,7 +425,7 @@ class MultinomialHMM(_BaseHMM):
         }
 
     def _init(self, X, lengths=None):
-        self._check_and_set_multinomial_n_features(X)
+        self._check_and_set_categorical_n_features(X)
         super()._init(X, lengths=lengths)
         self.random_state = check_random_state(self.random_state)
 
@@ -472,9 +472,9 @@ class MultinomialHMM(_BaseHMM):
             self.emissionprob_ = (
                 stats['obs'] / stats['obs'].sum(axis=1, keepdims=True))
 
-    def _check_and_set_multinomial_n_features(self, X):
+    def _check_and_set_categorical_n_features(self, X):
         """
-        Check if ``X`` is a sample from a multinomial distribution, i.e. an
+        Check if ``X`` is a sample from a categorical distribution, i.e. an
         array of non-negative integers.
         """
         if not np.issubdtype(X.dtype, np.integer):
