@@ -19,22 +19,13 @@ class TestCategoricalAgainstWikipedia:
     def new_hmm(self, impl):
         n_components = 2   # ['Rainy', 'Sunny']
         n_features = 3     # ['walk', 'shop', 'clean']
-<<<<<<< HEAD:lib/hmmlearn/tests/test_categorical_hmm.py
-        self.h = hmm.CategoricalHMM(n_components)
-        self.h.n_features = n_features
-        self.h.startprob_ = np.array([0.6, 0.4])
-        self.h.transmat_ = np.array([[0.7, 0.3], [0.4, 0.6]])
-        self.h.emissionprob_ = np.array([[0.1, 0.4, 0.5],
-                                         [0.6, 0.3, 0.1]])
-=======
-        h = hmm.MultinomialHMM(n_components, implementation=impl)
+        h = hmm.CategoricalHMM(n_components, implementation=impl)
         h.n_features = n_features
         h.startprob_ = np.array([0.6, 0.4])
         h.transmat_ = np.array([[0.7, 0.3], [0.4, 0.6]])
         h.emissionprob_ = np.array([[0.1, 0.4, 0.5],
                                     [0.6, 0.3, 0.1]])
         return h
->>>>>>> 6b7915601379cc4ecbc4a171f18f8e14a0ef43f9:lib/hmmlearn/tests/test_multinomial_hmm.py
 
     def test_decode_viterbi(self):
         # From http://en.wikipedia.org/wiki/Viterbi_algorithm:
@@ -69,29 +60,18 @@ class TestCategoricalAgainstWikipedia:
             ])
 
 
-<<<<<<< HEAD:lib/hmmlearn/tests/test_categorical_hmm.py
 class TestCategoricalHMM:
-    def setup_method(self, method):
-        self.n_components = 2
-        self.n_features = 3
-        self.h = hmm.CategoricalHMM(self.n_components)
-        self.h.startprob_ = np.array([0.6, 0.4])
-        self.h.transmat_ = np.array([[0.7, 0.3], [0.4, 0.6]])
-        self.h.emissionprob_ = np.array([[0.1, 0.4, 0.5], [0.6, 0.3, 0.1]])
-=======
-class TestMultinomailHMM:
     def setup(self):
         self.implementations = ["log", "scaling"]
         self.n_components = 2
         self.n_features = 3
 
     def new_hmm(self, impl):
-        h = hmm.MultinomialHMM(self.n_components, implementation=impl)
+        h = hmm.CategoricalHMM(self.n_components, implementation=impl)
         h.startprob_ = np.array([0.6, 0.4])
         h.transmat_ = np.array([[0.7, 0.3], [0.4, 0.6]])
         h.emissionprob_ = np.array([[0.1, 0.4, 0.5], [0.6, 0.3, 0.1]])
         return h
->>>>>>> 6b7915601379cc4ecbc4a171f18f8e14a0ef43f9:lib/hmmlearn/tests/test_multinomial_hmm.py
 
     def test_attributes(self):
         for impl in self.implementations:
@@ -153,7 +133,6 @@ class TestMultinomailHMM:
             h = self.new_hmm(impl)
             X, _state_sequence = h.sample(sum(lengths))
 
-<<<<<<< HEAD:lib/hmmlearn/tests/test_categorical_hmm.py
         # use init_function to initialize paramerters
         h = hmm.CategoricalHMM(self.n_components, params=params,
                                init_params=params)
@@ -162,35 +141,15 @@ class TestMultinomailHMM:
         assert_log_likelihood_increasing(h, X, lengths, n_iter)
 
     def test__check_and_set_categorical_n_features(self):
-        self.h._check_and_set_categorical_n_features(
-            np.array([[0, 0, 2, 1, 3, 1, 1]]))
-        self.h._check_and_set_categorical_n_features(
-            np.array([[0, 0, 1, 3, 1]], np.uint8))
-        with pytest.raises(ValueError):  # non-integral
-            self.h._check_and_set_categorical_n_features(
-                np.array([[0., 2., 1., 3.]]))
-        with pytest.raises(ValueError):  # negative integers
-            self.h._check_and_set_categorical_n_features(
-                np.array([[0, -2, 1, 3, 1, 1]]))
-=======
-            # use init_function to initialize paramerters
-            h = hmm.MultinomialHMM(self.n_components, params=params,
-                                   init_params=params)
-            h._init(X, lengths=lengths)
-
-        assert_log_likelihood_increasing(h, X, lengths, n_iter)
-
-    def test__check_and_set_multinomial_n_features(self):
         for impl in self.implementations:
             h = self.new_hmm(impl)
-            h._check_and_set_multinomial_n_features(
+            h._check_and_set_categorical_n_features(
                 np.array([[0, 0, 2, 1, 3, 1, 1]]))
-            h._check_and_set_multinomial_n_features(
+            h._check_and_set_categorical_n_features(
                 np.array([[0, 0, 1, 3, 1]], np.uint8))
             with pytest.raises(ValueError):  # non-integral
-                h._check_and_set_multinomial_n_features(
+                h._check_and_set_categorical_n_features(
                     np.array([[0., 2., 1., 3.]]))
             with pytest.raises(ValueError):  # negative integers
-                h._check_and_set_multinomial_n_features(
+                h._check_and_set_categorical_n_features(
                     np.array([[0, -2, 1, 3, 1, 1]]))
->>>>>>> 6b7915601379cc4ecbc4a171f18f8e14a0ef43f9:lib/hmmlearn/tests/test_multinomial_hmm.py
