@@ -62,87 +62,106 @@ def prep_params(n_comps, n_mix, n_features, covar_type,
 
 
 class GMMHMMTestMixin:
-    def setup_method(self, method):
-        self.prng = np.random.RandomState(14)
+    def setup(self):
+        self.implementations = ["log", "scaling"]
         self.n_components = 3
         self.n_mix = 2
         self.n_features = 2
 
         self.low, self.high = 10, 15
-        (self.covars, self.means,
-         self.startprob, self.transmat, self.weights) = prep_params(
-            self.n_components, self.n_mix, self.n_features,
-            self.covariance_type, self.low, self.high, self.prng
-        )
 
-        self.h = GMMHMM(n_components=self.n_components, n_mix=self.n_mix,
-                        covariance_type=self.covariance_type,
-                        random_state=self.prng)
 
-        self.h.startprob_ = self.startprob
-        self.h.transmat_ = self.transmat
-        self.h.weights_ = self.weights
-        self.h.means_ = self.means
-        self.h.covars_ = self.covars
+    def new_hmm(self, implementation):
+        prng = np.random.RandomState(14)
+        (covars, means,
+         startprob, transmat, weights) = prep_params(
+             self.n_components, self.n_mix, self.n_features,
+             self.covariance_type, self.low, self.high, prng
+         )
+        h = GMMHMM(n_components=self.n_components, n_mix=self.n_mix,
+                   covariance_type=self.covariance_type,
+                   random_state=prng,
+                   implementation=implementation)
+
+        h.startprob_ = startprob
+        h.transmat_ = transmat
+        h.weights_ = weights
+        h.means_ = means
+        h.covars_ = covars
+        return h
 
     def test_check_bad_covariance_type(self):
-        with pytest.raises(ValueError):
-            self.h.covariance_type = "bad_covariance_type"
-            self.h._check()
+        for impl in self.implementations:
+            h = self.new_hmm(impl)
+            with pytest.raises(ValueError):
+                h.covariance_type = "bad_covariance_type"
+                h._check()
 
     def test_check_good_covariance_type(self):
-        self.h._check()  # should not raise any errors
+        for impl in self.implementations:
+            h = self.new_hmm(impl)
+            h._check()  # should not raise any errors
 
     def test_sample(self):
         n_samples = 1000
-        X, states = self.h.sample(n_samples)
-        assert X.shape == (n_samples, self.n_features)
-        assert len(states) == n_samples
+        for impl in self.implementations:
+            h = self.new_hmm(impl)
+            X, states = h.sample(n_samples)
+            assert X.shape == (n_samples, self.n_features)
+            assert len(states) == n_samples
 
     def test_init(self):
         n_samples = 1000
-        X, _states = self.h.sample(n_samples)
-        self.h._init(X)
-        self.h._check()  # should not raise any errors
+        for impl in self.implementations:
+            h = self.new_hmm(impl)
+            X, _states = h.sample(n_samples)
+            h._init(X)
+            h._check()  # should not raise any errors
 
     def test_score_samples_and_decode(self):
         n_samples = 1000
-        X, states = self.h.sample(n_samples)
+        for impl in self.implementations:
+            h = self.new_hmm(impl)
+            X, states = h.sample(n_samples)
 
-        _ll, posteriors = self.h.score_samples(X)
-        assert np.allclose(np.sum(posteriors, axis=1), np.ones(n_samples))
+            _ll, posteriors = h.score_samples(X)
+            assert np.allclose(np.sum(posteriors, axis=1), np.ones(n_samples))
 
-        _viterbi_ll, decoded_states = self.h.decode(X)
-        assert np.allclose(states, decoded_states)
+            _viterbi_ll, decoded_states = h.decode(X)
+            assert np.allclose(states, decoded_states)
 
     def test_fit(self):
         n_iter = 5
         n_samples = 1000
         lengths = None
-        X, _state_sequence = self.h.sample(n_samples)
+        for impl in self.implementations:
+            h = self.new_hmm(impl)
+            X, _state_sequence = h.sample(n_samples)
 
-        # Mess up the parameters and see if we can re-learn them.
-        covs0, means0, priors0, trans0, weights0 = prep_params(
-            self.n_components, self.n_mix, self.n_features,
-            self.covariance_type, self.low, self.high,
-            np.random.RandomState(15)
-        )
-        self.h.covars_ = covs0 * 100
-        self.h.means_ = means0
-        self.h.startprob_ = priors0
-        self.h.transmat_ = trans0
-        self.h.weights_ = weights0
-        assert_log_likelihood_increasing(self.h, X, lengths, n_iter)
+            # Mess up the parameters and see if we can re-learn them.
+            covs0, means0, priors0, trans0, weights0 = prep_params(
+                self.n_components, self.n_mix, self.n_features,
+                self.covariance_type, self.low, self.high,
+                np.random.RandomState(15)
+            )
+            h.covars_ = covs0 * 100
+            h.means_ = means0
+            h.startprob_ = priors0
+            h.transmat_ = trans0
+            h.weights_ = weights0
+            assert_log_likelihood_increasing(h, X, lengths, n_iter)
 
     def test_fit_sparse_data(self):
         n_samples = 1000
-        self.h.means_ *= 1000  # this will put gaussians very far apart
-        X, _states = self.h.sample(n_samples)
+        for impl in self.implementations:
+            h = self.new_hmm(impl)
+            h.means_ *= 1000  # this will put gaussians very far apart
+            X, _states = h.sample(n_samples)
 
-        # this should not raise
-        # "ValueError: array must not contain infs or NaNs"
-        self.h._init(X)
-        self.h.fit(X)
+            # this should not raise
+            # "ValueError: array must not contain infs or NaNs"
+            h._init(X)
+            h.fit(X)
 
     @pytest.mark.xfail
     def test_fit_zero_variance(self):
@@ -160,7 +179,9 @@ class GMMHMMTestMixin:
             [7.15000000e+02, 6.5000000e+01, -1.21667480e+00, -4.48131409e+01]
         ])
 
-        self.h.fit(X)
+        for impl in self.implementations:
+            h = self.new_hmm(impl)
+            h.fit(X)
 
 
 class TestGMMHMMWithSphericalCovars(GMMHMMTestMixin):

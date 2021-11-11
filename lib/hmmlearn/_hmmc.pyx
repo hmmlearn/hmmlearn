@@ -44,11 +44,16 @@ cdef inline dtype_t _logaddexp(dtype_t a, dtype_t b) nogil:
         return max(a, b) + log1pl(expl(-fabsl(a - b)))
 
 
-def _forward(int n_samples, int n_components,
+def _forward_log(int n_samples, int n_components,
              dtype_t[:] log_startprob,
              dtype_t[:, :] log_transmat,
              dtype_t[:, :] framelogprob,
              dtype_t[:, :] fwdlattice):
+    """
+    Compute the fwdlattice (alpha in the literature)
+    probabilities using logarithms:
+        P(O_1, O_2, ..., O_t, q_t=S_i | model)
+    """
 
     cdef int t, i, j
     cdef dtype_t[::view.contiguous] work_buffer = np.zeros(n_components)
@@ -64,12 +69,79 @@ def _forward(int n_samples, int n_components,
 
                 fwdlattice[t, j] = _logsumexp(work_buffer) + framelogprob[t, j]
 
+def _forward_scaling(int n_samples, int n_components,
+                     dtype_t[:] startprob,
+                     dtype_t[:, :] transmat,
+                     dtype_t[:, :] frameprob,
+                     dtype_t[:, :] fwdlattice,
+                     dtype_t[:] scaling_factors,
+                     dtype_t min_scaling=1e-300):
+    """
+    Compute the fwdlattice (alpha in the literature)
+    probabilities using scaling_factors:
+        P(O_1, O_2, ..., O_t, q_t=S_i | model)
+    """
+    cdef:
+        Py_ssize_t t, i, j
+        dtype_t fwdlattice_t
 
-def _backward(int n_samples, int n_components,
-              dtype_t[:] log_startprob,
-              dtype_t[:, :] log_transmat,
-              dtype_t[:, :] framelogprob,
-              dtype_t[:, :] bwdlattice):
+    scaling_factors[:] = 0
+    fwdlattice[:] = 0
+
+    # Compute intial column of fwdlattice
+    for i in range(n_components):
+        fwdlattice[0, i] = startprob[i] * frameprob[0, i]
+
+    for i in range(n_components):
+        scaling_factors[0] += fwdlattice[0, i]
+    # Scale A_0_i
+    if scaling_factors[0] < min_scaling:
+        # scaling_factors error, stop computation in hopes that we can use logarithms
+        return False
+    else:
+        scaling_factors[0] = 1.0 / scaling_factors[0]
+
+    for i in range(n_components):
+        fwdlattice[0, i] = scaling_factors[0] * fwdlattice[0, i]
+
+    # Compute Rest of Alpha
+    for t in range(1, n_samples):
+        scaling_factors[t] = 0
+        for j in range(n_components):
+            fwdlattice[t, j] = 0
+            for i in range(n_components):
+                fwdlattice[t, j] = fwdlattice[t, j] + fwdlattice[t-1 , i] * transmat[i, j]
+
+            fwdlattice[t, j] = fwdlattice[t, j] * frameprob[t, j]
+
+        # Scale this fwdlattice
+        fwdlattice_t = 0
+        for i in range(n_components):
+            fwdlattice_t += fwdlattice[t, i]
+
+        scaling_factors[t] += fwdlattice_t
+        # C smaller thant our threshold, then stop
+        if scaling_factors[t] < min_scaling:
+            return False
+        else:
+            scaling_factors[t] = 1.0 / scaling_factors[t]
+
+        for j in range(n_components):
+            fwdlattice[t, j] = scaling_factors[t] * fwdlattice[t, j]
+
+    return True
+
+
+def _backward_log(int n_samples, int n_components,
+                  dtype_t[:] log_startprob,
+                  dtype_t[:, :] log_transmat,
+                  dtype_t[:, :] framelogprob,
+                  dtype_t[:, :] bwdlattice):
+    """
+    Compute the backward/beta probabilities using logarithms
+        P(O_t+1, O_t+2, ..., O_t, q_t=S_i | model)
+    """
+
 
     cdef int t, i, j
     cdef dtype_t[::view.contiguous] work_buffer = np.zeros(n_components)
@@ -85,6 +157,29 @@ def _backward(int n_samples, int n_components,
                                       + framelogprob[t + 1, j]
                                       + bwdlattice[t + 1, j])
                 bwdlattice[t, i] = _logsumexp(work_buffer)
+
+def _backward_scaling(int n_samples, int n_components,
+                      dtype_t[:] startprob,
+                      dtype_t[:, :] transmat,
+                      dtype_t[:, :] frameprob,
+                      dtype_t[:] scaling_factors,
+                      dtype_t[:, :] bwdlattice
+                     ):
+    """
+    Compute the backward/beta probabilities using scaling_factors:
+        P(O_t+1, O_t+2, ..., O_t, q_t=S_i | model)
+    """
+    cdef:
+        Py_ssize_t t, i, j
+
+    bwdlattice[:] = 0
+    bwdlattice[n_samples - 1, :] = scaling_factors[n_samples - 1]
+    for t in range(n_samples -2, -1, -1):
+        for j in range(n_components):
+            for i in range(n_components):
+                bwdlattice[t, j] = bwdlattice[t, j] + transmat[j, i] \
+                        * frameprob[t+1, i] * bwdlattice[t + 1, i]
+            bwdlattice[t, j] = scaling_factors[t] * bwdlattice[t, j]
 
 
 def _compute_log_xi_sum(int n_samples, int n_components,
@@ -113,6 +208,30 @@ def _compute_log_xi_sum(int n_samples, int n_components,
                 for j in range(n_components):
                     log_xi_sum[i, j] = _logaddexp(log_xi_sum[i, j],
                                                   work_buffer[i, j])
+
+
+def _compute_xi_sum_scaling(int n_samples, int n_components,
+                                dtype_t[:, :] fwdlattice,
+                                dtype_t[:, :] transmat,
+                                dtype_t[:, :] bwdlattice,
+                                dtype_t[:, :] frameprob,
+                                dtype_t[:, :] xi_sum):
+    cdef int t, i, j
+    cdef dtype_t[:, ::view.contiguous] work_buffer = \
+        np.full((n_components, n_components), -INFINITY)
+
+    with nogil:
+        for t in range(n_samples - 1):
+            for i in range(n_components):
+                for j in range(n_components):
+                    work_buffer[i, j] = (fwdlattice[t, i]
+                                         * transmat[i, j]
+                                         * frameprob[t + 1, j]
+                                         * bwdlattice[t + 1, j])
+
+            for i in range(n_components):
+                for j in range(n_components):
+                    xi_sum[i, j] += work_buffer[i, j]
 
 
 def _viterbi(int n_samples, int n_components,
