@@ -9,10 +9,13 @@ Next
 - The ``PoissonHMM`` class was added with an example use case.
 - For ``MultinomialHMM``, parameters after ``transmat_prior`` are now
   keyword-only.
-
 - ``startmat_`` and ``transmat_`` will both be initialized with random
   variables drawn from a Dirichlet distribution, to maintain the old
   behavior, these must be initialized as ``1 / n_components``.
+- The old ``MultinomialHMM`` class was renamed to ``CategoricalHMM`` (as that's
+  what it actually implements), and a new ``MultinomialHMM`` class was
+  introduced (with a warning) that actually implements a multinomial
+  distribution.
 
 Version 0.2.7
 -------------
