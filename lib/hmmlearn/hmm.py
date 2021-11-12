@@ -479,8 +479,7 @@ class MultinomialHMM(_BaseHMM):
         super()._accumulate_sufficient_statistics(
             stats, X, lattice, posteriors, fwdlattice, bwdlattice)
         if 'e' in self.params:
-            for t, symbol in enumerate(np.concatenate(X)):
-                stats['obs'][:, symbol] += posteriors[t]
+            np.add.at(stats['obs'].T, np.concatenate(X), posteriors)
 
     def _do_mstep(self, stats):
         super()._do_mstep(stats)
