@@ -8,7 +8,7 @@ next
 
 - Dropped support for Py3.5 (due to the absence of manylinux wheel supporting
   both Py3.5 and Py3.10).
-- MultinomialHMM no longer overwrites preset ``n_features``.
+- CategoricalHMM (renamed from MultinomialHMM) no longer overwrites preset ``n_features``.
 - An implementation of the Forward-Backward algorithm based upon scaling
   is available by specifying ``implementation="scaling"`` when instantiating
   HMMs. In general, the scaling algorithm is more efficient than an

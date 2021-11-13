@@ -51,7 +51,7 @@ Available models
 
    hmm.GaussianHMM
    hmm.GMMHMM
-   hmm.MultinomialHMM
+   hmm.CategoricalHMM
 
 :ref:`Read on <customizing>` for details on how to implement a HMM with a
 custom emission probability.

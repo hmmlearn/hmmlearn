@@ -39,8 +39,8 @@ GMMHMM
 .. autoclass:: hmmlearn.hmm.GMMHMM
    :exclude-members: set_params, get_params
 
-MultinomialHMM
+CategoricalHMM
 ~~~~~~~~~~~~~~
 
-.. autoclass:: hmmlearn.hmm.MultinomialHMM
+.. autoclass:: hmmlearn.hmm.CategoricalHMM
    :exclude-members: set_params, get_params
