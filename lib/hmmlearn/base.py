@@ -269,7 +269,8 @@ class _BaseHMM(BaseEstimator):
             "scaling": self._score_scaling,
             "log": self._score_log,
         }[self.implementation]
-        return impl(X=X, lengths=lengths, compute_posteriors=compute_posteriors)
+        return impl(
+            X=X, lengths=lengths, compute_posteriors=compute_posteriors)
 
     def _score_log(self, X, lengths=None, *, compute_posteriors):
         """
@@ -677,7 +678,6 @@ class _BaseHMM(BaseEstimator):
             return np.exp(self._compute_log_likelihood(X))
         else:
             raise NotImplementedError("Must be overridden in subclass")
-
 
     def _compute_log_likelihood(self, X):
         """

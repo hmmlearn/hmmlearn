@@ -417,6 +417,7 @@ class MultinomialHMM(_BaseHMM):
                           n_iter=n_iter, tol=tol, verbose=verbose,
                           params=params, init_params=init_params,
                           implementation=implementation)
+
     score_samples, score, decode, predict, predict_proba, sample, fit = map(
         _multinomialhmm_fix_docstring_shape, [
             _BaseHMM.score_samples,

@@ -79,10 +79,9 @@ class TestMultinomailHMM:
                 h = self.new_hmm(impl)
                 h.emissionprob_ = []
                 h._check()
-
             with pytest.raises(ValueError):
                 h.emissionprob_ = np.zeros((self.n_components - 2,
-                                                 self.n_features))
+                                            self.n_features))
                 h._check()
 
     def test_score_samples(self):

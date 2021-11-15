@@ -70,19 +70,15 @@ class GMMHMMTestMixin:
 
         self.low, self.high = 10, 15
 
-
     def new_hmm(self, implementation):
         prng = np.random.RandomState(14)
-        (covars, means,
-         startprob, transmat, weights) = prep_params(
-             self.n_components, self.n_mix, self.n_features,
-             self.covariance_type, self.low, self.high, prng
-         )
+        covars, means, startprob, transmat, weights = prep_params(
+            self.n_components, self.n_mix, self.n_features,
+            self.covariance_type, self.low, self.high, prng)
         h = GMMHMM(n_components=self.n_components, n_mix=self.n_mix,
                    covariance_type=self.covariance_type,
                    random_state=prng,
                    implementation=implementation)
-
         h.startprob_ = startprob
         h.transmat_ = transmat
         h.weights_ = weights

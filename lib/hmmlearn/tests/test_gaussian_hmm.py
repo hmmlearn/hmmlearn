@@ -48,7 +48,8 @@ class GaussianHMMTestMixin:
 
             gaussidx = np.repeat(np.arange(self.n_components), 5)
             n_samples = len(gaussidx)
-            X = self.prng.randn(n_samples, self.n_features) + h.means_[gaussidx]
+            X = (self.prng.randn(n_samples, self.n_features)
+                 + h.means_[gaussidx])
             h._init(X)
             ll, posteriors = h.score_samples(X)
             assert posteriors.shape == (n_samples, self.n_components)
@@ -173,8 +174,8 @@ class GaussianHMMTestMixin:
             lengths = [200] * 10
             X, _state_sequence = h.sample(sum(lengths), random_state=self.prng)
 
-            # Re-initialize the parameters and check that we can converge to the
-            # original parameter values.
+            # Re-initialize the parameters and check that we can converge to
+            # the original parameter values.
             h_learn = hmm.GaussianHMM(self.n_components, self.covariance_type,
                                       params=params, implementation=impl)
             h_learn.n_iter = 0
