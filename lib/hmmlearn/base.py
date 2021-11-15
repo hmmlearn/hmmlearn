@@ -537,54 +537,35 @@ class _BaseHMM(BaseEstimator):
         return framelogprob, logprob, posteriors, fwdlattice, bwdlattice
 
     def _do_viterbi_pass(self, framelogprob):
-        n_samples, n_components = framelogprob.shape
-        state_sequence, logprob = _hmmc._viterbi(
-            n_samples, n_components, log_mask_zero(self.startprob_),
-            log_mask_zero(self.transmat_), framelogprob)
+        state_sequence, logprob = _hmmc.viterbi(
+            log_mask_zero(self.startprob_), log_mask_zero(self.transmat_),
+            framelogprob)
         return logprob, state_sequence
 
     def _do_forward_scaling_pass(self, frameprob):
-        n_samples, n_components = frameprob.shape
-        fwdlattice = np.zeros((n_samples, n_components))
-        scaling_factors = np.zeros(n_samples)
-        success = _hmmc._forward_scaling(n_samples, n_components,
-                                         np.asarray(self.startprob_),
-                                         np.asarray(self.transmat_),
-                                         frameprob,
-                                         fwdlattice,
-                                         scaling_factors)
-        if not success:
-            raise ValueError('Forward pass failed with underflow,'
-                             'consider using implementation="log" instead')
+        fwdlattice, scaling_factors = _hmmc.forward_scaling(
+            np.asarray(self.startprob_), np.asarray(self.transmat_),
+            frameprob)
         log_prob = -np.sum(np.log(scaling_factors))
         return log_prob, fwdlattice, scaling_factors
 
     def _do_forward_log_pass(self, framelogprob):
-        n_samples, n_components = framelogprob.shape
-        fwdlattice = np.zeros((n_samples, n_components))
-        _hmmc._forward_log(n_samples, n_components,
-                           log_mask_zero(self.startprob_),
-                           log_mask_zero(self.transmat_),
-                           framelogprob, fwdlattice)
+        fwdlattice = _hmmc.forward_log(
+            log_mask_zero(self.startprob_), log_mask_zero(self.transmat_),
+            framelogprob)
         with np.errstate(under="ignore"):
             return special.logsumexp(fwdlattice[-1]), fwdlattice
 
     def _do_backward_scaling_pass(self, frameprob, scaling_factors):
-        n_samples, n_components = frameprob.shape
-        bwdlattice = np.zeros((n_samples, n_components))
-        _hmmc._backward_scaling(n_samples, n_components,
-                                np.asarray(self.startprob_),
-                                np.asarray(self.transmat_),
-                                frameprob, scaling_factors, bwdlattice)
+        bwdlattice = _hmmc.backward_scaling(
+            np.asarray(self.startprob_), np.asarray(self.transmat_),
+            frameprob, scaling_factors)
         return bwdlattice
 
     def _do_backward_log_pass(self, framelogprob):
-        n_samples, n_components = framelogprob.shape
-        bwdlattice = np.zeros((n_samples, n_components))
-        _hmmc._backward_log(n_samples, n_components,
-                        log_mask_zero(self.startprob_),
-                        log_mask_zero(self.transmat_),
-                        framelogprob, bwdlattice)
+        bwdlattice = _hmmc.backward_log(
+            log_mask_zero(self.startprob_), log_mask_zero(self.transmat_),
+            framelogprob)
         return bwdlattice
 
     def _compute_posteriors_scaling(self, fwdlattice, bwdlattice):
@@ -814,12 +795,8 @@ class _BaseHMM(BaseEstimator):
             # so there is no reason to update our trans. matrix estimate
             if n_samples <= 1:
                 return
-
-            xi_sum = np.full((n_components, n_components), 0.)
-            _hmmc._compute_xi_sum_scaling(n_samples, n_components, fwdlattice,
-                                      self.transmat_,
-                                      bwdlattice, lattice,
-                                      xi_sum)
+            xi_sum = _hmmc.compute_scaling_xi_sum(
+                fwdlattice, self.transmat_, bwdlattice, lattice)
             stats['trans'] += xi_sum
 
     def _accumulate_sufficient_statistics_log(self, stats, X, lattice,
@@ -838,12 +815,8 @@ class _BaseHMM(BaseEstimator):
             # so there is no reason to update our trans. matrix estimate
             if n_samples <= 1:
                 return
-
-            log_xi_sum = np.full((n_components, n_components), -np.inf)
-            _hmmc._compute_log_xi_sum(n_samples, n_components, fwdlattice,
-                                      log_mask_zero(self.transmat_),
-                                      bwdlattice, lattice,
-                                      log_xi_sum)
+            log_xi_sum = _hmmc.compute_log_xi_sum(
+                fwdlattice, log_mask_zero(self.transmat_), bwdlattice, lattice)
             with np.errstate(under="ignore"):
                 stats['trans'] += np.exp(log_xi_sum)
 

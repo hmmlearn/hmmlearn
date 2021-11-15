@@ -1,8 +1,6 @@
 # cython: language_level=3, boundscheck=False, wraparound=False
 
-from cython cimport view
 from numpy.math cimport expl, logl, log1pl, isinf, fabsl, INFINITY
-
 import numpy as np
 
 ctypedef double dtype_t
@@ -44,216 +42,191 @@ cdef inline dtype_t _logaddexp(dtype_t a, dtype_t b) nogil:
         return max(a, b) + log1pl(expl(-fabsl(a - b)))
 
 
-def _forward_log(int n_samples, int n_components,
-                 dtype_t[:] log_startprob,
-                 dtype_t[:, :] log_transmat,
-                 dtype_t[:, :] framelogprob,
-                 dtype_t[:, :] fwdlattice):
+def forward_log(dtype_t[:] log_startprob,
+                dtype_t[:, :] log_transmat,
+                dtype_t[:, :] framelogprob):
     """
-    Compute the fwdlattice (alpha in the literature)
-    probabilities using logarithms:
+    Compute the forward/alpha lattice using logarithms:
         P(O_1, O_2, ..., O_t, q_t=S_i | model)
     """
+    cdef ssize_t ns = framelogprob.shape[0], nc = framelogprob.shape[1]
+    cdef dtype_t[:, ::1] fwdlattice = np.zeros((ns, nc))
+    cdef ssize_t t, i, j
+    cdef dtype_t[::1] tmp_buf = np.empty(nc)
+    with nogil:
+        for i in range(nc):
+            fwdlattice[0, i] = log_startprob[i] + framelogprob[0, i]
+        for t in range(1, ns):
+            for j in range(nc):
+                for i in range(nc):
+                    tmp_buf[i] = fwdlattice[t-1, i] + log_transmat[i, j]
+                fwdlattice[t, j] = _logsumexp(tmp_buf) + framelogprob[t, j]
+    return np.asarray(fwdlattice)
 
-    cdef int t, i, j
-    cdef dtype_t[::view.contiguous] tmp_buf = np.zeros(n_components)
+
+def forward_scaling(dtype_t[:] startprob,
+                    dtype_t[:, :] transmat,
+                    dtype_t[:, :] frameprob,
+                    dtype_t min_scaling=1e-300):
+    """
+    Compute the fwdlattice/alpha lattice using scaling_factors:
+        P(O_1, O_2, ..., O_t, q_t=S_i | model)
+    """
+    cdef ssize_t ns = frameprob.shape[0], nc = frameprob.shape[1]
+    cdef dtype_t[:, ::1] fwdlattice = np.zeros((ns, nc))
+    cdef dtype_t[::1] scaling_factors = np.zeros(ns)
+    cdef ssize_t t, i, j
 
     with nogil:
-        for i in range(n_components):
-            fwdlattice[0, i] = log_startprob[i] + framelogprob[0, i]
 
-        for t in range(1, n_samples):
-            for j in range(n_components):
-                for i in range(n_components):
-                    tmp_buf[i] = fwdlattice[t-1, i] + log_transmat[i, j]
-
-                fwdlattice[t, j] = _logsumexp(tmp_buf) + framelogprob[t, j]
-
-
-def _forward_scaling(int n_samples, int n_components,
-                     dtype_t[:] startprob,
-                     dtype_t[:, :] transmat,
-                     dtype_t[:, :] frameprob,
-                     dtype_t[:, :] fwdlattice,
-                     dtype_t[:] scaling_factors,
-                     dtype_t min_scaling=1e-300):
-    """
-    Compute the fwdlattice (alpha in the literature)
-    probabilities using scaling_factors:
-        P(O_1, O_2, ..., O_t, q_t=S_i | model)
-    """
-    cdef Py_ssize_t t, i, j
-
-    scaling_factors[:] = 0
-    fwdlattice[:] = 0
-
-    # Compute intial column of fwdlattice
-    for i in range(n_components):
-        fwdlattice[0, i] = startprob[i] * frameprob[0, i]
-
-    for i in range(n_components):
-        scaling_factors[0] += fwdlattice[0, i]
-    if scaling_factors[0] < min_scaling:
-        return False  # scaling underflow, stop and hope that we can use logs
-    else:
-        scaling_factors[0] = 1.0 / scaling_factors[0]
-
-    for i in range(n_components):
-        fwdlattice[0, i] *= scaling_factors[0]
-
-    # Compute rest of Alpha
-    for t in range(1, n_samples):
-        for j in range(n_components):
-            for i in range(n_components):
-                fwdlattice[t, j] += fwdlattice[t-1, i] * transmat[i, j]
-            fwdlattice[t, j] *= frameprob[t, j]
-
-        # Scale this fwdlattice
-        for i in range(n_components):
-            scaling_factors[t] += fwdlattice[t, i]
-        if scaling_factors[t] < min_scaling:
-            return False
+        # Compute intial column of fwdlattice
+        for i in range(nc):
+            fwdlattice[0, i] = startprob[i] * frameprob[0, i]
+        for i in range(nc):
+            scaling_factors[0] += fwdlattice[0, i]
+        if scaling_factors[0] < min_scaling:
+            raise ValueError("Forward pass failed with underflow, "
+                             "consider using implementation='log' instead")
         else:
-            scaling_factors[t] = 1.0 / scaling_factors[t]
-        for i in range(n_components):
-            fwdlattice[t, i] *= scaling_factors[t]
+            scaling_factors[0] = 1.0 / scaling_factors[0]
+        for i in range(nc):
+            fwdlattice[0, i] *= scaling_factors[0]
 
-    return True
+        # Compute rest of Alpha
+        for t in range(1, ns):
+            for j in range(nc):
+                for i in range(nc):
+                    fwdlattice[t, j] += fwdlattice[t-1, i] * transmat[i, j]
+                fwdlattice[t, j] *= frameprob[t, j]
+            for i in range(nc):
+                scaling_factors[t] += fwdlattice[t, i]
+            if scaling_factors[t] < min_scaling:
+                raise ValueError("Forward pass failed with underflow, "
+                                 "consider using implementation='log' instead")
+            else:
+                scaling_factors[t] = 1.0 / scaling_factors[t]
+            for i in range(nc):
+                fwdlattice[t, i] *= scaling_factors[t]
+
+    return np.asarray(fwdlattice), np.asarray(scaling_factors)
 
 
-def _backward_log(int n_samples, int n_components,
-                  dtype_t[:] log_startprob,
-                  dtype_t[:, :] log_transmat,
-                  dtype_t[:, :] framelogprob,
-                  dtype_t[:, :] bwdlattice):
+def backward_log(dtype_t[:] log_startprob,
+                 dtype_t[:, :] log_transmat,
+                 dtype_t[:, :] framelogprob):
     """
-    Compute the backward/beta probabilities using logarithms
+    Compute the backward/beta lattice using logarithms:
         P(O_t+1, O_t+2, ..., O_t, q_t=S_i | model)
     """
-
-    cdef int t, i, j
-    cdef dtype_t[::view.contiguous] tmp_buf = np.zeros(n_components)
-
+    cdef ssize_t ns = framelogprob.shape[0], nc = framelogprob.shape[1]
+    cdef dtype_t[:, ::1] bwdlattice = np.zeros((ns, nc))
+    cdef ssize_t t, i, j
+    cdef dtype_t[::1] tmp_buf = np.empty(nc)
     with nogil:
-        for i in range(n_components):
-            bwdlattice[n_samples - 1, i] = 0.0
-
-        for t in range(n_samples - 2, -1, -1):
-            for i in range(n_components):
-                for j in range(n_components):
+        for i in range(nc):
+            bwdlattice[ns-1, i] = 0
+        for t in range(ns-2, -1, -1):
+            for i in range(nc):
+                for j in range(nc):
                     tmp_buf[j] = (log_transmat[i, j]
                                   + framelogprob[t+1, j]
                                   + bwdlattice[t+1, j])
                 bwdlattice[t, i] = _logsumexp(tmp_buf)
+    return np.asarray(bwdlattice)
 
-def _backward_scaling(int n_samples, int n_components,
-                      dtype_t[:] startprob,
-                      dtype_t[:, :] transmat,
-                      dtype_t[:, :] frameprob,
-                      dtype_t[:] scaling_factors,
-                      dtype_t[:, :] bwdlattice):
+
+def backward_scaling(dtype_t[:] startprob,
+                     dtype_t[:, :] transmat,
+                     dtype_t[:, :] frameprob,
+                     dtype_t[:] scaling_factors):
     """
-    Compute the backward/beta probabilities using scaling_factors:
+    Compute the backward/beta lattice using scaling_factors:
         P(O_t+1, O_t+2, ..., O_t, q_t=S_i | model)
     """
-    cdef Py_ssize_t t, i, j
-
-    bwdlattice[:] = 0
-    bwdlattice[n_samples - 1, :] = scaling_factors[n_samples - 1]
-    for t in range(n_samples -2, -1, -1):
-        for j in range(n_components):
-            for i in range(n_components):
-                bwdlattice[t, j] += (transmat[j, i]
-                                     * frameprob[t+1, i]
-                                     * bwdlattice[t+1, i])
-            bwdlattice[t, j] = scaling_factors[t] * bwdlattice[t, j]
-
-
-def _compute_log_xi_sum(int n_samples, int n_components,
-                        dtype_t[:, :] fwdlattice,
-                        dtype_t[:, :] log_transmat,
-                        dtype_t[:, :] bwdlattice,
-                        dtype_t[:, :] framelogprob,
-                        dtype_t[:, :] log_xi_sum):
-
-    cdef int t, i, j
-    cdef dtype_t[:, ::view.contiguous] tmp_buf = \
-        np.empty((n_components, n_components))
-    cdef dtype_t logprob = _logsumexp(fwdlattice[n_samples - 1])
-
+    cdef ssize_t ns = frameprob.shape[0], nc = frameprob.shape[1]
+    cdef dtype_t[:, ::1] bwdlattice = np.zeros((ns, nc))
+    cdef ssize_t t, i, j
     with nogil:
-        for t in range(n_samples - 1):
-            for i in range(n_components):
-                for j in range(n_components):
-                    tmp_buf[i, j] = (fwdlattice[t, i]
-                                     + log_transmat[i, j]
-                                     + framelogprob[t + 1, j]
-                                     + bwdlattice[t + 1, j]
-                                     - logprob)
-
-            for i in range(n_components):
-                for j in range(n_components):
-                    log_xi_sum[i, j] = _logaddexp(log_xi_sum[i, j],
-                                                  tmp_buf[i, j])
+        bwdlattice[:] = 0
+        bwdlattice[ns-1, :] = scaling_factors[ns-1]
+        for t in range(ns-2, -1, -1):
+            for j in range(nc):
+                for i in range(nc):
+                    bwdlattice[t, j] += (transmat[j, i]
+                                         * frameprob[t+1, i]
+                                         * bwdlattice[t+1, i])
+                bwdlattice[t, j] *= scaling_factors[t]
+    return np.asarray(bwdlattice)
 
 
-def _compute_xi_sum_scaling(int n_samples, int n_components,
-                                dtype_t[:, :] fwdlattice,
-                                dtype_t[:, :] transmat,
-                                dtype_t[:, :] bwdlattice,
-                                dtype_t[:, :] frameprob,
-                                dtype_t[:, :] xi_sum):
+def compute_log_xi_sum(dtype_t[:, :] fwdlattice,
+                       dtype_t[:, :] log_transmat,
+                       dtype_t[:, :] bwdlattice,
+                       dtype_t[:, :] framelogprob):
+    cdef ssize_t ns = framelogprob.shape[0], nc = framelogprob.shape[1]
+    cdef dtype_t[:, ::1] log_xi_sum = np.full((nc, nc), -INFINITY)
     cdef int t, i, j
-    cdef dtype_t[:, ::view.contiguous] tmp_buf = \
-        np.empty((n_components, n_components))
-
+    cdef dtype_t log_xi, logprob = _logsumexp(fwdlattice[ns-1])
     with nogil:
-        for t in range(n_samples - 1):
-            for i in range(n_components):
-                for j in range(n_components):
-                    tmp_buf[i, j] = (fwdlattice[t, i]
+        for t in range(ns-1):
+            for i in range(nc):
+                for j in range(nc):
+                    log_xi = (fwdlattice[t, i]
+                              + log_transmat[i, j]
+                              + framelogprob[t+1, j]
+                              + bwdlattice[t+1, j]
+                              - logprob)
+                    log_xi_sum[i, j] = _logaddexp(log_xi_sum[i, j], log_xi)
+    return np.asarray(log_xi_sum)
+
+
+def compute_scaling_xi_sum(dtype_t[:, :] fwdlattice,
+                           dtype_t[:, :] transmat,
+                           dtype_t[:, :] bwdlattice,
+                           dtype_t[:, :] frameprob):
+    cdef ssize_t ns = frameprob.shape[0], nc = frameprob.shape[1]
+    cdef dtype_t[:, ::1] xi_sum = np.zeros((nc, nc))
+    cdef int t, i, j
+    with nogil:
+        for t in range(ns-1):
+            for i in range(nc):
+                for j in range(nc):
+                    xi_sum[i, j] += (fwdlattice[t, i]
                                      * transmat[i, j]
                                      * frameprob[t+1, j]
                                      * bwdlattice[t+1, j])
-
-            for i in range(n_components):
-                for j in range(n_components):
-                    xi_sum[i, j] += tmp_buf[i, j]
+    return np.asarray(xi_sum)
 
 
-def _viterbi(int n_samples, int n_components,
-             dtype_t[:] log_startprob,
-             dtype_t[:, :] log_transmat,
-             dtype_t[:, :] framelogprob):
+def viterbi(dtype_t[:] log_startprob,
+            dtype_t[:, :] log_transmat,
+            dtype_t[:, :] framelogprob):
 
+    cdef ssize_t ns = framelogprob.shape[0], nc = framelogprob.shape[1]
     cdef int i, j, t, prev
     cdef dtype_t logprob
-
-    cdef int[::view.contiguous] state_sequence = \
-        np.empty(n_samples, dtype=np.int32)
-    cdef dtype_t[:, ::view.contiguous] viterbi_lattice = \
-        np.zeros((n_samples, n_components))
-    cdef dtype_t[::view.contiguous] tmp_buf = np.empty(n_components)
+    cdef int[::1] state_sequence = np.empty(ns, dtype=np.int32)
+    cdef dtype_t[:, ::1] viterbi_lattice = np.zeros((ns, nc))
+    cdef dtype_t[::1] tmp_buf = np.empty(nc)
 
     with nogil:
-        for i in range(n_components):
+        for i in range(nc):
             viterbi_lattice[0, i] = log_startprob[i] + framelogprob[0, i]
 
         # Induction
-        for t in range(1, n_samples):
-            for i in range(n_components):
-                for j in range(n_components):
+        for t in range(1, ns):
+            for i in range(nc):
+                for j in range(nc):
                     tmp_buf[j] = log_transmat[j, i] + viterbi_lattice[t-1, j]
 
                 viterbi_lattice[t, i] = _max(tmp_buf) + framelogprob[t, i]
 
         # Observation traceback
-        state_sequence[n_samples - 1] = prev = \
-            _argmax(viterbi_lattice[n_samples - 1])
-        logprob = viterbi_lattice[n_samples - 1, prev]
+        state_sequence[ns-1] = prev = _argmax(viterbi_lattice[ns-1])
+        logprob = viterbi_lattice[ns-1, prev]
 
-        for t in range(n_samples - 2, -1, -1):
-            for i in range(n_components):
+        for t in range(ns-2, -1, -1):
+            for i in range(nc):
                 tmp_buf[i] = viterbi_lattice[t, i] + log_transmat[i, prev]
 
             state_sequence[t] = prev = _argmax(tmp_buf)
