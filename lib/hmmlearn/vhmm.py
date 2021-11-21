@@ -1,21 +1,21 @@
 import logging
 
 import numpy as np
-import scipy.special
+
+from scipy.special import digamma, logsumexp
 
 from sklearn.utils import check_array, check_random_state
 
-from .base import ConvergenceMonitor
 from . import _hmmc, _utils
-from .utils import log_mask_zero, log_normalize, normalize
-
+from .base import ConvergenceMonitor, DECODER_ALGORITHMS
 from .kl_divergence import kl_dirichlet
+from .utils import log_mask_zero, log_normalize, normalize
 
 
 _log = logging.getLogger(__name__)
 
 
-class VariationalBaseHMM:
+class _VariationalBaseHMM:
 
     # TODO: accept the prior on emissionprob_ for consistency.
     def __init__(self, n_components=1,
@@ -96,7 +96,8 @@ class VariationalBaseHMM:
             )
             logprob += logprobij
             if compute_posteriors:
-                bwdlattice = self._do_backward_log_pass(framelogprob)
+                bwdlattice = self._do_backward_log_pass(
+                    framelogprob, startprob=self.startprob_normalized_)
                 sub_posteriors.append(
                     self._compute_posteriors_log(fwdlattice, bwdlattice))
         return logprob, np.concatenate(sub_posteriors)
@@ -115,13 +116,13 @@ class VariationalBaseHMM:
             logprob += logprobij
             if compute_posteriors:
                 bwdlattice = self._do_backward_scaling_pass(
-                    frameprob, scaling_factors, startprob=self.startprob_normalized_,
+                    frameprob, scaling_factors,
+                    startprob=self.startprob_normalized_,
                     transmat=self.transmat_normalized_)
                 sub_posteriors.append(
                     self._compute_posteriors_scaling(fwdlattice, bwdlattice))
 
         return logprob, np.concatenate(sub_posteriors)
-
 
     def decode(self, X, lengths=None, algorithm=None):
         """
@@ -283,7 +284,8 @@ class VariationalBaseHMM:
         """
         init = 1. / self.n_components
         random_state = check_random_state(self.random_state)
-        if self._needs_init("s", "startprob_posterior_") or self._needs_init("s", "startprob_prior_"):
+        if self._needs_init("s", "startprob_posterior_") or \
+           self._needs_init("s", "startprob_prior_"):
             if self.startprob_prior is None:
                 startprob_init = init
             else:
@@ -291,14 +293,16 @@ class VariationalBaseHMM:
 
             self.startprob_prior_ = np.full(self.n_components, startprob_init)
             # Init with dirichlet
-            self.startprob_posterior_ = random_state.dirichlet(np.full(self.n_components, len(lengths)), 1)[0]
+            self.startprob_posterior_ = random_state.dirichlet(
+                np.full(self.n_components, len(lengths)), 1)[0]
 
         if self._needs_init("t", "transmat_posterior_"):
             if self.transmat_prior is None:
                 transmat_init = init
             else:
                 transmat_init = self.transmat_prior
-            self.transmat_prior_ = np.full((self.n_components, self.n_components), transmat_init)
+            self.transmat_prior_ = np.full(
+                (self.n_components, self.n_components), transmat_init)
             self.transmat_posterior_ = random_state.dirichlet(
                 alpha=[sum(lengths)//self.n_components] * self.n_components,
                 size=self.n_components
@@ -354,22 +358,19 @@ class VariationalBaseHMM:
             # before updating the parameters
             free_energy = self._free_energy(curr_logprob)
 
-
             # XXX must be before convergence check, because otherwise
             #     there won't be any updates for the case ``n_iter=1``.
             self._do_mstep(stats)
             self.monitor_.report(free_energy)
             if self.monitor_.converged:
                 break
-        #if (self.transmat_.sum(axis=1) == 0).any():
-        #    _log.warning("Some rows of transmat_ have zero sum because no "
-        #                 "transition from the state was ever observed.")
 
         return self
 
     def _free_energy(self, log_prob):
-        startprob_free_energy  = -kl_dirichlet(self.startprob_posterior_, self.startprob_prior_)
-        transmat_free_energy  = 0
+        startprob_free_energy = -kl_dirichlet(self.startprob_posterior_,
+                                              self.startprob_prior_)
+        transmat_free_energy = 0
         for i in range(self.n_components):
             transmat_free_energy -= kl_dirichlet(
                 self.transmat_posterior_[i],
@@ -380,11 +381,11 @@ class VariationalBaseHMM:
     def _fit_scaling(self, X):
         frameprob = self._compute_subnormalized_likelihood(X)
         logprob, fwdlattice, scaling_factors = \
-        self._do_forward_scaling_pass(
-            frameprob,
-            startprob=self.startprob_subnormalized_,
-            transmat=self.transmat_subnormalized_
-        )
+            self._do_forward_scaling_pass(
+                frameprob,
+                startprob=self.startprob_subnormalized_,
+                transmat=self.transmat_subnormalized_
+            )
         bwdlattice = self._do_backward_scaling_pass(
             frameprob,
             scaling_factors,
@@ -440,9 +441,10 @@ class VariationalBaseHMM:
                            log_mask_zero(transmat),
                            framelogprob, fwdlattice)
         with np.errstate(under="ignore"):
-            return scipy.special.logsumexp(fwdlattice[-1]), fwdlattice
+            return logsumexp(fwdlattice[-1]), fwdlattice
 
-    def _do_backward_scaling_pass(self, frameprob, scaling_factors, startprob, transmat):
+    def _do_backward_scaling_pass(self, frameprob, scaling_factors, startprob,
+                                  transmat):
         n_samples, n_components = frameprob.shape
         bwdlattice = np.zeros((n_samples, n_components))
         _hmmc._backward_scaling(n_samples, n_components,
@@ -455,9 +457,9 @@ class VariationalBaseHMM:
         n_samples, n_components = framelogprob.shape
         bwdlattice = np.zeros((n_samples, n_components))
         _hmmc._backward_log(n_samples, n_components,
-                        log_mask_zero(startprob),
-                        log_mask_zero(transmat),
-                        framelogprob, bwdlattice)
+                            log_mask_zero(startprob),
+                            log_mask_zero(transmat),
+                            framelogprob, bwdlattice)
         return bwdlattice
 
     def _compute_posteriors_scaling(self, fwdlattice, bwdlattice):
@@ -490,14 +492,18 @@ class VariationalBaseHMM:
 
     def _update_subnormalized(self):
         # Update PI
-        self.startprob_log_subnormalized_ = scipy.special.digamma(self.startprob_posterior_) - scipy.special.digamma(self.startprob_posterior_.sum())
-        self.startprob_subnormalized_ = np.exp(self.startprob_log_subnormalized_)
-        self.startprob_normalized_ = self.startprob_posterior_ / self.startprob_posterior_.sum()
+        self.startprob_log_subnormalized_ = digamma(self.startprob_posterior_) \
+            - digamma(self.startprob_posterior_.sum())
+        self.startprob_subnormalized_ = np.exp(
+            self.startprob_log_subnormalized_)
+        self.startprob_normalized_ = self.startprob_posterior_ / \
+            self.startprob_posterior_.sum()
 
-        self.transmat_log_subnormalized_ = scipy.special.digamma(self.transmat_posterior_) - scipy.special.digamma(self.transmat_posterior_.sum(axis=1)[:, None])
+        self.transmat_log_subnormalized_ = digamma(self.transmat_posterior_) - \
+            digamma(self.transmat_posterior_.sum(axis=1)[:, None])
         self.transmat_subnormalized_ = np.exp(self.transmat_log_subnormalized_)
-        self.transmat_normalized_ = self.transmat_posterior_ / self.transmat_posterior_.sum(axis=1)[:, None]
-
+        self.transmat_normalized_ = self.transmat_posterior_ / \
+            self.transmat_posterior_.sum(axis=1)[:, None]
 
     def _get_n_fit_scalars_per_param(self):
         """
@@ -536,14 +542,14 @@ class VariationalBaseHMM:
 
     def _compute_subnormalized_likelihood(self, X):
         if self._compute_subnormalized_log_likelihood != \
-           VariationalBaseHMM._compute_subnormalized_log_likelihood.__get__(self):  # prevent recursion
+           _VariationalBaseHMM._compute_subnormalized_log_likelihood.__get__(self):  # prevent recursion
             return np.exp(self._compute_subnormalized_log_likelihood(X))
         else:
             raise NotImplementedError("Must be overridden in subclass")
 
     def _compute_subnormalized_log_likelihood(self, X):
         if self._compute_subnormalized_likelihood != \
-           VariationalBaseHMM._compute_subnormalized_likelihood.__get__(self):  # prevent recursion
+           _VariationalBaseHMM._compute_subnormalized_likelihood.__get__(self):  # prevent recursion
             return np.log(self._compute_subnormalized_likelihood(X))
         else:
             raise NotImplementedError("Must be overridden in subclass")
@@ -563,7 +569,7 @@ class VariationalBaseHMM:
             model states.
         """
         if self._compute_log_likelihood != \
-           VariationalBaseHMM._compute_log_likelihood.__get__(self):  # prevent recursion
+           _VariationalBaseHMM._compute_log_likelihood.__get__(self):  # prevent recursion
             return np.exp(self._compute_log_likelihood(X))
         else:
             raise NotImplementedError("Must be overridden in subclass")
@@ -584,27 +590,10 @@ class VariationalBaseHMM:
             model states, i.e., ``log(p(X|state))``.
         """
         if self._compute_likelihood != \
-           VariationalBaseHMM._compute_likelihood.__get__(self):  # prevent recursion
+           _VariationalBaseHMM._compute_likelihood.__get__(self):  # prevent recursion
             return np.log(self._compute_likelihood(X))
         else:
             raise NotImplementedError("Must be overridden in subclass")
-
-    def _compute_log_likelihood(self, X):
-        """
-        Compute per-component emission log probability under the model.
-
-        Parameters
-        ----------
-        X : array-like, shape (n_samples, n_features)
-            Feature matrix of individual samples.
-
-        Returns
-        -------
-        logprob : array, shape (n_samples, n_components)
-            Emission log probability of each sample in ``X`` for each of the
-            model states, i.e., ``log(p(X|state))``.
-        """
-        return np.log(self._compute_likelihood(X))
 
     def _generate_sample_from_state(self, state, random_state=None):
         """
@@ -624,6 +613,10 @@ class VariationalBaseHMM:
             A random sample from the emission distribution corresponding
             to a given component.
         """
+    def _generate_sample_from_state(self, state, random_state=None):
+        cdf = np.cumsum(self.emissions_normalized_[state, :])
+        random_state = check_random_state(random_state)
+        return [(cdf > random_state.rand()).argmax()]
 
     # Methods used by self.fit()
 
@@ -711,9 +704,9 @@ class VariationalBaseHMM:
 
             xi_sum = np.full((n_components, n_components), 0.)
             _hmmc._compute_xi_sum_scaling(n_samples, n_components, fwdlattice,
-                                      self.transmat_subnormalized_,
-                                      bwdlattice, lattice,
-                                      xi_sum)
+                                          self.transmat_subnormalized_,
+                                          bwdlattice, lattice,
+                                          xi_sum)
             stats['trans'] += xi_sum
 
     def _accumulate_sufficient_statistics_log(self, stats, X, lattice,
@@ -753,10 +746,10 @@ class VariationalBaseHMM:
         if 's' in self.params:
             self.startprob_posterior_ = self.startprob_prior_ + stats['start']
         if 't' in self.params:
-            self.transmat_posterior_ = self.transmat_prior_ +  stats['trans']
+            self.transmat_posterior_ = self.transmat_prior_ + stats['trans']
 
 
-class VariationalCategoricalHMM(VariationalBaseHMM):
+class VariationalCategoricalHMM(_VariationalBaseHMM):
     """
     Hidden Markov Model with categorical (discrete) emissions.
 
@@ -837,9 +830,10 @@ class VariationalCategoricalHMM(VariationalBaseHMM):
         self._check_and_set_categorical_features(X)
         if self._needs_init("e", "emissions_posterior"):
             emissions_init = 1 / self.n_features
-            if self.transmat_prior is not None:
-                emissions_init = init
-            self.emissions_prior_ = np.full((self.n_components, self.n_features), emissions_init)
+            if self.emissions_prior is not None:
+                emissions_init = self.emissions_prior
+            self.emissions_prior_ = np.full(
+                (self.n_components, self.n_features), emissions_init)
             self.emissions_posterior_ = random_state.dirichlet(
                 alpha=[sum(lengths)//self.n_components] * self.n_features,
                 size=self.n_components
@@ -849,10 +843,11 @@ class VariationalCategoricalHMM(VariationalBaseHMM):
         super()._update_subnormalized()
         # Emissions
         self.emissions_log_subnormalized_ = (
-            scipy.special.digamma(self.emissions_posterior_)
-                   - scipy.special.digamma(self.emissions_posterior_.sum(axis=1)[:, None])
+            digamma(self.emissions_posterior_)
+                   - digamma(self.emissions_posterior_.sum(axis=1)[:, None])
         )
-        self.emissions_normalized_ = self.emissions_posterior_ / self.emissions_posterior_.sum(axis=1)[:, None]
+        self.emissions_normalized_ = self.emissions_posterior_ / \
+                self.emissions_posterior_.sum(axis=1)[:, None]
         self.emissions_subnormalized_ = np.exp(self.emissions_log_subnormalized_)
 
     def _get_n_fit_scalars_per_param(self):
@@ -997,7 +992,7 @@ class VariationalCategoricalHMM(VariationalBaseHMM):
 
         # emissions
         if "e" in self.params:
-            self.emissions_posterior_ = self.emissions_prior_ +  stats['obs']
+            self.emissions_posterior_ = self.emissions_prior_ + stats['obs']
 
     def _free_energy(self, log_prob):
         free_energy = super()._free_energy(log_prob)
