@@ -2,11 +2,13 @@ import logging
 import string
 import sys
 from collections import deque
+import threading
 
 import numpy as np
 from scipy import linalg, special
 from sklearn.base import BaseEstimator
 from sklearn.utils import check_array, check_random_state
+from joblib import Parallel, delayed
 
 from . import _hmmc, _utils
 from .utils import normalize, log_normalize, log_mask_zero
@@ -117,6 +119,12 @@ class ConvergenceMonitor:
                  self.history[-1] - self.history[-2] < self.tol))
 
 
+def map_sub_x_parallel(X, lengths, func, *args, **kwargs):
+    return Parallel(n_jobs=-1, require="sharedmem")(
+        delayed(func)(sub_X, *args, **kwargs) for sub_X in _utils.split_X_lengths(X, lengths)
+    )
+
+
 class _BaseHMM(BaseEstimator):
     """
     Base class for Hidden Markov Models.
@@ -191,6 +199,7 @@ class _BaseHMM(BaseEstimator):
         self.verbose = verbose
         self.implementation = implementation
         self.monitor_ = ConvergenceMonitor(self.tol, self.n_iter, self.verbose)
+        self.stats_lock = threading.Lock()
 
     def get_stationary_distribution(self):
         """Compute the stationary distribution of states."""
@@ -285,30 +294,30 @@ class _BaseHMM(BaseEstimator):
 
     def _score_batches_log(self, X, lengths=None):
 
-        logprobs = []
-        for sub_X in _utils.split_X_lengths(X, lengths):
+        def process_sequence(sub_X):
             try:
                 framelogprob = self._compute_log_likelihood(sub_X)
             except IndexError:
                 logprobij = -np.inf
             else:
                 logprobij, _ = self._do_forward_log_pass(framelogprob)
-            logprobs.append(logprobij)
+            return logprobij
 
+        logprobs = map_sub_x_parallel(X, lengths, process_sequence)
         return logprobs
 
     def _score_batches_scaling(self, X, lengths=None):
 
-        logprobs = []
-        for sub_X in _utils.split_X_lengths(X, lengths):
+        def process_sequence(sub_X):
             try:
                 frameprob = self._compute_likelihood(sub_X)
             except IndexError:
                 logprobij = -np.inf
             else:
                 logprobij, _, _ = self._do_forward_scaling_pass(frameprob)
-            logprobs.append(logprobij)
+            return logprobij
 
+        logprobs = map_sub_x_parallel(X, lengths, process_sequence)
         return logprobs
 
     def _score(self, X, lengths=None, *, compute_posteriors):
@@ -552,20 +561,23 @@ class _BaseHMM(BaseEstimator):
             "scaling": self._fit_scaling,
             "log": self._fit_log,
         }[self.implementation]
-        for iter in range(self.n_iter):
-            stats = self._initialize_sufficient_statistics()
-            curr_logprob = 0
-            for sub_X in _utils.split_X_lengths(X, lengths):
-                lattice, logprob, posteriors, fwdlattice, bwdlattice = \
-                        impl(sub_X)
-                # Derived HMM classes will implement the following method to
-                # update their probability distributions, so keep
-                # a single call to this method for simplicity.
+        
+        def process_sequence(sub_X, stats):
+            lattice, logprob, posteriors, fwdlattice, bwdlattice = \
+                    impl(sub_X)
+            # Derived HMM classes will implement the following method to
+            # update their probability distributions, so keep
+            # a single call to this method for simplicity.
+            with self.stats_lock:
                 self._accumulate_sufficient_statistics(
                     stats, sub_X, lattice, posteriors, fwdlattice,
                     bwdlattice)
-                curr_logprob += logprob
+            return logprob
 
+        for iter in range(self.n_iter):
+            stats = self._initialize_sufficient_statistics()
+            curr_logprob = sum(map_sub_x_parallel(X, lengths, process_sequence, stats))
+                
             # XXX must be before convergence check, because otherwise
             #     there won't be any updates for the case ``n_iter=1``.
             self._do_mstep(stats)
@@ -902,3 +914,12 @@ class _BaseHMM(BaseEstimator):
             transmat_ = np.maximum(self.transmat_prior - 1 + stats['trans'], 0)
             self.transmat_ = np.where(self.transmat_ == 0, 0, transmat_)
             normalize(self.transmat_, axis=1)
+
+    def __getstate__(self):
+        state = self.__dict__.copy()
+        del state['stats_lock']
+        return state
+
+    def __setstate__(self, state):
+        self.__dict__.update(state)
+        self.stats_lock = threading.Lock()
