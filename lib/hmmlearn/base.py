@@ -52,9 +52,9 @@ class ConvergenceMonitor:
     ...                                   model.monitor_.verbose)
     """
 
-    _template = "{iter:>10d} {log_prob:>16.4f} {delta:>+16.4f}"
+    _template = "{iter:>10d} {log_prob:>16.8f} {delta:>+16.8f}"
 
-    def __init__(self, tol, n_iter, verbose):
+    def __init__(self, tol, n_iter, verbose, strict=False):
         """
         Parameters
         ----------
@@ -66,17 +66,21 @@ class ConvergenceMonitor:
             Maximum number of iterations to perform.
         verbose : bool
             Whether per-iteration convergence reports are printed.
+        strict : bool
+            Whether to enforce that the values reported are strictly
+            increasing
         """
         self.tol = tol
         self.n_iter = n_iter
         self.verbose = verbose
+        self.strict = strict
         self.history = deque()
         self.iter = 0
 
     def __repr__(self):
         class_name = self.__class__.__name__
         params = sorted(dict(vars(self), history=list(self.history)).items())
-        return (f"{class_name}(\n"
+        return ("{}(\n".format(class_name)
                 + "".join(map("    {}={},\n".format, *zip(*params)))
                 + ")")
 
@@ -105,6 +109,9 @@ class ConvergenceMonitor:
             message = self._template.format(
                 iter=self.iter + 1, log_prob=log_prob, delta=delta)
             print(message, file=sys.stderr)
+        if self.strict and len(self.history) > 0 and log_prob < self.history[-1]:
+            raise ValueError(f"Model is not converging.  Current: {log_prob}"
+                             f" is not greater than {self.history[-1]}.")
         self.history.append(log_prob)
         self.iter += 1
 

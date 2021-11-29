@@ -17,12 +17,11 @@ def kl_dirichlet(q, p):
     qsum = q.sum()
     psum = p.sum()
     delta = q - p
-
     return gammaln(qsum) - gammaln(psum) - \
             np.sum(gammaln(q) - gammaln(p)) + \
             np.sum(
                 np.dot(
-                    (q-p),
+                    delta,
                     (digamma(q) - digamma(qsum))
                 )
             )
