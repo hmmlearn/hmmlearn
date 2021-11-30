@@ -903,7 +903,6 @@ class GMMHMM(_BaseHMM):
 
     def _initialize_sufficient_statistics(self):
         stats = super()._initialize_sufficient_statistics()
-        stats['n_samples'] = 0
         stats['post_mix_sum'] = np.zeros((self.n_components, self.n_mix))
         stats['post_sum'] = np.zeros(self.n_components)
 
@@ -935,7 +934,6 @@ class GMMHMM(_BaseHMM):
         # make memory consumption independent of the number of samples.
         stats['post_comp_mix'] = []
         stats['samples'] = []
-        stats['centered'] = []
         return stats
 
     def _accumulate_sufficient_statistics(self, stats, X, lattice,
@@ -946,7 +944,6 @@ class GMMHMM(_BaseHMM):
 
         n_samples, _ = X.shape
 
-        stats['n_samples'] += n_samples
         stats['samples'].append(X)
 
         post_mix = np.zeros((n_samples, self.n_components, self.n_mix))
@@ -963,26 +960,10 @@ class GMMHMM(_BaseHMM):
         stats['post_mix_sum'] += post_comp_mix.sum(axis=0)
         stats['post_sum'] += post_comp.sum(axis=0)
 
-        stats['centered'].append(X[:, None, None, :] - self.means_)
-
     def _do_mstep(self, stats):
         super()._do_mstep(stats)
-        ns = stats['n_samples']
-        nc = self.n_components
         nf = self.n_features
         nm = self.n_mix
-
-        # Aggregate post_comp_mix data from multiple sequences
-        post_comp_mix = np.vstack(stats['post_comp_mix'])
-        assert post_comp_mix.shape == (ns, nc, nm)
-
-        # Aggregate samples data from multiple sequences
-        samples = np.vstack(stats['samples'])
-        assert samples.shape == (ns, nf)
-
-        # Aggregate centered data from multiple sequences
-        centered = np.vstack(stats['centered'])
-        assert centered.shape == (ns, nc, nm, nf)
 
         # Maximizing weights
         if 'w' in self.params:
@@ -991,14 +972,16 @@ class GMMHMM(_BaseHMM):
             w_d = (stats['post_sum'] + alphas_minus_one.sum(axis=1))[:, None]
             self.weights_ = w_n / w_d
 
+        means_before_update = self.means_.copy()
+
         # Maximizing means
         if 'm' in self.params:
             lambdas, mus = self.means_weight, self.means_prior
-            m_n = (
-                np.einsum('ijk,il->jkl',
-                          post_comp_mix, samples)
-                + lambdas[:, :, None] * mus
-            )
+            m_n = lambdas[:, :, None] * mus
+            for post_comp_mix, samples in zip(stats['post_comp_mix'],
+                                              stats['samples']):
+                m_n += np.einsum('ijk,il->jkl', post_comp_mix, samples)
+
             m_d = stats['post_mix_sum'] + lambdas
             # If a componenent has zero weight, then replace nan (0/0?) means
             # by 0 (0/1).  The actual value is irrelevant as the component will
@@ -1008,71 +991,83 @@ class GMMHMM(_BaseHMM):
             m_d[(self.weights_ == 0) & (m_n == 0).all(axis=-1)] = 1
             self.means_ = m_n / m_d[:, :, None]
 
-        # Maximizing covariances
+        # Maximizing covariances.
+        # Iterate over 'post_comp_mix' and 'samples' in memory-efficient way
+        # and accumulate the statistics. In other words, the sequence of
+        # matrices (chunks) are not flattened in one large matrix.
+        # Though for a large number of small chunks, it'd make sense to
+        # flatten all small chunks in one array.
         if 'c' in self.params:
+            lambdas, mus = self.means_weight, self.means_prior
             centered_means = self.means_ - mus
 
             def outer_f(x):  # Outer product over features.
                 return x[..., :, None] * x[..., None, :]
 
             if self.covariance_type == 'full':
-                centered_dots = outer_f(centered)
                 centered_means_dots = outer_f(centered_means)
 
                 psis_t = np.transpose(self.covars_prior, axes=(0, 1, 3, 2))
                 nus = self.covars_weight
 
-                c_n = (
-                    np.einsum('ijk,ijklm->jklm', post_comp_mix, centered_dots)
-                    + psis_t
-                    + lambdas[:, :, None, None] * centered_means_dots
-                )
+                c_n = psis_t + lambdas[:, :, None, None] * centered_means_dots
+                for post_comp_mix, samples in zip(stats['post_comp_mix'],
+                                                  stats['samples']):
+                    centered = samples[:, None, None, :] - means_before_update
+                    centered_dots = outer_f(centered)
+                    c_n += np.einsum('ijk,ijklm->jklm', post_comp_mix,
+                                     centered_dots)
                 c_d = (
                     stats['post_mix_sum'] + 1 + nus + nf + 1
                 )[:, :, None, None]
 
             elif self.covariance_type == 'diag':
-                centered2 = centered ** 2
-                centered_means2 = centered_means ** 2
-
                 alphas = self.covars_prior
                 betas = self.covars_weight
+                centered_means2 = centered_means ** 2
 
-                c_n = (
-                    np.einsum('ijk,ijkl->jkl', post_comp_mix, centered2)
-                    + lambdas[:, :, None] * centered_means2
-                    + 2 * betas
-                )
+                c_n = lambdas[:, :, None] * centered_means2 + 2 * betas
+                for post_comp_mix, samples in zip(stats['post_comp_mix'],
+                                                  stats['samples']):
+                    centered = samples[:, None, None, :] - means_before_update
+                    centered2 = np.square(centered, out=centered)  # reuse
+                    c_n += np.einsum('ijk,ijkl->jkl', post_comp_mix, centered2)
+
                 c_d = stats['post_mix_sum'][:, :, None] + 1 + 2 * (alphas + 1)
 
             elif self.covariance_type == 'spherical':
                 # Much faster than (x**2).sum(-1).
                 def norm_last(x): return np.einsum('...i,...i', x, x)
-                centered_norm2 = norm_last(centered)
                 centered_means_norm2 = norm_last(centered_means)
 
                 alphas = self.covars_prior
                 betas = self.covars_weight
 
-                c_n = (
-                    np.einsum('ijk,ijk->jk', post_comp_mix, centered_norm2)
-                    + lambdas * centered_means_norm2
-                    + 2 * betas
-                )
+                c_n = lambdas * centered_means_norm2 + 2 * betas
+                for post_comp_mix, samples in zip(stats['post_comp_mix'],
+                                                  stats['samples']):
+                    centered = samples[:, None, None, :] - means_before_update
+                    centered_norm = norm_last(centered)
+                    c_n += np.einsum('ijk,ijk->jk', post_comp_mix,
+                                     centered_norm)
+
                 c_d = nf * (stats['post_mix_sum'] + 1) + 2 * (alphas + 1)
 
             elif self.covariance_type == 'tied':
-                centered_dots = outer_f(centered)
                 centered_means_dots = outer_f(centered_means)
 
                 psis_t = np.transpose(self.covars_prior, axes=(0, 2, 1))
                 nus = self.covars_weight
 
-                c_n = (
-                    np.einsum('ijk,ijklm->jlm', post_comp_mix, centered_dots)
-                    + np.einsum('ij,ijkl->ikl', lambdas, centered_means_dots)
-                    + psis_t
-                )
+                c_n = np.einsum('ij,ijkl->ikl', lambdas, centered_means_dots) \
+                      + psis_t
+                for post_comp_mix, samples in zip(stats['post_comp_mix'],
+                                                  stats['samples']):
+                    centered = samples[:, None, None, :] - means_before_update
+                    centered_dots = outer_f(centered)
+                    c_n += np.einsum('ijk,ijklm->jlm', post_comp_mix,
+                                     centered_dots)
+
                 c_d = (stats['post_sum'] + nm + nus + nf + 1)[:, None, None]
 
             self.covars_ = c_n / c_d

@@ -1,9 +1,11 @@
 import numpy as np
 import pytest
+from numpy.testing import assert_array_almost_equal
 
 from . import assert_log_likelihood_increasing
 from . import normalized
-from ..hmm import GMMHMM
+from .test_gmm_hmm import create_random_gmm
+from ..hmm import GMMHMM, COVARIANCE_TYPES
 
 from numpy.testing import assert_array_almost_equal, assert_array_less
 
@@ -213,3 +215,30 @@ class TestGMMHMM_KmeansInit:
         # test whether the means are bounded by the data lower- and upperbounds
         assert_array_less(0, model.means_)
         assert_array_less(model.means_, 6)
+
+
+class TestGMMHMM_MultiSequence:
+
+    @pytest.mark.parametrize("covtype",
+                             ["diag", "spherical", "tied", "full"])
+    def test_chunked(sellf, covtype):
+        np.random.seed(0)
+        gmm = create_random_gmm(3, 2, covariance_type=covtype, prng=0)
+        gmm.covariances_ = gmm.covars_
+        data = gmm.sample(n_samples=1000)[0]
+
+        model1 = GMMHMM(n_components=3, n_mix=2, covariance_type=covtype,
+                        random_state=1)
+        model2 = GMMHMM(n_components=3, n_mix=2, covariance_type=covtype,
+                        random_state=1)
+        model1.fit(data)
+        model2.fit(data, lengths=[200] * 5)
+
+        assert_array_almost_equal(model1.means_, model2.means_,
+                                  decimal=2)
+        assert_array_almost_equal(model1.covars_, model2.covars_,
+                                  decimal=3)
+        assert_array_almost_equal(model1.weights_, model2.weights_,
+                                  decimal=3)
+        assert_array_almost_equal(model1.transmat_, model2.transmat_,
+                                  decimal=2)
