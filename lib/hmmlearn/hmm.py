@@ -674,19 +674,22 @@ class GMMHMM(_BaseHMM):
         main_kmeans = cluster.KMeans(n_clusters=nc,
                                      random_state=self.random_state)
         labels = main_kmeans.fit_predict(X)
-        kmeanses = []
+        means = []
         for label in range(nc):
             kmeans = cluster.KMeans(n_clusters=nm,
                                     random_state=self.random_state)
-            kmeans.fit(X[np.where(labels == label)])
-            kmeanses.append(kmeans)
+            X_cluster = X[np.where(labels == label)]
+            if X_cluster.shape[0] >= nm:
+                kmeans.fit(X_cluster)
+                means.append(kmeans.cluster_centers_)
+            else:
+                means.append(np.random.randn(nm, X_cluster.shape[1]))
 
         if self._needs_init("w", "weights_"):
             self.weights_ = np.full((nc, nm), 1 / nm)
 
         if self._needs_init("m", "means_"):
-            self.means_ = np.stack(
-                [kmeans.cluster_centers_ for kmeans in kmeanses])
+            self.means_ = np.stack(means)
 
         if self._needs_init("c", "covars_"):
             cv = np.cov(X.T) + self.min_covar * np.eye(nf)
