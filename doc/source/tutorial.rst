@@ -204,7 +204,8 @@ such cases, split a large input array into chunks (Note: currently available
 for the ``GMMHMM`` model only):
 
 >>> X = np.random.randn(10_000, 1)  # a large input array
->>> hmm.GMMHMM(X, lengths=[1000] * 10)  # split the array in 10 chunks
+>>> model = hmm.GMMHMM(n_components=3)
+>>> model.fit(X, lengths=[1000] * 10)  # split the array in 10 chunks
 
 Saving and loading HMM
 ----------------------
