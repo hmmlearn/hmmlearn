@@ -667,29 +667,43 @@ class GMMHMM(_BaseHMM):
         nf = self.n_features
         nm = self.n_mix
 
+        def compute_cv():
+            return np.cov(X.T) + self.min_covar * np.eye(nf)
+
         # Default values for covariance prior parameters
         self._init_covar_priors()
         self._fix_priors_shape()
 
         main_kmeans = cluster.KMeans(n_clusters=nc,
                                      random_state=self.random_state)
+        cv = None  # covariance matrix
         labels = main_kmeans.fit_predict(X)
-        kmeanses = []
+        main_centroid = np.mean(main_kmeans.cluster_centers_, axis=0)
+        means = []
         for label in range(nc):
             kmeans = cluster.KMeans(n_clusters=nm,
                                     random_state=self.random_state)
-            kmeans.fit(X[np.where(labels == label)])
-            kmeanses.append(kmeans)
+            X_cluster = X[np.where(labels == label)]
+            if X_cluster.shape[0] >= nm:
+                kmeans.fit(X_cluster)
+                means.append(kmeans.cluster_centers_)
+            else:
+                if cv is None:
+                    cv = compute_cv()
+                m_cluster = np.random.multivariate_normal(main_centroid,
+                                                          cov=cv,
+                                                          size=nm)
+                means.append(m_cluster)
 
         if self._needs_init("w", "weights_"):
             self.weights_ = np.full((nc, nm), 1 / nm)
 
         if self._needs_init("m", "means_"):
-            self.means_ = np.stack(
-                [kmeans.cluster_centers_ for kmeans in kmeanses])
+            self.means_ = np.stack(means)
 
         if self._needs_init("c", "covars_"):
-            cv = np.cov(X.T) + self.min_covar * np.eye(nf)
+            if cv is None:
+                cv = compute_cv()
             if not cv.shape:
                 cv.shape = (1, 1)
             if self.covariance_type == 'tied':
