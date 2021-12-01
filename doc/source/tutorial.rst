@@ -206,6 +206,7 @@ for the ``GMMHMM`` model only):
 >>> X = np.random.randn(10_000, 1)  # a large input array
 >>> model = hmm.GMMHMM(n_components=3)
 >>> model.fit(X, lengths=[1000] * 10)  # split the array in 10 chunks
+GMMHMM(...
 
 Saving and loading HMM
 ----------------------
