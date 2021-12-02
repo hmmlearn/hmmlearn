@@ -5,6 +5,8 @@ from . import assert_log_likelihood_increasing
 from . import normalized
 from ..hmm import GMMHMM
 
+from numpy.testing import assert_array_almost_equal, assert_array_less
+
 
 def sample_from_parallelepiped(low, high, n_samples, random_state):
     (n_features,) = low.shape
@@ -194,3 +196,18 @@ class TestGMMHMMWithTiedCovars(GMMHMMTestMixin):
 
 class TestGMMHMMWithFullCovars(GMMHMMTestMixin):
     covariance_type = 'full'
+
+
+class TestGMMHMM_KmeansInit:
+    def test_kmeans(self):
+        # Generate two isolated cluster.
+        # The second cluster has no. of points less than n_mix.
+        np.random.seed(0)
+        data1 = np.random.uniform(low=0, high=1, size=(100, 2))
+        data2 = np.random.uniform(low=5, high=6, size=(5, 2))
+        data = np.r_[data1, data2]
+        model = GMMHMM(n_components=2, n_mix=10, n_iter=5)
+        model.fit(data)  # _init() should not fail here
+        # test whether the means are bounded by the data lower- and upperbounds
+        assert_array_less(0, model.means_)
+        assert_array_less(model.means_, 6)
