@@ -2,13 +2,12 @@ import logging
 import string
 import sys
 from collections import deque
-import threading
 
 import numpy as np
 from scipy import linalg, special
 from sklearn.base import BaseEstimator
 from sklearn.utils import check_array, check_random_state
-from joblib import Parallel, delayed
+from concurrent.futures import ThreadPoolExecutor
 
 from . import _hmmc, _utils
 from .utils import normalize, log_normalize, log_mask_zero
@@ -119,11 +118,18 @@ class ConvergenceMonitor:
                  self.history[-1] - self.history[-2] < self.tol))
 
 
-def map_sub_x_parallel(X, lengths, func, *args, **kwargs):
-    return Parallel(n_jobs=-1, require="sharedmem")(
-        delayed(func)(sub_X, *args, **kwargs) for sub_X in _utils.split_X_lengths(X, lengths)
-    )
+def map_sub_x_parallel(X, lengths, func):
+    """
+    Processes all subsequences of X in parallel with function func
+    and returns the results in order
+    """
 
+    with ThreadPoolExecutor() as executor:
+
+        fs = [executor.submit(func, sub_X) for sub_X in _utils.split_X_lengths(X, lengths)]
+
+        for future in fs:
+            yield future.result()
 
 class _BaseHMM(BaseEstimator):
     """
@@ -199,7 +205,6 @@ class _BaseHMM(BaseEstimator):
         self.verbose = verbose
         self.implementation = implementation
         self.monitor_ = ConvergenceMonitor(self.tol, self.n_iter, self.verbose)
-        self.stats_lock = threading.Lock()
 
     def get_stationary_distribution(self):
         """Compute the stationary distribution of states."""
@@ -302,7 +307,7 @@ class _BaseHMM(BaseEstimator):
                 logprobij, _ = self._do_forward_log_pass(framelogprob)
             return logprobij
 
-        logprobs = map_sub_x_parallel(X, lengths, process_sequence)
+        logprobs = list(map_sub_x_parallel(X, lengths, process_sequence))
         return logprobs
 
     def _score_sequences_scaling(self, X, lengths=None):
@@ -316,7 +321,7 @@ class _BaseHMM(BaseEstimator):
                 logprobij, _, _ = self._do_forward_scaling_pass(frameprob)
             return logprobij
 
-        logprobs = map_sub_x_parallel(X, lengths, process_sequence)
+        logprobs = list(map_sub_x_parallel(X, lengths, process_sequence))
         return logprobs
 
 
@@ -561,23 +566,24 @@ class _BaseHMM(BaseEstimator):
             "scaling": self._fit_scaling,
             "log": self._fit_log,
         }[self.implementation]
-        
-        def process_sequence(sub_X, stats):
+
+        def process_sequence(sub_X):
             lattice, logprob, posteriors, fwdlattice, bwdlattice = \
                     impl(sub_X)
             # Derived HMM classes will implement the following method to
             # update their probability distributions, so keep
             # a single call to this method for simplicity.
-            with self.stats_lock:
-                self._accumulate_sufficient_statistics(
-                    stats, sub_X, lattice, posteriors, fwdlattice,
-                    bwdlattice)
-            return logprob
+            stats = self._accumulate_sufficient_statistics(sub_X, lattice, posteriors, fwdlattice, bwdlattice)
+            return logprob, stats
 
         for iter in range(self.n_iter):
+            curr_logprob = 0
             stats = self._initialize_sufficient_statistics()
-            curr_logprob = sum(map_sub_x_parallel(X, lengths, process_sequence, stats))
-                
+
+            for logprob, update in map_sub_x_parallel(X, lengths, process_sequence):
+                curr_logprob += logprob
+                self._aggregate_statistics(stats, update)
+
             # XXX must be before convergence check, because otherwise
             #     there won't be any updates for the case ``n_iter=1``.
             self._do_mstep(stats)
@@ -815,16 +821,12 @@ class _BaseHMM(BaseEstimator):
                  'trans': np.zeros((self.n_components, self.n_components))}
         return stats
 
-    def _accumulate_sufficient_statistics(self, stats, X, lattice,
+    def _accumulate_sufficient_statistics(self, X, lattice,
                                           posteriors, fwdlattice, bwdlattice):
         """Updates sufficient statistics from a given sample.
 
         Parameters
         ----------
-        stats : dict
-            Sufficient statistics as returned by
-            :meth:`~base._BaseHMM._initialize_sufficient_statistics`.
-
         X : array, shape (n_samples, n_features)
             Sample sequence.
 
@@ -846,49 +848,65 @@ class _BaseHMM(BaseEstimator):
             "log": self._accumulate_sufficient_statistics_log,
         }[self.implementation]
 
-        return impl(stats=stats, X=X, lattice=lattice, posteriors=posteriors,
+        return impl(X=X, lattice=lattice, posteriors=posteriors,
                     fwdlattice=fwdlattice, bwdlattice=bwdlattice)
 
-    def _accumulate_sufficient_statistics_scaling(self, stats, X, lattice,
+    def _accumulate_sufficient_statistics_scaling(self, X, lattice,
                                                   posteriors, fwdlattice,
                                                   bwdlattice):
         """
         Implementation of `_accumulate_sufficient_statistics`
         for ``implementation = "log"``.
         """
-        stats['nobs'] += 1
+        stats = {'nobs': 1}
+
         if 's' in self.params:
-            stats['start'] += posteriors[0]
+            stats['start'] = posteriors[0]
         if 't' in self.params:
             n_samples, n_components = lattice.shape
             # when the sample is of length 1, it contains no transitions
             # so there is no reason to update our trans. matrix estimate
             if n_samples <= 1:
-                return
-            xi_sum = _hmmc.compute_scaling_xi_sum(
-                fwdlattice, self.transmat_, bwdlattice, lattice)
-            stats['trans'] += xi_sum
+                xi_sum = None
+            else:
+                xi_sum = _hmmc.compute_scaling_xi_sum(
+                    fwdlattice, self.transmat_, bwdlattice, lattice)
+            stats['trans'] = xi_sum
 
-    def _accumulate_sufficient_statistics_log(self, stats, X, lattice,
+        return stats
+
+    def _accumulate_sufficient_statistics_log(self, X, lattice,
                                               posteriors, fwdlattice,
                                               bwdlattice):
         """
         Implementation of `_accumulate_sufficient_statistics`
         for ``implementation = "log"``.
         """
-        stats['nobs'] += 1
+        stats = {'nobs': 1}
+
         if 's' in self.params:
-            stats['start'] += posteriors[0]
+            stats['start'] = posteriors[0]
         if 't' in self.params:
             n_samples, n_components = lattice.shape
             # when the sample is of length 1, it contains no transitions
             # so there is no reason to update our trans. matrix estimate
             if n_samples <= 1:
-                return
-            log_xi_sum = _hmmc.compute_log_xi_sum(
-                fwdlattice, log_mask_zero(self.transmat_), bwdlattice, lattice)
-            with np.errstate(under="ignore"):
-                stats['trans'] += np.exp(log_xi_sum)
+                stats['trans'] = None
+            else:
+                log_xi_sum = _hmmc.compute_log_xi_sum(
+                    fwdlattice, log_mask_zero(self.transmat_), bwdlattice, lattice)
+                with np.errstate(under="ignore"):
+                    stats['trans'] = np.exp(log_xi_sum)
+
+        return stats
+
+    def _aggregate_statistics(self, stats, update):
+        stats['nobs'] += update['nobs']
+        if 's' in self.params:
+            stats['start'] += update['start']
+        if 't' in self.params:
+            if update['trans'] is not None:
+                stats['trans'] += update['trans']
 
     def _do_mstep(self, stats):
         """
@@ -914,12 +932,3 @@ class _BaseHMM(BaseEstimator):
             transmat_ = np.maximum(self.transmat_prior - 1 + stats['trans'], 0)
             self.transmat_ = np.where(self.transmat_ == 0, 0, transmat_)
             normalize(self.transmat_, axis=1)
-
-    def __getstate__(self):
-        state = self.__dict__.copy()
-        del state['stats_lock']
-        return state
-
-    def __setstate__(self, state):
-        self.__dict__.update(state)
-        self.stats_lock = threading.Lock()
