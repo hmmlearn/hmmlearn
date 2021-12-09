@@ -80,7 +80,7 @@ class GaussianHMM(_BaseHMM):
                  algorithm="viterbi", random_state=None,
                  n_iter=10, tol=1e-2, verbose=False,
                  params="stmc", init_params="stmc",
-                 implementation="log"):
+                 implementation="log", max_workers=None):
         """
         Parameters
         ----------
@@ -156,7 +156,8 @@ class GaussianHMM(_BaseHMM):
                           random_state=random_state, n_iter=n_iter,
                           tol=tol, params=params, verbose=verbose,
                           init_params=init_params,
-                          implementation=implementation)
+                          implementation=implementation,
+                          max_workers=max_workers)
         self.covariance_type = covariance_type
         self.min_covar = min_covar
         self.means_prior = means_prior
@@ -239,23 +240,37 @@ class GaussianHMM(_BaseHMM):
                                            self.n_features))
         return stats
 
-    def _accumulate_sufficient_statistics(self, stats, obs, lattice,
+    def _accumulate_sufficient_statistics(self, obs, lattice,
                                           posteriors, fwdlattice, bwdlattice):
-        super()._accumulate_sufficient_statistics(
-            stats, obs, lattice, posteriors, fwdlattice, bwdlattice)
+        stats = super()._accumulate_sufficient_statistics(
+            obs, lattice, posteriors, fwdlattice, bwdlattice)
 
         if 'm' in self.params or 'c' in self.params:
-            stats['post'] += posteriors.sum(axis=0)
-            stats['obs'] += np.dot(posteriors.T, obs)
+            print(type(stats))
+            stats['post'] = posteriors.sum(axis=0)
+            stats['obs'] = np.dot(posteriors.T, obs)
 
         if 'c' in self.params:
             if self.covariance_type in ('spherical', 'diag'):
-                stats['obs**2'] += np.dot(posteriors.T, obs ** 2)
+                stats['obs**2'] = np.dot(posteriors.T, obs ** 2)
             elif self.covariance_type in ('tied', 'full'):
                 # posteriors: (nt, nc); obs: (nt, nf); obs: (nt, nf)
                 # -> (nc, nf, nf)
-                stats['obs*obs.T'] += np.einsum(
+                stats['obs*obs.T'] = np.einsum(
                     'ij,ik,il->jkl', posteriors, obs, obs)
+
+        return stats
+
+    def _aggregate_statistics(self, stats, update):
+        super()._aggregate_statistics(stats, update)
+        if 'm' in self.params or 'c' in self.params:
+            stats['post'] += update['post']
+            stats['obs'] += update['obs']
+        if 'c' in self.params:
+            if self.covariance_type in ('spherical', 'diag'):
+                stats['obs**2'] += update['obs**2']
+            elif self.covariance_type in ('tied', 'full'):
+                stats['obs*obs.T'] += update['obs*obs.T']
 
     def _do_mstep(self, stats):
         super()._do_mstep(stats)
@@ -365,7 +380,7 @@ class MultinomialHMM(_BaseHMM):
                  algorithm="viterbi", random_state=None,
                  n_iter=10, tol=1e-2, verbose=False,
                  params="ste", init_params="ste",
-                 implementation="log"):
+                 implementation="log", max_workers=None):
         """
         Parameters
         ----------
@@ -416,7 +431,8 @@ class MultinomialHMM(_BaseHMM):
                           random_state=random_state,
                           n_iter=n_iter, tol=tol, verbose=verbose,
                           params=params, init_params=init_params,
-                          implementation=implementation)
+                          implementation=implementation,
+                          max_workers=max_workers)
 
     score_samples, score, decode, predict, predict_proba, sample, fit = map(
         _multinomialhmm_fix_docstring_shape, [
@@ -475,12 +491,18 @@ class MultinomialHMM(_BaseHMM):
         stats['obs'] = np.zeros((self.n_components, self.n_features))
         return stats
 
-    def _accumulate_sufficient_statistics(self, stats, X, lattice,
+    def _accumulate_sufficient_statistics(self, X, lattice,
                                           posteriors, fwdlattice, bwdlattice):
-        super()._accumulate_sufficient_statistics(
-            stats, X, lattice, posteriors, fwdlattice, bwdlattice)
+        stats = super()._accumulate_sufficient_statistics(
+            X, lattice, posteriors, fwdlattice, bwdlattice)
         if 'e' in self.params:
-            np.add.at(stats['obs'].T, np.concatenate(X), posteriors)
+            stats['obs'] = (np.concatenate(X), posteriors)
+        return stats
+
+    def _aggregate_statistics(self, stats, update):
+        super()._aggregate_statistics(stats, update)
+        if 'e' in self.params:
+            np.add.at(stats['obs'].T, update['obs'][0], update['obs'][1])
 
     def _do_mstep(self, stats):
         super()._do_mstep(stats)
@@ -546,7 +568,7 @@ class GMMHMM(_BaseHMM):
                  random_state=None, n_iter=10, tol=1e-2,
                  verbose=False, params="stmcw",
                  init_params="stmcw",
-                 implementation="log"):
+                 implementation="log", max_workers=None):
         """
         Parameters
         ----------
@@ -633,7 +655,8 @@ class GMMHMM(_BaseHMM):
                           algorithm=algorithm, random_state=random_state,
                           n_iter=n_iter, tol=tol, verbose=verbose,
                           params=params, init_params=init_params,
-                          implementation=implementation)
+                          implementation=implementation,
+                          max_workers=max_workers)
         self.covariance_type = covariance_type
         self.min_covar = min_covar
         self.n_mix = n_mix
@@ -939,16 +962,16 @@ class GMMHMM(_BaseHMM):
         stats['centered'] = []
         return stats
 
-    def _accumulate_sufficient_statistics(self, stats, X, lattice,
+    def _accumulate_sufficient_statistics(self, X, lattice,
                                           post_comp, fwdlattice, bwdlattice):
-        super()._accumulate_sufficient_statistics(
-            stats, X, lattice, post_comp, fwdlattice, bwdlattice
+        stats = super()._accumulate_sufficient_statistics(
+            X, lattice, post_comp, fwdlattice, bwdlattice
         )
 
         n_samples, _ = X.shape
 
-        stats['n_samples'] += n_samples
-        stats['samples'].append(X)
+        stats['n_samples'] = n_samples
+        stats['samples'] = X
 
         post_mix = np.zeros((n_samples, self.n_components, self.n_mix))
         for p in range(self.n_components):
@@ -959,12 +982,23 @@ class GMMHMM(_BaseHMM):
 
         with np.errstate(under="ignore"):
             post_comp_mix = post_comp[:, :, None] * post_mix
-        stats['post_comp_mix'].append(post_comp_mix)
+        stats['post_comp_mix'] = post_comp_mix
 
-        stats['post_mix_sum'] += post_comp_mix.sum(axis=0)
-        stats['post_sum'] += post_comp.sum(axis=0)
+        stats['post_mix_sum'] = post_comp_mix.sum(axis=0)
+        stats['post_sum'] = post_comp.sum(axis=0)
 
-        stats['centered'].append(X[:, None, None, :] - self.means_)
+        stats['centered'] = X[:, None, None, :] - self.means_
+
+        return stats
+
+    def _aggregate_statistics(self, stats, update):
+        super()._aggregate_statistics(stats, update)
+        stats['n_samples'] += update['n_samples']
+        stats['samples'].append(update['samples'])
+        stats['post_comp_mix'].append(update['post_comp_mix'])
+        stats['post_mix_sum'] += update['post_mix_sum']
+        stats['post_sum'] += update['post_sum']
+        stats['centered'].append(update['centered'])
 
     def _do_mstep(self, stats):
         super()._do_mstep(stats)

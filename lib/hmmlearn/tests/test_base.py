@@ -149,6 +149,22 @@ class TestBaseAgainstWikipedia:
                                   [0.8673, 0.1327]])
         assert np.allclose(posteriors, refposteriors, atol=1e-4)
 
+    def test_score_batches_log(self):
+        # ``StubHMM` ignores the values in ```X``, so we just pass in an
+        # array of the appropriate shape.
+        logprobs = self.hmm._score_batches_log(self.framelogprob)
+
+        reflogprob = -3.3725
+        assert round(sum(logprobs), 4) == reflogprob
+
+    def test_score_batches_scaling(self):
+        # ``StubHMM` ignores the values in ```X``, so we just pass in an
+        # array of the appropriate shape.
+        logprobs = self.hmm._score_batches_scaling(self.frameprob)
+
+        reflogprob = -3.3725
+        assert round(sum(logprobs), 4) == reflogprob
+
     def test_generate_samples(self):
         X0, Z0 = self.hmm.sample(n_samples=10)
         X, Z = self.hmm.sample(n_samples=10, currstate=Z0[-1])
