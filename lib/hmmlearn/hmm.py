@@ -80,7 +80,7 @@ class GaussianHMM(_BaseHMM):
                  algorithm="viterbi", random_state=None,
                  n_iter=10, tol=1e-2, verbose=False,
                  params="stmc", init_params="stmc",
-                 implementation="log"):
+                 implementation="log", max_workers=None):
         """
         Parameters
         ----------
@@ -156,7 +156,8 @@ class GaussianHMM(_BaseHMM):
                           random_state=random_state, n_iter=n_iter,
                           tol=tol, params=params, verbose=verbose,
                           init_params=init_params,
-                          implementation=implementation)
+                          implementation=implementation,
+                          max_workers=max_workers)
         self.covariance_type = covariance_type
         self.min_covar = min_covar
         self.means_prior = means_prior
@@ -379,7 +380,7 @@ class MultinomialHMM(_BaseHMM):
                  algorithm="viterbi", random_state=None,
                  n_iter=10, tol=1e-2, verbose=False,
                  params="ste", init_params="ste",
-                 implementation="log"):
+                 implementation="log", max_workers=None):
         """
         Parameters
         ----------
@@ -430,7 +431,8 @@ class MultinomialHMM(_BaseHMM):
                           random_state=random_state,
                           n_iter=n_iter, tol=tol, verbose=verbose,
                           params=params, init_params=init_params,
-                          implementation=implementation)
+                          implementation=implementation,
+                          max_workers=max_workers)
 
     score_samples, score, decode, predict, predict_proba, sample, fit = map(
         _multinomialhmm_fix_docstring_shape, [
@@ -566,7 +568,7 @@ class GMMHMM(_BaseHMM):
                  random_state=None, n_iter=10, tol=1e-2,
                  verbose=False, params="stmcw",
                  init_params="stmcw",
-                 implementation="log"):
+                 implementation="log", max_workers=None):
         """
         Parameters
         ----------
@@ -653,7 +655,8 @@ class GMMHMM(_BaseHMM):
                           algorithm=algorithm, random_state=random_state,
                           n_iter=n_iter, tol=tol, verbose=verbose,
                           params=params, init_params=init_params,
-                          implementation=implementation)
+                          implementation=implementation,
+                          max_workers=max_workers)
         self.covariance_type = covariance_type
         self.min_covar = min_covar
         self.n_mix = n_mix

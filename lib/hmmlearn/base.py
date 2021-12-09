@@ -118,13 +118,13 @@ class ConvergenceMonitor:
                  self.history[-1] - self.history[-2] < self.tol))
 
 
-def map_sub_x_parallel(X, lengths, func):
+def map_sub_x_parallel(X, lengths, func, max_workers):
     """
     Processes all subsequences of X in parallel with function func
-    and returns the results in order
+    and returns the results in order.
     """
 
-    with ThreadPoolExecutor() as executor:
+    with ThreadPoolExecutor(max_workers=max_workers) as executor:
 
         fs = [executor.submit(func, sub_X) for sub_X in _utils.split_X_lengths(X, lengths)]
 
@@ -157,7 +157,7 @@ class _BaseHMM(BaseEstimator):
                  n_iter=10, tol=1e-2, verbose=False,
                  params=string.ascii_letters,
                  init_params=string.ascii_letters,
-                 implementation="log"):
+                 implementation="log", max_workers=None):
         """
         Parameters
         ----------
@@ -205,6 +205,7 @@ class _BaseHMM(BaseEstimator):
         self.verbose = verbose
         self.implementation = implementation
         self.monitor_ = ConvergenceMonitor(self.tol, self.n_iter, self.verbose)
+        self.max_workers = max_workers
 
     def get_stationary_distribution(self):
         """Compute the stationary distribution of states."""
@@ -308,7 +309,7 @@ class _BaseHMM(BaseEstimator):
                 logprobij, _ = self._do_forward_log_pass(framelogprob)
             return logprobij
 
-        logprobs = list(map_sub_x_parallel(X, lengths, process_sequence))
+        logprobs = list(map_sub_x_parallel(X, lengths, process_sequence, max_workers=self.max_workers))
         return logprobs
 
     def _score_batches_scaling(self, X, lengths=None):
@@ -322,7 +323,7 @@ class _BaseHMM(BaseEstimator):
                 logprobij, _, _ = self._do_forward_scaling_pass(frameprob)
             return logprobij
 
-        logprobs = list(map_sub_x_parallel(X, lengths, process_sequence))
+        logprobs = list(map_sub_x_parallel(X, lengths, process_sequence, max_workers=self.max_workers))
         return logprobs
 
     def _score(self, X, lengths=None, *, compute_posteriors):
@@ -580,7 +581,7 @@ class _BaseHMM(BaseEstimator):
             curr_logprob = 0
             stats = self._initialize_sufficient_statistics()
 
-            for logprob, update in map_sub_x_parallel(X, lengths, process_sequence):
+            for logprob, update in map_sub_x_parallel(X, lengths, process_sequence, max_workers=self.max_workers):
                 curr_logprob += logprob
                 self._aggregate_statistics(stats, update)
 
