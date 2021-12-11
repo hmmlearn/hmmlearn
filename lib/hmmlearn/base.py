@@ -660,7 +660,8 @@ class _BaseHMM(BaseEstimator):
                              .format(self.transmat_.sum(axis=1)))
 
     def _compute_likelihood(self, X):
-        """Computes per-component probability under the model.
+        """
+        Compute per-component probability under the model.
 
         Parameters
         ----------
@@ -745,9 +746,10 @@ class _BaseHMM(BaseEstimator):
                  'trans': np.zeros((self.n_components, self.n_components))}
         return stats
 
-    def _accumulate_sufficient_statistics(self, stats, X, lattice,
-                                          posteriors, fwdlattice, bwdlattice):
-        """Updates sufficient statistics from a given sample.
+    def _accumulate_sufficient_statistics(
+        self, stats, X, lattice, posteriors, fwdlattice, bwdlattice):
+        """
+        Update sufficient statistics from a given sample.
 
         Parameters
         ----------
@@ -779,9 +781,8 @@ class _BaseHMM(BaseEstimator):
         return impl(stats=stats, X=X, lattice=lattice, posteriors=posteriors,
                     fwdlattice=fwdlattice, bwdlattice=bwdlattice)
 
-    def _accumulate_sufficient_statistics_scaling(self, stats, X, lattice,
-                                                  posteriors, fwdlattice,
-                                                  bwdlattice):
+    def _accumulate_sufficient_statistics_scaling(
+        self, stats, X, lattice, posteriors, fwdlattice, bwdlattice):
         """
         Implementation of `_accumulate_sufficient_statistics`
         for ``implementation = "log"``.
@@ -799,9 +800,8 @@ class _BaseHMM(BaseEstimator):
                 fwdlattice, self.transmat_, bwdlattice, lattice)
             stats['trans'] += xi_sum
 
-    def _accumulate_sufficient_statistics_log(self, stats, X, lattice,
-                                              posteriors, fwdlattice,
-                                              bwdlattice):
+    def _accumulate_sufficient_statistics_log(
+        self, stats, X, lattice, posteriors, fwdlattice, bwdlattice):
         """
         Implementation of `_accumulate_sufficient_statistics`
         for ``implementation = "log"``.
