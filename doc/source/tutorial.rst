@@ -199,15 +199,6 @@ Finally, just call the desired method with ``X`` and ``lengths``:
 >>> hmm.GaussianHMM(n_components=3).fit(X, lengths)
 GaussianHMM(...
 
-Another reason to use ``lengths`` is when the memory becomes the bottleneck. In
-such cases, split a large input array into chunks (Note: currently available
-for the ``GMMHMM`` model only):
-
->>> X = np.random.randn(10_000, 1)  # a large input array
->>> model = hmm.GMMHMM(n_components=3)
->>> model.fit(X, lengths=[1000] * 10)  # split the array in 10 chunks
-GMMHMM(...
-
 Saving and loading HMM
 ----------------------
 
