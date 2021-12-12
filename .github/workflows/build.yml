@@ -3,6 +3,16 @@ name: build
 on: [push, pull_request]
 
 jobs:
+
+  style:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v2
+    - name: Style
+      run: |
+        shopt -s globstar &&
+        ! grep -E '.{80}' **/*.py
+
   build:
     strategy:
       matrix:
@@ -50,6 +60,7 @@ jobs:
         name: wheels
         path: dist/*.whl
       if: ${{ always() }}
+
   build_aarch64:
     name: "Build wheel on ${{ matrix.pyver }} aarch64"
     strategy:

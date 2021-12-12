@@ -55,7 +55,8 @@ class Benchmark:
         with open(results_file, mode="w") as fd:
             fd.write("configuration,mean,std,n_iterations,repeat\n")
             for key, value in runtimes.items():
-                fd.write(f"{key},{value['mean']},{value['std']},{self.n_iter},{self.repeat}\n")
+                fd.write(f"{key},{value['mean']},{value['std']},"
+                         f"{self.n_iter},{self.repeat}\n")
 
     def log_one_run(self, start, end, model, tag):
         LOG.info(f"Training Took {end-start} seconds {tag}")
