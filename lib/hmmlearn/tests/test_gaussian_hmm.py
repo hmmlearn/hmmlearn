@@ -24,42 +24,45 @@ class GaussianHMMTestMixin:
             self.covariance_type, n_components, n_features, random_state=prng
         )
 
-        self.implementations = ["log", "scaling"]
 
-    def test_bad_covariance_type(self):
+    @pytest.mark.parametrize("implementation", ["scaling", "log"])
+    def test_bad_covariance_type(self, implementation):
         with pytest.raises(ValueError):
-            h = hmm.GaussianHMM(20, covariance_type='badcovariance_type')
+            h = hmm.GaussianHMM(20, implementation=implementation,
+                                covariance_type='badcovariance_type')
             h.means_ = self.means
             h.covars_ = []
             h.startprob_ = self.startprob
             h.transmat_ = self.transmat
             h._check()
 
-    def test_score_samples_and_decode(self):
-        for impl in self.implementations:
-            h = hmm.GaussianHMM(self.n_components, self.covariance_type,
-                                init_params="st", implementation=impl)
-            h.means_ = self.means
-            h.covars_ = self.covars
+    @pytest.mark.parametrize("implementation", ["scaling", "log"])
+    def test_score_samples_and_decode(self, implementation):
+        h = hmm.GaussianHMM(self.n_components, self.covariance_type,
+                            init_params="st", implementation=implementation)
+        h.means_ = self.means
+        h.covars_ = self.covars
 
-            # Make sure the means are far apart so posteriors.argmax()
-            # picks the actual component used to generate the observations.
-            h.means_ = 20 * h.means_
+        # Make sure the means are far apart so posteriors.argmax()
+        # picks the actual component used to generate the observations.
+        h.means_ = 20 * h.means_
 
-            gaussidx = np.repeat(np.arange(self.n_components), 5)
-            n_samples = len(gaussidx)
-            X = (self.prng.randn(n_samples, self.n_features)
-                 + h.means_[gaussidx])
-            h._init(X)
-            ll, posteriors = h.score_samples(X)
-            assert posteriors.shape == (n_samples, self.n_components)
-            assert np.allclose(posteriors.sum(axis=1), np.ones(n_samples))
+        gaussidx = np.repeat(np.arange(self.n_components), 5)
+        n_samples = len(gaussidx)
+        X = (self.prng.randn(n_samples, self.n_features)
+             + h.means_[gaussidx])
+        h._init(X)
+        ll, posteriors = h.score_samples(X)
+        assert posteriors.shape == (n_samples, self.n_components)
+        assert np.allclose(posteriors.sum(axis=1), np.ones(n_samples))
 
-            viterbi_ll, stateseq = h.decode(X)
-            assert np.allclose(stateseq, gaussidx)
+        viterbi_ll, stateseq = h.decode(X)
+        assert np.allclose(stateseq, gaussidx)
 
-    def test_sample(self, n=1000):
-        h = hmm.GaussianHMM(self.n_components, self.covariance_type)
+    @pytest.mark.parametrize("implementation", ["scaling", "log"])
+    def test_sample(self, implementation, n=1000):
+        h = hmm.GaussianHMM(self.n_components, self.covariance_type,
+                            implementation=implementation)
         h.startprob_ = self.startprob
         h.transmat_ = self.transmat
         # Make sure the means are far apart so posteriors.argmax()
@@ -71,36 +74,38 @@ class GaussianHMMTestMixin:
         assert X.shape == (n, self.n_features)
         assert len(state_sequence) == n
 
-    def test_fit(self, params='stmc', n_iter=5, **kwargs):
-        for impl in self.implementations:
-            h = hmm.GaussianHMM(self.n_components, self.covariance_type,
-                                implementation=impl)
-            h.startprob_ = self.startprob
-            h.transmat_ = normalized(
-                self.transmat + np.diag(self.prng.rand(self.n_components)), 1)
-            h.means_ = 20 * self.means
-            h.covars_ = self.covars
+    @pytest.mark.parametrize("implementation", ["scaling", "log"])
+    def test_fit(self, implementation, params='stmc', n_iter=5, **kwargs):
+        h = hmm.GaussianHMM(self.n_components, self.covariance_type,
+                            implementation=implementation)
+        h.startprob_ = self.startprob
+        h.transmat_ = normalized(
+            self.transmat + np.diag(self.prng.rand(self.n_components)), 1)
+        h.means_ = 20 * self.means
+        h.covars_ = self.covars
 
-            lengths = [10] * 10
-            X, _state_sequence = h.sample(sum(lengths), random_state=self.prng)
+        lengths = [10] * 10
+        X, _state_sequence = h.sample(sum(lengths), random_state=self.prng)
 
-            # Mess up the parameters and see if we can re-learn them.
-            # TODO: change the params and uncomment the check
-            h.fit(X, lengths=lengths)
-            # assert_log_likelihood_increasing(h, X, lengths, n_iter)
+        # Mess up the parameters and see if we can re-learn them.
+        # TODO: change the params and uncomment the check
+        h.fit(X, lengths=lengths)
+        # assert_log_likelihood_increasing(h, X, lengths, n_iter)
 
-    def test_fit_ignored_init_warns(self, caplog):
-        for i, impl in enumerate(self.implementations, start=1):
-            h = hmm.GaussianHMM(self.n_components, self.covariance_type,
-                                implementation=impl)
-            h.startprob_ = self.startprob
-            h.fit(np.random.randn(100, self.n_components))
-            assert len(caplog.records) == i, caplog
-            assert "will be overwritten" in caplog.records[i-1].getMessage()
+    @pytest.mark.parametrize("implementation", ["scaling", "log"])
+    def test_fit_ignored_init_warns(self, implementation, caplog):
+        h = hmm.GaussianHMM(self.n_components, self.covariance_type,
+                            implementation=implementation)
+        h.startprob_ = self.startprob
+        h.fit(np.random.randn(100, self.n_components))
+        assert len(caplog.records) == 1, caplog
+        assert "will be overwritten" in caplog.records[0].getMessage()
 
-    def test_fit_too_little_data(self, caplog):
+    @pytest.mark.parametrize("implementation", ["scaling", "log"])
+    def test_fit_too_little_data(self, implementation, caplog):
         h = hmm.GaussianHMM(
-            self.n_components, self.covariance_type, init_params="")
+            self.n_components, self.covariance_type, init_params="",
+            implementation=implementation)
         h.startprob_ = self.startprob
         h.transmat_ = self.transmat
         h.means_ = 20 * self.means
@@ -109,28 +114,31 @@ class GaussianHMMTestMixin:
         assert len(caplog.records) == 1
         assert "degenerate solution" in caplog.records[0].getMessage()
 
-    def test_fit_sequences_of_different_length(self):
+    @pytest.mark.parametrize("implementation", ["scaling", "log"])
+    def test_fit_sequences_of_different_length(self, implementation):
         lengths = [3, 4, 5]
         X = self.prng.rand(sum(lengths), self.n_features)
 
-        for impl in self.implementations:
-            h = hmm.GaussianHMM(self.n_components, self.covariance_type,
-                                implementation=impl)
-            # This shouldn't raise
-            # ValueError: setting an array element with a sequence.
-            h.fit(X, lengths=lengths)
+        h = hmm.GaussianHMM(self.n_components, self.covariance_type,
+                                implementation=implementation)
+        # This shouldn't raise
+        # ValueError: setting an array element with a sequence.
+        h.fit(X, lengths=lengths)
 
-    def test_fit_with_length_one_signal(self):
+    @pytest.mark.parametrize("implementation", ["scaling", "log"])
+    def test_fit_with_length_one_signal(self, implementation):
         lengths = [10, 8, 1]
         X = self.prng.rand(sum(lengths), self.n_features)
 
-        h = hmm.GaussianHMM(self.n_components, self.covariance_type)
+        h = hmm.GaussianHMM(self.n_components, self.covariance_type,
+                            implementation=implementation)
         # This shouldn't raise
         # ValueError: zero-size array to reduction operation maximum which
         #             has no identity
         h.fit(X, lengths=lengths)
 
-    def test_fit_zero_variance(self):
+    @pytest.mark.parametrize("implementation", ["scaling", "log"])
+    def test_fit_zero_variance(self, implementation):
         # Example from issue #2 on GitHub.
         X = np.asarray([
             [7.15000000e+02, 5.85000000e+02, 0.00000000e+00, 0.00000000e+00],
@@ -143,11 +151,12 @@ class GaussianHMMTestMixin:
             [7.15000000e+02, 1.30000000e+02, 4.09387207e+00, -5.83621216e+01],
             [7.15000000e+02, 6.50000000e+01, -1.21667480e+00, -4.48131409e+01]
         ])
-        for impl in self.implementations:
-            h = hmm.GaussianHMM(3, self.covariance_type, implementation=impl)
-            h.fit(X)
+        h = hmm.GaussianHMM(3, self.covariance_type,
+                            implementation=implementation)
+        h.fit(X)
 
-    def test_fit_with_priors(self, params='stmc', n_iter=5):
+    @pytest.mark.parametrize("implementation", ["scaling", "log"])
+    def test_fit_with_priors(self, implementation, params='stmc', n_iter=5):
         startprob_prior = 10 * self.startprob + 2.0
         transmat_prior = 10 * self.transmat + 2.0
         means_prior = self.means
@@ -156,52 +165,53 @@ class GaussianHMMTestMixin:
         if self.covariance_type in ('full', 'tied'):
             covars_weight += self.n_features
         covars_prior = self.covars
-        for impl in self.implementations:
-            h = hmm.GaussianHMM(self.n_components, self.covariance_type,
-                                implementation=impl)
-            h.startprob_ = self.startprob
-            h.startprob_prior = startprob_prior
-            h.transmat_ = normalized(
-                self.transmat + np.diag(self.prng.rand(self.n_components)), 1)
-            h.transmat_prior = transmat_prior
-            h.means_ = 20 * self.means
-            h.means_prior = means_prior
-            h.means_weight = means_weight
-            h.covars_ = self.covars
-            h.covars_prior = covars_prior
-            h.covars_weight = covars_weight
+        h = hmm.GaussianHMM(self.n_components, self.covariance_type,
+                            implementation=implementation)
+        h.startprob_ = self.startprob
+        h.startprob_prior = startprob_prior
+        h.transmat_ = normalized(
+            self.transmat + np.diag(self.prng.rand(self.n_components)), 1)
+        h.transmat_prior = transmat_prior
+        h.means_ = 20 * self.means
+        h.means_prior = means_prior
+        h.means_weight = means_weight
+        h.covars_ = self.covars
+        h.covars_prior = covars_prior
+        h.covars_weight = covars_weight
 
-            lengths = [200] * 10
-            X, _state_sequence = h.sample(sum(lengths), random_state=self.prng)
+        lengths = [200] * 10
+        X, _state_sequence = h.sample(sum(lengths), random_state=self.prng)
 
-            # Re-initialize the parameters and check that we can converge to
-            # the original parameter values.
-            h_learn = hmm.GaussianHMM(self.n_components, self.covariance_type,
-                                      params=params, implementation=impl)
-            h_learn.n_iter = 0
-            h_learn.fit(X, lengths=lengths)
+        # Re-initialize the parameters and check that we can converge to
+        # the original parameter values.
+        h_learn = hmm.GaussianHMM(self.n_components, self.covariance_type,
+                                  params=params, implementation=implementation)
+        h_learn.n_iter = 0
+        h_learn.fit(X, lengths=lengths)
 
-            assert_log_likelihood_increasing(h_learn, X, lengths, n_iter)
+        assert_log_likelihood_increasing(h_learn, X, lengths, n_iter)
 
-            # Make sure we've converged to the right parameters.
-            # a) means
-            assert np.allclose(sorted(h.means_.tolist()),
-                               sorted(h_learn.means_.tolist()),
-                               0.01)
-            # b) covars are hard to estimate precisely from a relatively small
-            #    sample, thus the large threshold
-            assert np.allclose(sorted(h._covars_.tolist()),
-                               sorted(h_learn._covars_.tolist()),
-                               10)
+        # Make sure we've converged to the right parameters.
+        # a) means
+        assert np.allclose(sorted(h.means_.tolist()),
+                           sorted(h_learn.means_.tolist()),
+                           0.01)
+        # b) covars are hard to estimate precisely from a relatively small
+        #    sample, thus the large threshold
+        assert np.allclose(sorted(h._covars_.tolist()),
+                           sorted(h_learn._covars_.tolist()),
+                           10)
 
 
 class TestGaussianHMMWithSphericalCovars(GaussianHMMTestMixin):
     covariance_type = 'spherical'
 
-    def test_fit_startprob_and_transmat(self):
-        self.test_fit('st')
+    @pytest.mark.parametrize("implementation", ["scaling", "log"])
+    def test_fit_startprob_and_transmat(self, implementation):
+        self.test_fit(implementation, 'st')
 
-    def test_underflow_from_scaling(self):
+    @pytest.mark.parametrize("implementation", ["scaling", "log"])
+    def test_underflow_from_scaling(self, implementation):
         # Setup an ill-conditioned dataset
         data1 = self.prng.normal(0, 1, 100).tolist()
         data2 = self.prng.normal(5, 1, 100).tolist()
@@ -212,28 +222,28 @@ class TestGaussianHMMWithSphericalCovars(GaussianHMMTestMixin):
         data[40] = 10000
         data2d = data[:, None]
         lengths = [len(data2d)]
-        for impl in self.implementations:
-            h = hmm.GaussianHMM(2, n_iter=100, verbose=True,
-                                covariance_type=self.covariance_type,
-                                implementation=impl, init_params="")
-            h.startprob_ = [0.0, 1]
-            h.transmat_ = [[0.4, 0.6], [0.6, 0.4]]
-            h.means_ = [[0], [5]]
-            h.covars_ = [[1], [1]]
-            if impl == "scaling":
-                with pytest.raises(ValueError):
-                    h.fit(data2d, lengths)
-
-            else:
+        h = hmm.GaussianHMM(2, n_iter=100, verbose=True,
+                            covariance_type=self.covariance_type,
+                            implementation=implementation, init_params="")
+        h.startprob_ = [0.0, 1]
+        h.transmat_ = [[0.4, 0.6], [0.6, 0.4]]
+        h.means_ = [[0], [5]]
+        h.covars_ = [[1], [1]]
+        if implementation == "scaling":
+            with pytest.raises(ValueError):
                 h.fit(data2d, lengths)
+
+        else:
+            h.fit(data2d, lengths)
 
 
 class TestGaussianHMMWithDiagonalCovars(GaussianHMMTestMixin):
     covariance_type = 'diag'
 
-    def test_covar_is_writeable(self):
+    @pytest.mark.parametrize("implementation", ["scaling", "log"])
+    def test_covar_is_writeable(self, implementation):
         h = hmm.GaussianHMM(n_components=1, covariance_type="diag",
-                            init_params="c")
+                            init_params="c", implementation=implementation)
         X = np.random.normal(size=(1000, 5))
         h._init(X)
 
@@ -243,7 +253,8 @@ class TestGaussianHMMWithDiagonalCovars(GaussianHMMTestMixin):
         # and discussion.
         assert h._covars_.flags["WRITEABLE"]
 
-    def test_fit_left_right(self):
+    @pytest.mark.parametrize("implementation", ["scaling", "log"])
+    def test_fit_left_right(self, implementation):
         transmat = np.zeros((self.n_components, self.n_components))
 
         # Left-to-right: each state is connected to itself and its
@@ -262,7 +273,8 @@ class TestGaussianHMMWithDiagonalCovars(GaussianHMMTestMixin):
         X = self.prng.rand(sum(lengths), self.n_features)
 
         h = hmm.GaussianHMM(self.n_components, covariance_type="diag",
-                            params="mct", init_params="cm")
+                            params="mct", init_params="cm",
+                            implementation=implementation)
         h.startprob_ = startprob.copy()
         h.transmat_ = transmat.copy()
         h.fit(X)

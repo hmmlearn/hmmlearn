@@ -88,81 +88,82 @@ class GMMHMMTestMixin:
         h.covars_ = covars
         return h
 
-    def test_check_bad_covariance_type(self):
-        for impl in self.implementations:
-            h = self.new_hmm(impl)
-            with pytest.raises(ValueError):
-                h.covariance_type = "bad_covariance_type"
-                h._check()
+    @pytest.mark.parametrize("implementation", ["scaling", "log"])
+    def test_check_bad_covariance_type(self, implementation):
+        h = self.new_hmm(implementation)
+        with pytest.raises(ValueError):
+            h.covariance_type = "bad_covariance_type"
+            h._check()
 
-    def test_check_good_covariance_type(self):
-        for impl in self.implementations:
-            h = self.new_hmm(impl)
-            h._check()  # should not raise any errors
+    @pytest.mark.parametrize("implementation", ["scaling", "log"])
+    def test_check_good_covariance_type(self, implementation):
+        h = self.new_hmm(implementation)
+        h._check()  # should not raise any errors
 
-    def test_sample(self):
+    @pytest.mark.parametrize("implementation", ["scaling", "log"])
+    def test_sample(self, implementation):
         n_samples = 1000
-        for impl in self.implementations:
-            h = self.new_hmm(impl)
-            X, states = h.sample(n_samples)
-            assert X.shape == (n_samples, self.n_features)
-            assert len(states) == n_samples
+        h = self.new_hmm(implementation)
+        X, states = h.sample(n_samples)
+        assert X.shape == (n_samples, self.n_features)
+        assert len(states) == n_samples
 
-    def test_init(self):
+    @pytest.mark.parametrize("implementation", ["scaling", "log"])
+    def test_init(self, implementation):
         n_samples = 1000
-        for impl in self.implementations:
-            h = self.new_hmm(impl)
-            X, _states = h.sample(n_samples)
-            h._init(X)
-            h._check()  # should not raise any errors
+        h = self.new_hmm(implementation)
+        X, _states = h.sample(n_samples)
+        h._init(X)
+        h._check()  # should not raise any errors
 
-    def test_score_samples_and_decode(self):
+    @pytest.mark.parametrize("implementation", ["scaling", "log"])
+    def test_score_samples_and_decode(self, implementation):
         n_samples = 1000
-        for impl in self.implementations:
-            h = self.new_hmm(impl)
-            X, states = h.sample(n_samples)
+        h = self.new_hmm(implementation)
+        X, states = h.sample(n_samples)
 
-            _ll, posteriors = h.score_samples(X)
-            assert np.allclose(np.sum(posteriors, axis=1), np.ones(n_samples))
+        _ll, posteriors = h.score_samples(X)
+        assert np.allclose(np.sum(posteriors, axis=1), np.ones(n_samples))
 
-            _viterbi_ll, decoded_states = h.decode(X)
-            assert np.allclose(states, decoded_states)
+        _viterbi_ll, decoded_states = h.decode(X)
+        assert np.allclose(states, decoded_states)
 
-    def test_fit(self):
+    @pytest.mark.parametrize("implementation", ["scaling", "log"])
+    def test_fit(self, implementation):
         n_iter = 5
         n_samples = 1000
         lengths = None
-        for impl in self.implementations:
-            h = self.new_hmm(impl)
-            X, _state_sequence = h.sample(n_samples)
+        h = self.new_hmm(implementation)
+        X, _state_sequence = h.sample(n_samples)
 
-            # Mess up the parameters and see if we can re-learn them.
-            covs0, means0, priors0, trans0, weights0 = prep_params(
-                self.n_components, self.n_mix, self.n_features,
-                self.covariance_type, self.low, self.high,
-                np.random.RandomState(15)
-            )
-            h.covars_ = covs0 * 100
-            h.means_ = means0
-            h.startprob_ = priors0
-            h.transmat_ = trans0
-            h.weights_ = weights0
-            assert_log_likelihood_increasing(h, X, lengths, n_iter)
+        # Mess up the parameters and see if we can re-learn them.
+        covs0, means0, priors0, trans0, weights0 = prep_params(
+            self.n_components, self.n_mix, self.n_features,
+            self.covariance_type, self.low, self.high,
+            np.random.RandomState(15)
+        )
+        h.covars_ = covs0 * 100
+        h.means_ = means0
+        h.startprob_ = priors0
+        h.transmat_ = trans0
+        h.weights_ = weights0
+        assert_log_likelihood_increasing(h, X, lengths, n_iter)
 
-    def test_fit_sparse_data(self):
+    @pytest.mark.parametrize("implementation", ["scaling", "log"])
+    def test_fit_sparse_data(self, implementation):
         n_samples = 1000
-        for impl in self.implementations:
-            h = self.new_hmm(impl)
-            h.means_ *= 1000  # this will put gaussians very far apart
-            X, _states = h.sample(n_samples)
+        h = self.new_hmm(implementation)
+        h.means_ *= 1000  # this will put gaussians very far apart
+        X, _states = h.sample(n_samples)
 
-            # this should not raise
-            # "ValueError: array must not contain infs or NaNs"
-            h._init(X)
-            h.fit(X)
+        # this should not raise
+        # "ValueError: array must not contain infs or NaNs"
+        h._init(X)
+        h.fit(X)
 
     @pytest.mark.xfail
-    def test_fit_zero_variance(self):
+    @pytest.mark.parametrize("implementation", ["scaling", "log"])
+    def test_fit_zero_variance(self, implementation):
         # Example from issue #2 on GitHub.
         # this data has singular covariance matrix
         X = np.asarray([
@@ -177,9 +178,8 @@ class GMMHMMTestMixin:
             [7.15000000e+02, 6.5000000e+01, -1.21667480e+00, -4.48131409e+01]
         ])
 
-        for impl in self.implementations:
-            h = self.new_hmm(impl)
-            h.fit(X)
+        h = self.new_hmm(implementation)
+        h.fit(X)
 
 
 class TestGMMHMMWithSphericalCovars(GMMHMMTestMixin):
@@ -199,14 +199,16 @@ class TestGMMHMMWithFullCovars(GMMHMMTestMixin):
 
 
 class TestGMMHMM_KmeansInit:
-    def test_kmeans(self):
+    @pytest.mark.parametrize("implementation", ["scaling", "log"])
+    def test_kmeans(self, implementation):
         # Generate two isolated cluster.
         # The second cluster has no. of points less than n_mix.
         np.random.seed(0)
         data1 = np.random.uniform(low=0, high=1, size=(100, 2))
         data2 = np.random.uniform(low=5, high=6, size=(5, 2))
         data = np.r_[data1, data2]
-        model = GMMHMM(n_components=2, n_mix=10, n_iter=5)
+        model = GMMHMM(n_components=2, n_mix=10, n_iter=5,
+                       implementation=implementation)
         model.fit(data)  # _init() should not fail here
         # test whether the means are bounded by the data lower- and upperbounds
         assert_array_less(0, model.means_)

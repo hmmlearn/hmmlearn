@@ -222,8 +222,9 @@ def make_permutations(items):
 
 @pytest.mark.parametrize("covariance_type",
                          ["diag", "spherical", "tied", "full"])
+@pytest.mark.parametrize("implementation", ["scaling", "log"])
 def test_gmmhmm_multi_sequence_fit_invariant_to_sequence_ordering(
-    covariance_type, verbose=False
+    covariance_type, implementation, verbose=False
 ):
     """
     Sanity check GMM-HMM fit behaviour when run on multiple sequences
@@ -259,6 +260,7 @@ def test_gmmhmm_multi_sequence_fit_invariant_to_sequence_ordering(
             covariance_type=covariance_type,
             verbose=verbose,
             random_state=1234,
+            implementation=implementation
         )
 
         model.monitor_ = StrictMonitor(
