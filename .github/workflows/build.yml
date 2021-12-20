@@ -29,6 +29,8 @@ jobs:
       shell: bash
       run: |
         python -mpip install --upgrade pip setuptools wheel pytest pytest-cov &&
+        # Just check build, independently of possible problems in other packages.
+        python -mpip install --no-deps -ve . &&
         python -mpip install -ve . &&
         python -mpip list
     - name: Test
