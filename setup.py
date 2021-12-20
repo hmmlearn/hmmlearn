@@ -4,6 +4,8 @@
 #               2014-2016 Sergei Lebedev <superbobry@gmail.com>
 #               2018- Antony Lee
 
+import os
+os.environ.setdefault("SETUPTOOLS_USE_DISTUTILS", "stdlib")
 
 import setuptools
 from setuptools import Extension, find_packages, setup
