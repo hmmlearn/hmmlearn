@@ -253,6 +253,63 @@ class _BaseHMM(BaseEstimator):
         """
         return self._score(X, lengths, compute_posteriors=False)[0]
 
+    def score_sequences(self, X, lengths=None):
+        """
+        Compute the log probability under the model.
+        Compared to score() it returns a list of probabilities and doesn't add them up.
+
+        Parameters
+        ----------
+        X : array-like, shape (n_samples, n_features)
+            Feature matrix of individual samples.
+        lengths : array-like of integers, shape (n_sequences, ), optional
+            Lengths of the individual sequences in ``X``. The sum of
+            these should be ``n_samples``.
+
+        Returns
+        -------
+        logprobs : List[float]
+            Log likelihoods of sequences in ``X``.
+        """
+
+        _utils.check_is_fitted(self, "startprob_")
+        self._check()
+
+        X = check_array(X)
+        impl = {
+            "scaling": self._score_sequences_scaling,
+            "log": self._score_sequences_log,
+        }[self.implementation]
+        return impl(X=X, lengths=lengths)
+
+    def _score_sequences_log(self, X, lengths=None):
+
+        logprobs = []
+        for sub_X in _utils.split_X_lengths(X, lengths):
+            try:
+                framelogprob = self._compute_log_likelihood(sub_X)
+            except IndexError:
+                logprobij = -np.inf
+            else:
+                logprobij, _ = self._do_forward_log_pass(framelogprob)
+            logprobs.append(logprobij)
+
+        return logprobs
+
+    def _score_sequences_scaling(self, X, lengths=None):
+
+        logprobs = []
+        for sub_X in _utils.split_X_lengths(X, lengths):
+            try:
+                frameprob = self._compute_likelihood(sub_X)
+            except IndexError:
+                logprobij = -np.inf
+            else:
+                logprobij, _, _ = self._do_forward_scaling_pass(frameprob)
+            logprobs.append(logprobij)
+
+        return logprobs
+
     def _score(self, X, lengths=None, *, compute_posteriors):
         """
         Helper for `score` and `score_samples`.

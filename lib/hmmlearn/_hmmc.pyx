@@ -23,6 +23,8 @@ cdef inline dtype_t _max(dtype_t[:] X) nogil:
 
 cdef inline dtype_t _logsumexp(dtype_t[:] X) nogil:
     cdef dtype_t X_max = _max(X)
+    cdef ssize_t i
+
     if isinf(X_max):
         return -INFINITY
 
