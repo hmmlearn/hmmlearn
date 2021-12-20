@@ -634,6 +634,15 @@ class _BaseHMM(BaseEstimator):
                     "%d data points will result in a degenerate solution.",
                     n_fit_scalars, X.size)
 
+    def _check_sum_1(self, name):
+        """Check that an array describes one or more distributions."""
+        s = getattr(self, name).sum(axis=-1)
+        if not np.allclose(s, 1):
+            raise ValueError(
+                f"{name} must sum to 1 (got {s:.4f})" if s.ndim == 0 else
+                f"{name} rows must sum to 1 (got {s})" if s.ndim == 1 else
+                "Expected 1D or 2D array")
+
     def _check(self):
         """
         Validate model parameters prior to fitting.
@@ -647,17 +656,13 @@ class _BaseHMM(BaseEstimator):
         self.startprob_ = np.asarray(self.startprob_)
         if len(self.startprob_) != self.n_components:
             raise ValueError("startprob_ must have length n_components")
-        if not np.allclose(self.startprob_.sum(), 1.0):
-            raise ValueError("startprob_ must sum to 1.0 (got {:.4f})"
-                             .format(self.startprob_.sum()))
+        self._check_sum_1("startprob_")
 
         self.transmat_ = np.asarray(self.transmat_)
         if self.transmat_.shape != (self.n_components, self.n_components):
             raise ValueError(
                 "transmat_ must have shape (n_components, n_components)")
-        if not np.allclose(self.transmat_.sum(axis=1), 1.0):
-            raise ValueError("rows of transmat_ must sum to 1.0 (got {})"
-                             .format(self.transmat_.sum(axis=1)))
+        self._check_sum_1("transmat_")
 
     def _compute_likelihood(self, X):
         """

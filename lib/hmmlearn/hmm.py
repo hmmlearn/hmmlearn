@@ -456,8 +456,8 @@ class MultinomialHMM(_BaseHMM):
         if self.emissionprob_.shape != (self.n_components, n_features):
             raise ValueError(
                 "emissionprob_ must have shape (n_components, n_features)")
-        else:
-            self.n_features = n_features
+        self._check_sum_1("emissionprob_")
+        self.n_features = n_features
 
     def _compute_log_likelihood(self, X):
         return log_mask_zero(self.emissionprob_)[:, np.concatenate(X)].T
@@ -795,20 +795,19 @@ class GMMHMM(_BaseHMM):
         self.weights_ = np.array(self.weights_)
         # Checking mixture weights' shape
         if self.weights_.shape != (nc, nm):
-            raise ValueError(f"mixture weights must have shape "
-                             f"(n_components, n_mix), "
-                             f"actual shape: {self.weights_.shape}")
+            raise ValueError(
+                f"weights_ must have shape (n_components, n_mix), "
+                f"actual shape: {self.weights_.shape}")
 
         # Checking mixture weights' mathematical correctness
-        if not np.allclose(self.weights_.sum(axis=1), 1):
-            raise ValueError("mixture weights must sum up to 1")
+        self._check_sum_1("weights_")
 
         # Checking means' shape
         self.means_ = np.array(self.means_)
         if self.means_.shape != (nc, nm, nf):
-            raise ValueError(f"mixture means must have shape "
-                             f"(n_components, n_mix, n_features), "
-                             f"actual shape: {self.means_.shape}")
+            raise ValueError(
+                f"means_ must have shape (n_components, n_mix, n_features), "
+                f"actual shape: {self.means_.shape}")
 
         # Checking covariances' shape
         self.covars_ = np.array(self.covars_)
@@ -821,9 +820,9 @@ class GMMHMM(_BaseHMM):
         }
         needed_shape = needed_shapes[self.covariance_type]
         if covars_shape != needed_shape:
-            raise ValueError(f"{self.covariance_type!r} mixture covars must "
-                             f"have shape {needed_shape}, "
-                             f"actual shape: {covars_shape}")
+            raise ValueError(
+                f"{self.covariance_type!r} mixture covars must have shape "
+                f"{needed_shape}, actual shape: {covars_shape}")
 
         # Checking covariances' mathematical correctness
         if (self.covariance_type == "spherical" or
