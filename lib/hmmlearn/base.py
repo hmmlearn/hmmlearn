@@ -52,7 +52,7 @@ class ConvergenceMonitor:
     ...                                   model.monitor_.verbose)
     """
 
-    _template = "{iter:>10d} {logprob:>16.4f} {delta:>+16.4f}"
+    _template = "{iter:>10d} {log_prob:>16.4f} {delta:>+16.4f}"
 
     def __init__(self, tol, n_iter, verbose):
         """
@@ -85,7 +85,7 @@ class ConvergenceMonitor:
         self.iter = 0
         self.history.clear()
 
-    def report(self, logprob):
+    def report(self, log_prob):
         """
         Report convergence to :data:`sys.stderr`.
 
@@ -96,22 +96,22 @@ class ConvergenceMonitor:
 
         Parameters
         ----------
-        logprob : float
+        log_prob : float
             The log probability of the data as computed by EM algorithm
             in the current iteration.
         """
         if self.verbose:
-            delta = logprob - self.history[-1] if self.history else np.nan
+            delta = log_prob - self.history[-1] if self.history else np.nan
             message = self._template.format(
-                iter=self.iter + 1, logprob=logprob, delta=delta)
+                iter=self.iter + 1, log_prob=log_prob, delta=delta)
             print(message, file=sys.stderr)
-        self.history.append(logprob)
+        self.history.append(log_prob)
         self.iter += 1
 
     @property
     def converged(self):
         """Whether the EM algorithm converged."""
-        # XXX we might want to check that ``logprob`` is non-decreasing.
+        # XXX we might want to check that ``log_prob`` is non-decreasing.
         return (self.iter == self.n_iter or
                 (len(self.history) >= 2 and
                  self.history[-1] - self.history[-2] < self.tol))
@@ -216,7 +216,7 @@ class _BaseHMM(BaseEstimator):
 
         Returns
         -------
-        logprob : float
+        log_prob : float
             Log likelihood of ``X``.
         posteriors : array, shape (n_samples, n_components)
             State-membership probabilities for each sample in ``X``.
@@ -242,7 +242,7 @@ class _BaseHMM(BaseEstimator):
 
         Returns
         -------
-        logprob : float
+        log_prob : float
             Log likelihood of ``X``.
 
         See Also
@@ -278,43 +278,43 @@ class _BaseHMM(BaseEstimator):
         *compute_posteriors* is True (otherwise, an empty array is returned
         for the latter).
         """
-        logprob = 0
+        log_prob = 0
         sub_posteriors = [np.empty((0, self.n_components))]
         for sub_X in _utils.split_X_lengths(X, lengths):
-            framelogprob = self._compute_log_likelihood(sub_X)
-            logprobij, fwdlattice = self._do_forward_log_pass(framelogprob)
-            logprob += logprobij
+            log_frameprob = self._compute_log_likelihood(sub_X)
+            log_probij, fwdlattice = self._do_forward_log_pass(log_frameprob)
+            log_prob += log_probij
             if compute_posteriors:
-                bwdlattice = self._do_backward_log_pass(framelogprob)
+                bwdlattice = self._do_backward_log_pass(log_frameprob)
                 sub_posteriors.append(
                     self._compute_posteriors_log(fwdlattice, bwdlattice))
-        return logprob, np.concatenate(sub_posteriors)
+        return log_prob, np.concatenate(sub_posteriors)
 
     def _score_scaling(self, X, lengths=None, *, compute_posteriors):
-        logprob = 0
+        log_prob = 0
         sub_posteriors = [np.empty((0, self.n_components))]
         for sub_X in _utils.split_X_lengths(X, lengths):
             frameprob = self._compute_likelihood(sub_X)
-            logprobij, fwdlattice, scaling_factors = \
+            log_probij, fwdlattice, scaling_factors = \
                     self._do_forward_scaling_pass(frameprob)
-            logprob += logprobij
+            log_prob += log_probij
             if compute_posteriors:
                 bwdlattice = self._do_backward_scaling_pass(
                     frameprob, scaling_factors)
                 sub_posteriors.append(
                     self._compute_posteriors_scaling(fwdlattice, bwdlattice))
 
-        return logprob, np.concatenate(sub_posteriors)
+        return log_prob, np.concatenate(sub_posteriors)
 
     def _decode_viterbi(self, X):
-        framelogprob = self._compute_log_likelihood(X)
-        return self._do_viterbi_pass(framelogprob)
+        log_frameprob = self._compute_log_likelihood(X)
+        return self._do_viterbi_pass(log_frameprob)
 
     def _decode_map(self, X):
         _, posteriors = self.score_samples(X)
-        logprob = np.max(posteriors, axis=1).sum()
+        log_prob = np.max(posteriors, axis=1).sum()
         state_sequence = np.argmax(posteriors, axis=1)
-        return logprob, state_sequence
+        return log_prob, state_sequence
 
     def decode(self, X, lengths=None, algorithm=None):
         """
@@ -333,7 +333,7 @@ class _BaseHMM(BaseEstimator):
 
         Returns
         -------
-        logprob : float
+        log_prob : float
             Log probability of the produced state sequence.
         state_sequence : array, shape (n_samples, )
             Labels for each sample from ``X`` obtained via a given
@@ -358,15 +358,15 @@ class _BaseHMM(BaseEstimator):
         }[algorithm]
 
         X = check_array(X)
-        logprob = 0
+        log_prob = 0
         sub_state_sequences = []
         for sub_X in _utils.split_X_lengths(X, lengths):
             # XXX decoder works on a single sample at a time!
-            sub_logprob, sub_state_sequence = decoder(sub_X)
-            logprob += sub_logprob
+            sub_log_prob, sub_state_sequence = decoder(sub_X)
+            log_prob += sub_log_prob
             sub_state_sequences.append(sub_state_sequence)
 
-        return logprob, np.concatenate(sub_state_sequences)
+        return log_prob, np.concatenate(sub_state_sequences)
 
     def predict(self, X, lengths=None):
         """
@@ -496,9 +496,9 @@ class _BaseHMM(BaseEstimator):
         }[self.implementation]
         for iter in range(self.n_iter):
             stats = self._initialize_sufficient_statistics()
-            curr_logprob = 0
+            curr_log_prob = 0
             for sub_X in _utils.split_X_lengths(X, lengths):
-                lattice, logprob, posteriors, fwdlattice, bwdlattice = \
+                lattice, log_prob, posteriors, fwdlattice, bwdlattice = \
                         impl(sub_X)
                 # Derived HMM classes will implement the following method to
                 # update their probability distributions, so keep
@@ -506,13 +506,13 @@ class _BaseHMM(BaseEstimator):
                 self._accumulate_sufficient_statistics(
                     stats, sub_X, lattice, posteriors, fwdlattice,
                     bwdlattice)
-                curr_logprob += logprob
+                curr_log_prob += log_prob
 
             # XXX must be before convergence check, because otherwise
             #     there won't be any updates for the case ``n_iter=1``.
             self._do_mstep(stats)
 
-            self.monitor_.report(curr_logprob)
+            self.monitor_.report(curr_log_prob)
             if self.monitor_.converged:
                 break
 
@@ -524,24 +524,24 @@ class _BaseHMM(BaseEstimator):
 
     def _fit_scaling(self, X):
         frameprob = self._compute_likelihood(X)
-        logprob, fwdlattice, scaling_factors = \
+        log_prob, fwdlattice, scaling_factors = \
                 self._do_forward_scaling_pass(frameprob)
         bwdlattice = self._do_backward_scaling_pass(frameprob, scaling_factors)
         posteriors = self._compute_posteriors_scaling(fwdlattice, bwdlattice)
-        return frameprob, logprob, posteriors, fwdlattice, bwdlattice
+        return frameprob, log_prob, posteriors, fwdlattice, bwdlattice
 
     def _fit_log(self, X):
-        framelogprob = self._compute_log_likelihood(X)
-        logprob, fwdlattice = self._do_forward_log_pass(framelogprob)
-        bwdlattice = self._do_backward_log_pass(framelogprob)
+        log_frameprob = self._compute_log_likelihood(X)
+        log_prob, fwdlattice = self._do_forward_log_pass(log_frameprob)
+        bwdlattice = self._do_backward_log_pass(log_frameprob)
         posteriors = self._compute_posteriors_log(fwdlattice, bwdlattice)
-        return framelogprob, logprob, posteriors, fwdlattice, bwdlattice
+        return log_frameprob, log_prob, posteriors, fwdlattice, bwdlattice
 
-    def _do_viterbi_pass(self, framelogprob):
-        state_sequence, logprob = _hmmc.viterbi(
+    def _do_viterbi_pass(self, log_frameprob):
+        state_sequence, log_prob = _hmmc.viterbi(
             log_mask_zero(self.startprob_), log_mask_zero(self.transmat_),
-            framelogprob)
-        return logprob, state_sequence
+            log_frameprob)
+        return log_prob, state_sequence
 
     def _do_forward_scaling_pass(self, frameprob):
         fwdlattice, scaling_factors = _hmmc.forward_scaling(
@@ -550,10 +550,10 @@ class _BaseHMM(BaseEstimator):
         log_prob = -np.sum(np.log(scaling_factors))
         return log_prob, fwdlattice, scaling_factors
 
-    def _do_forward_log_pass(self, framelogprob):
+    def _do_forward_log_pass(self, log_frameprob):
         fwdlattice = _hmmc.forward_log(
             log_mask_zero(self.startprob_), log_mask_zero(self.transmat_),
-            framelogprob)
+            log_frameprob)
         with np.errstate(under="ignore"):
             return special.logsumexp(fwdlattice[-1]), fwdlattice
 
@@ -563,10 +563,10 @@ class _BaseHMM(BaseEstimator):
             frameprob, scaling_factors)
         return bwdlattice
 
-    def _do_backward_log_pass(self, framelogprob):
+    def _do_backward_log_pass(self, log_frameprob):
         bwdlattice = _hmmc.backward_log(
             log_mask_zero(self.startprob_), log_mask_zero(self.transmat_),
-            framelogprob)
+            log_frameprob)
         return bwdlattice
 
     def _compute_posteriors_scaling(self, fwdlattice, bwdlattice):
@@ -575,7 +575,7 @@ class _BaseHMM(BaseEstimator):
         return posteriors
 
     def _compute_posteriors_log(self, fwdlattice, bwdlattice):
-        # gamma is guaranteed to be correctly normalized by logprob at
+        # gamma is guaranteed to be correctly normalized by log_prob at
         # all frames, unless we do approximate inference using pruning.
         # So, we will normalize each frame explicitly in case we
         # pruned too aggressively.
@@ -675,7 +675,7 @@ class _BaseHMM(BaseEstimator):
 
         Returns
         -------
-        logprob : array, shape (n_samples, n_components)
+        log_prob : array, shape (n_samples, n_components)
             Log probability of each sample in ``X`` for each of the
             model states.
         """
@@ -696,7 +696,7 @@ class _BaseHMM(BaseEstimator):
 
         Returns
         -------
-        logprob : array, shape (n_samples, n_components)
+        log_prob : array, shape (n_samples, n_components)
             Emission log probability of each sample in ``X`` for each of the
             model states, i.e., ``log(p(X|state))``.
         """

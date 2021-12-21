@@ -13,10 +13,10 @@ class TestMonitor:
         m.report(-0.1)
         assert m.converged
 
-    def test_converged_by_logprob(self):
+    def test_converged_by_log_prob(self):
         m = ConvergenceMonitor(tol=1e-3, n_iter=10, verbose=False)
-        for logprob in [-0.03, -0.02, -0.01]:
-            m.report(logprob)
+        for log_prob in [-0.03, -0.02, -0.01]:
+            m.report(log_prob)
             assert not m.converged
 
         m.report(-0.0101)
@@ -35,7 +35,7 @@ class TestMonitor:
         m.report(-0.01)
         out, err = capsys.readouterr()
         assert not out
-        expected = m._template.format(iter=1, logprob=-0.01, delta=np.nan)
+        expected = m._template.format(iter=1, log_prob=-0.01, delta=np.nan)
         assert err.splitlines() == [expected]
 
     def test_report(self, capsys):
@@ -53,7 +53,7 @@ class TestMonitor:
 class StubHMM(_BaseHMM):
     """An HMM with hardcoded observation probabilities."""
     def _compute_log_likelihood(self, X):
-        return self.framelogprob
+        return self.log_frameprob
 
 
 class TestBaseAgainstWikipedia:
@@ -64,22 +64,19 @@ class TestBaseAgainstWikipedia:
                                      [0.1, 0.8],
                                      [0.9, 0.2],
                                      [0.9, 0.2]])
-        self.framelogprob = np.log(self.frameprob)
-
+        self.log_frameprob = np.log(self.frameprob)
         h = StubHMM(2)
         h.transmat_ = [[0.7, 0.3], [0.3, 0.7]]
         h.startprob_ = [0.5, 0.5]
-        h.framelogprob = self.framelogprob
+        h.log_frameprob = self.log_frameprob
         h.frameprob = self.frameprob
         self.hmm = h
 
     def test_do_forward_scaling_pass(self):
-
-        logprob, fwdlattice, scaling_factors = \
-                self.hmm._do_forward_scaling_pass(self.frameprob)
-
-        reflogprob = -3.3725
-        assert round(logprob, 4) == reflogprob
+        log_prob, fwdlattice, scaling_factors = \
+            self.hmm._do_forward_scaling_pass(self.frameprob)
+        ref_log_prob = -3.3725
+        assert round(log_prob, 4) == ref_log_prob
         reffwdlattice = np.exp([[0.4500, 0.1000],
                                 [0.3105, 0.0410],
                                 [0.0230, 0.0975],
@@ -88,10 +85,10 @@ class TestBaseAgainstWikipedia:
         assert np.allclose(np.exp(fwdlattice), reffwdlattice, 4)
 
     def test_do_forward_pass(self):
-        logprob, fwdlattice = self.hmm._do_forward_log_pass(self.framelogprob)
-
-        reflogprob = -3.3725
-        assert round(logprob, 4) == reflogprob
+        log_prob, fwdlattice = \
+            self.hmm._do_forward_log_pass(self.log_frameprob)
+        ref_log_prob = -3.3725
+        assert round(log_prob, 4) == ref_log_prob
         reffwdlattice = np.array([[0.4500, 0.1000],
                                   [0.3105, 0.0410],
                                   [0.0230, 0.0975],
@@ -100,8 +97,8 @@ class TestBaseAgainstWikipedia:
         assert np.allclose(np.exp(fwdlattice), reffwdlattice, 4)
 
     def test_do_backward_scaling_pass(self):
-        logprob, fwdlattice, scaling_factors = \
-                self.hmm._do_forward_scaling_pass(self.frameprob)
+        log_prob, fwdlattice, scaling_factors = \
+            self.hmm._do_forward_scaling_pass(self.frameprob)
         bwdlattice = self.hmm._do_backward_scaling_pass(
             self.frameprob, scaling_factors)
         refbwdlattice = np.array([[0.0661, 0.0455],
@@ -115,8 +112,7 @@ class TestBaseAgainstWikipedia:
         assert np.allclose(bwdlattice_scaled, refbwdlattice, 4)
 
     def test_do_backward_log_pass(self):
-        bwdlattice = self.hmm._do_backward_log_pass(self.framelogprob)
-
+        bwdlattice = self.hmm._do_backward_log_pass(self.log_frameprob)
         refbwdlattice = np.array([[0.0661, 0.0455],
                                   [0.0906, 0.1503],
                                   [0.4593, 0.2437],
@@ -125,23 +121,20 @@ class TestBaseAgainstWikipedia:
         assert np.allclose(np.exp(bwdlattice), refbwdlattice, 4)
 
     def test_do_viterbi_pass(self):
-        logprob, state_sequence = self.hmm._do_viterbi_pass(self.framelogprob)
-
+        log_prob, state_sequence = \
+            self.hmm._do_viterbi_pass(self.log_frameprob)
         refstate_sequence = [0, 0, 1, 0, 0]
         assert np.allclose(state_sequence, refstate_sequence)
-
-        reflogprob = -4.4590
-        assert round(logprob, 4) == reflogprob
+        ref_log_prob = -4.4590
+        assert round(log_prob, 4) == ref_log_prob
 
     def test_score_samples(self):
         # ``StubHMM` ignores the values in ```X``, so we just pass in an
         # array of the appropriate shape.
-        logprob, posteriors = self.hmm.score_samples(self.framelogprob)
+        log_prob, posteriors = self.hmm.score_samples(self.log_frameprob)
         assert np.allclose(posteriors.sum(axis=1), np.ones(len(posteriors)))
-
-        reflogprob = -3.3725
-        assert round(logprob, 4) == reflogprob
-
+        ref_log_prob = -3.3725
+        assert round(log_prob, 4) == ref_log_prob
         refposteriors = np.array([[0.8673, 0.1327],
                                   [0.8204, 0.1796],
                                   [0.3075, 0.6925],
@@ -160,10 +153,11 @@ class TestBaseConsistentWithGMM:
         n_components = 8
         n_samples = 10
 
-        self.framelogprob = np.log(np.random.random((n_samples, n_components)))
+        self.log_frameprob = np.log(
+            np.random.random((n_samples, n_components)))
 
         h = StubHMM(n_components)
-        h.framelogprob = self.framelogprob
+        h.log_frameprob = self.log_frameprob
 
         # If startprob and transmat are uniform across all states (the
         # default), the transitions are uninformative - the model
@@ -175,23 +169,23 @@ class TestBaseConsistentWithGMM:
         self.hmm = h
 
     def test_score_samples(self):
-        logprob, hmmposteriors = self.hmm.score_samples(self.framelogprob)
+        log_prob, hmmposteriors = self.hmm.score_samples(self.log_frameprob)
 
-        n_samples, n_components = self.framelogprob.shape
+        n_samples, n_components = self.log_frameprob.shape
         assert np.allclose(hmmposteriors.sum(axis=1), np.ones(n_samples))
 
-        norm = special.logsumexp(self.framelogprob, axis=1)[:, np.newaxis]
-        gmmposteriors = np.exp(self.framelogprob
+        norm = special.logsumexp(self.log_frameprob, axis=1)[:, np.newaxis]
+        gmmposteriors = np.exp(self.log_frameprob
                                - np.tile(norm, (1, n_components)))
         assert np.allclose(hmmposteriors, gmmposteriors)
 
     def test_decode(self):
-        _logprob, state_sequence = self.hmm.decode(self.framelogprob)
+        _log_prob, state_sequence = self.hmm.decode(self.log_frameprob)
 
-        n_samples, n_components = self.framelogprob.shape
-        norm = special.logsumexp(self.framelogprob, axis=1)[:, np.newaxis]
-        gmmposteriors = np.exp(self.framelogprob -
-                               np.tile(norm, (1, n_components)))
+        n_samples, n_components = self.log_frameprob.shape
+        norm = special.logsumexp(self.log_frameprob, axis=1)[:, np.newaxis]
+        gmmposteriors = np.exp(self.log_frameprob
+                               - np.tile(norm, (1, n_components)))
         gmmstate_sequence = gmmposteriors.argmax(axis=1)
         assert np.allclose(state_sequence, gmmstate_sequence)
 

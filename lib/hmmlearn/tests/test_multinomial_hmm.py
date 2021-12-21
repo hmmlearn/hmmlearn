@@ -33,15 +33,15 @@ class TestMultinomialAgainstWikipedia:
         #  with probability 0.01344."
         h = self.new_hmm(implementation)
         X = [[0], [1], [2]]
-        logprob, state_sequence = h.decode(X, algorithm="viterbi")
-        assert round(np.exp(logprob), 5) == 0.01344
+        log_prob, state_sequence = h.decode(X, algorithm="viterbi")
+        assert round(np.exp(log_prob), 5) == 0.01344
         assert np.allclose(state_sequence, [1, 0, 0])
 
     @pytest.mark.parametrize("implementation", ["scaling", "log"])
     def test_decode_map(self, implementation):
         X = [[0], [1], [2]]
         h = self.new_hmm(implementation)
-        _logprob, state_sequence = h.decode(X, algorithm="map")
+        _log_prob, state_sequence = h.decode(X, algorithm="map")
         assert np.allclose(state_sequence, [1, 0, 0])
 
     @pytest.mark.parametrize("implementation", ["scaling", "log"])

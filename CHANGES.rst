@@ -14,6 +14,8 @@ next
   HMMs. In general, the scaling algorithm is more efficient than an
   implementation based upon logarithms. See `examples/benchmark.py` for
   a comparison of the performance of the two implementations.
+- The *logprob* parameter to `.ConvergenceMonitor.report` has been renamed to
+  *log_prob*.
 
 
 Version 0.2.6

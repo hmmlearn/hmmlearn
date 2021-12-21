@@ -57,7 +57,7 @@ class GMMHMMTestMixin:
         assert posteriors.shape == (n_samples, self.n_components)
         assert np.allclose(posteriors.sum(axis=1), np.ones(n_samples))
 
-        _logprob, stateseq = h.decode(X)
+        _log_prob, stateseq = h.decode(X)
         assert np.allclose(stateseq, refstateseq)
 
     def test_sample(self, n_samples=1000):

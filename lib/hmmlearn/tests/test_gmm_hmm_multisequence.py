@@ -196,21 +196,21 @@ class StrictMonitor(ConvergenceMonitor):
         # as "converged" when they have not necessarily converged:
         #
         # 1. exhausting max iterations
-        # 2. decreases in logprob between successive EM iterations
+        # 2. decreases in log_prob between successive EM iterations
         #
         # This second behaviour should (ignoring numerical problems)
         # never happen if the EM implementation is correct. EM is a
         # local optimisation method, it may not find a global maxima,
-        # but logprob should always be non-decreasing between each
+        # but log_prob should always be non-decreasing between each
         # pair of successive iterations.
 
-        assert not np.isnan(self.history[-1]), "logprob must not be nan"
+        assert not np.isnan(self.history[-1]), "log_prob must not be nan"
 
         if len(self.history) < 2:
             return False
 
         assert self.history[-1] >= self.history[-2] - self.tol, \
-            "logprob must be non-decreasing"
+            "log_prob must be non-decreasing"
 
         return self.history[-1] - self.history[-2] < self.tol
 
