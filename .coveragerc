@@ -1,4 +1,0 @@
-[run]
-branch = true
-source = hmmlearn
-omit = **/_version.py
