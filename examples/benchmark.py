@@ -17,21 +17,26 @@ LOG = logging.getLogger(__file__)
 
 
 class Benchmark:
-    def __init__(self, repeat, n_iter, verbose):
+    def __init__(self, repeat, n_iter, verbose, random_state):
         self.repeat = repeat
         self.n_iter = n_iter
         self.verbose = verbose
+        self.random_state = random_state
 
     def benchmark(self, sequences, lengths, model, tag):
-        elapsed = []
+        durations = []
         for i in range(self.repeat):
-            start = time.time()
+            start = time.perf_counter_ns()
             cloned = sklearn.base.clone(model)
             cloned.fit(sequences, lengths)
-            end = time.time()
-            elapsed.append(end-start)
-            self.log_one_run(start, end, cloned, tag)
-        return np.asarray(elapsed)
+            end = time.perf_counter_ns()
+            elapsed = (end-start)/1E9
+            durations.append(elapsed)
+            if cloned.n_iter < cloned.monitor_.iter:
+                raise ValueError(f"Model only performed {cloned.monitor_.iter},"
+                                 f"which is less than {cloned.n_iter}")
+            self.log_one_run(elapsed, cloned, tag)
+        return np.asarray(durations)
 
     def generate_training_sequences(self):
         pass
@@ -58,8 +63,8 @@ class Benchmark:
                 fd.write(f"{key},{value['mean']},{value['std']},"
                          f"{self.n_iter},{self.repeat}\n")
 
-    def log_one_run(self, start, end, model, tag):
-        LOG.info(f"Training Took {end-start} seconds {tag}")
+    def log_one_run(self, elapsed, model, tag):
+        LOG.info(f"Training Took {elapsed:.4f} seconds {tag}")
         LOG.info(f"startprob={model.startprob_}")
         LOG.info(f"transmat={model.transmat_}")
 
@@ -72,7 +77,8 @@ class GaussianBenchmark(Benchmark):
             n_iter=self.n_iter,
             covariance_type="full",
             implementation=implementation,
-            verbose=self.verbose
+            verbose=self.verbose,
+            random_state=self.random_state
         )
 
     def generate_training_sequences(self):
@@ -107,8 +113,8 @@ class GaussianBenchmark(Benchmark):
         lengths = [len(sequences)]
         return sequences, lengths
 
-    def log_one_run(self, start, end, model, tag):
-        super().log_one_run(start, end, model, tag)
+    def log_one_run(self, elapsed, model, tag):
+        super().log_one_run(elapsed, model, tag)
         LOG.info(f"means={model.means_}")
         LOG.info(f"covars={model.covars_}")
 
@@ -120,7 +126,8 @@ class MultinomialBenchmark(Benchmark):
                 n_components=3,
                 n_iter=self.n_iter,
                 verbose=self.verbose,
-                implementation=implementation
+                implementation=implementation,
+                random_state=self.random_state
             )
 
     def generate_training_sequences(self):
@@ -141,8 +148,8 @@ class MultinomialBenchmark(Benchmark):
         lengths = [len(sequences)]
         return sequences, lengths
 
-    def log_one_run(self, start, end, model, tag):
-        super().log_one_run(start, end, model, tag)
+    def log_one_run(self, elapsed, model, tag):
+        super().log_one_run(elapsed, model, tag)
         LOG.info(f"emissions={model.emissionprob_}")
 
 
@@ -234,11 +241,12 @@ class GMMBenchmark(GaussianBenchmark):
             n_iter=self.n_iter,
             covariance_type="full",
             verbose=self.verbose,
-            implementation=implementation
+            implementation=implementation,
+            random_state=self.random_state
         )
 
-    def log_one_run(self, start, end, model, tag):
-        super().log_one_run(start, end, model, tag)
+    def log_one_run(self, elapsed, model, tag):
+        super().log_one_run(elapsed, model, tag)
         LOG.info(f"weights_={model.weights_}")
 
 
@@ -252,6 +260,7 @@ def main():
     parser.add_argument("--repeat", type=int, default=10)
     parser.add_argument("--verbose", action="store_true")
     parser.add_argument("--n-iter", type=int, default=100)
+    parser.add_argument("--random-state", type=int)
 
     args = parser.parse_args()
     if args.all:
@@ -265,6 +274,7 @@ def main():
             repeat=args.repeat,
             n_iter=args.n_iter,
             verbose=args.verbose,
+            random_state=args.random_state
         )
         bench.run("categorical.benchmark.csv")
     if args.gaussian:
@@ -272,6 +282,7 @@ def main():
             repeat=args.repeat,
             n_iter=args.n_iter,
             verbose=args.verbose,
+            random_state=args.random_state
         )
         bench.run("gaussian.benchmark.csv")
     if args.multivariate_gaussian:
@@ -279,6 +290,7 @@ def main():
             repeat=args.repeat,
             n_iter=args.n_iter,
             verbose=args.verbose,
+            random_state=args.random_state
         )
         bench.run("multivariate_gaussian.benchmark.csv")
     if args.gaussian_mixture:
@@ -286,6 +298,7 @@ def main():
             repeat=args.repeat,
             n_iter=args.n_iter,
             verbose=args.verbose,
+            random_state=args.random_state
         )
         bench.run("gmm.benchmark.csv")
 
