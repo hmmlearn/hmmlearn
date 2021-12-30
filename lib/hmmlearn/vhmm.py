@@ -339,7 +339,8 @@ class _VariationalBaseHMM:
                 transmat_init = self.transmat_prior
             self.transmat_prior_ = np.full(
                 (self.n_components, self.n_components), transmat_init)
-            self.transmat_posterior_ = self.transmat_prior_ * sum(lengths) / self.n_components
+            self.transmat_posterior_ = self.transmat_prior_ * \
+                    sum(lengths) / self.n_components
 
     def fit(self, X, lengths=None):
         """
@@ -374,7 +375,7 @@ class _VariationalBaseHMM:
             "log": self._fit_log,
         }[self.implementation]
         for iter in range(self.n_iter):
-            self._update_subnormalized()
+            self._update_subnorm()
             stats = self._initialize_sufficient_statistics()
             curr_logprob = 0
             for sub_X in _utils.split_X_lengths(X, lengths):
@@ -414,33 +415,33 @@ class _VariationalBaseHMM:
         return startprob_lower_bound + transmat_lower_bound + log_prob
 
     def _fit_scaling(self, X):
-        frameprob = self._compute_subnormalized_likelihood(X)
+        frameprob = self._compute_subnorm_likelihood(X)
         logprob, fwdlattice, scaling_factors = \
             self._do_forward_scaling_pass(
                 frameprob,
-                startprob=self.startprob_subnormalized_,
-                transmat=self.transmat_subnormalized_
+                startprob=self.startprob_subnorm_,
+                transmat=self.transmat_subnorm_
             )
         bwdlattice = self._do_backward_scaling_pass(
             frameprob,
             scaling_factors,
-            startprob=self.startprob_subnormalized_,
-            transmat=self.transmat_subnormalized_
+            startprob=self.startprob_subnorm_,
+            transmat=self.transmat_subnorm_
             )
         posteriors = self._compute_posteriors_scaling(fwdlattice, bwdlattice)
         return frameprob, logprob, posteriors, fwdlattice, bwdlattice
 
     def _fit_log(self, X):
-        framelogprob = self._compute_subnormalized_log_likelihood(X)
+        framelogprob = self._compute_subnorm_log_likelihood(X)
         logprob, fwdlattice = self._do_forward_log_pass(
             framelogprob,
-            startprob=self.startprob_subnormalized_,
-            transmat=self.transmat_subnormalized_
+            startprob=self.startprob_subnorm_,
+            transmat=self.transmat_subnorm_
         )
         bwdlattice = self._do_backward_log_pass(
             framelogprob,
-            startprob=self.startprob_subnormalized_,
-            transmat=self.transmat_subnormalized_
+            startprob=self.startprob_subnorm_,
+            transmat=self.transmat_subnorm_
         )
         posteriors = self._compute_posteriors_log(fwdlattice, bwdlattice)
         return framelogprob, logprob, posteriors, fwdlattice, bwdlattice
@@ -515,16 +516,16 @@ class _VariationalBaseHMM:
         return False
 
 
-    def _update_subnormalized(self):
+    def _update_subnorm(self):
         # Update PI
-        self.startprob_log_subnormalized_ = digamma(self.startprob_posterior_) \
+        self.startprob_log_subnorm_ = digamma(self.startprob_posterior_) \
             - digamma(self.startprob_posterior_.sum())
-        self.startprob_subnormalized_ = np.exp(
-            self.startprob_log_subnormalized_)
+        self.startprob_subnorm_ = np.exp(
+            self.startprob_log_subnorm_)
 
-        self.transmat_log_subnormalized_ = digamma(self.transmat_posterior_) - \
+        self.transmat_log_subnorm_ = digamma(self.transmat_posterior_) - \
             digamma(self.transmat_posterior_.sum(axis=1)[:, None])
-        self.transmat_subnormalized_ = np.exp(self.transmat_log_subnormalized_)
+        self.transmat_subnorm_ = np.exp(self.transmat_log_subnorm_)
 
     def _update_normalized(self):
         self.startprob_normalized_ = self.startprob_posterior_ / \
@@ -552,32 +553,36 @@ class _VariationalBaseHMM:
             If any of the parameters are invalid, e.g. if :attr:`startprob_`
             don't sum to 1.
         """
+        nc = self.n_components
+
         self.startprob_normalized_ = np.asarray(self.startprob_normalized_)
-        if len(self.startprob_normalized_) != self.n_components:
+        if len(self.startprob_normalized_) != nc:
             raise ValueError("startprob_ must have length n_components")
         if not np.allclose(self.startprob_normalized_.sum(), 1.0):
             raise ValueError("startprob_ must sum to 1.0 (got {:.4f})"
                              .format(self.startprob_normalized_.sum()))
 
         self.transmat_normalized_ = np.asarray(self.transmat_normalized_)
-        if self.transmat_normalized_.shape != (self.n_components, self.n_components):
+        if self.transmat_normalized_.shape != (nc, nc):
             raise ValueError(
                 "transmat_ must have shape (n_components, n_components)")
         if not np.allclose(self.transmat_normalized_.sum(axis=1), 1.0):
             raise ValueError("rows of transmat_ must sum to 1.0 (got {})"
                              .format(self.transmat_normalized_.sum(axis=1)))
 
-    def _compute_subnormalized_likelihood(self, X):
-        if self._compute_subnormalized_log_likelihood != \
-           _VariationalBaseHMM._compute_subnormalized_log_likelihood.__get__(self):  # prevent recursion
-            return np.exp(self._compute_subnormalized_log_likelihood(X))
+    def _compute_subnorm_likelihood(self, X):
+        # prevent recursion
+        if self._compute_subnorm_log_likelihood != \
+           _VariationalBaseHMM._compute_subnorm_log_likelihood.__get__(self):
+            return np.exp(self._compute_subnorm_log_likelihood(X))
         else:
             raise NotImplementedError("Must be overridden in subclass")
 
-    def _compute_subnormalized_log_likelihood(self, X):
-        if self._compute_subnormalized_likelihood != \
-           _VariationalBaseHMM._compute_subnormalized_likelihood.__get__(self):  # prevent recursion
-            return np.log(self._compute_subnormalized_likelihood(X))
+    def _compute_subnorm_log_likelihood(self, X):
+        # prevent recursion
+        if self._compute_subnorm_likelihood != \
+           _VariationalBaseHMM._compute_subnorm_likelihood.__get__(self):
+            return np.log(self._compute_subnorm_likelihood(X))
         else:
             raise NotImplementedError("Must be overridden in subclass")
 
@@ -595,8 +600,9 @@ class _VariationalBaseHMM:
             Log probability of each sample in ``X`` for each of the
             model states.
         """
+        # prevent recursion
         if self._compute_log_likelihood != \
-           _VariationalBaseHMM._compute_log_likelihood.__get__(self):  # prevent recursion
+           _VariationalBaseHMM._compute_log_likelihood.__get__(self):
             return np.exp(self._compute_log_likelihood(X))
         else:
             raise NotImplementedError("Must be overridden in subclass")
@@ -616,8 +622,9 @@ class _VariationalBaseHMM:
             Emission log probability of each sample in ``X`` for each of the
             model states, i.e., ``log(p(X|state))``.
         """
+        # prevent recursion
         if self._compute_likelihood != \
-           _VariationalBaseHMM._compute_likelihood.__get__(self):  # prevent recursion
+           _VariationalBaseHMM._compute_likelihood.__get__(self):
             return np.log(self._compute_likelihood(X))
         else:
             raise NotImplementedError("Must be overridden in subclass")
@@ -701,7 +708,7 @@ class _VariationalBaseHMM:
                 return
 
             xi_sum = _hmmc.compute_scaling_xi_sum(fwdlattice,
-                                                  self.transmat_subnormalized_,
+                                                  self.transmat_subnorm_,
                                                   bwdlattice, lattice)
             stats['trans'] += xi_sum
 
@@ -722,9 +729,9 @@ class _VariationalBaseHMM:
             if n_samples <= 1:
                 return
 
-            log_xi_sum = _hmmc.compute_log_xi_sum(fwdlattice,
-                                                  log_mask_zero(self.transmat_subnormalized_),
-                                                  bwdlattice, lattice)
+            log_xi_sum = _hmmc.compute_log_xi_sum(
+                fwdlattice, log_mask_zero(self.transmat_subnorm_), bwdlattice,
+                lattice)
             with np.errstate(under="ignore"):
                 stats['trans'] += np.exp(log_xi_sum)
 
@@ -833,14 +840,14 @@ class VariationalCategoricalHMM(_VariationalBaseHMM):
                 size=self.n_components
             ) * sum(lengths) / self.n_components
 
-    def _update_subnormalized(self):
-        super()._update_subnormalized()
+    def _update_subnorm(self):
+        super()._update_subnorm()
         # Emissions
-        self.emissions_log_subnormalized_ = (
+        self.emissions_log_subnorm_ = (
             digamma(self.emissions_posterior_)
                    - digamma(self.emissions_posterior_.sum(axis=1)[:, None])
         )
-        self.emissions_subnormalized_ = np.exp(self.emissions_log_subnormalized_)
+        self.emissions_subnorm_ = np.exp(self.emissions_log_subnorm_)
 
     def _update_normalized(self):
         super()._update_normalized()
@@ -870,15 +877,16 @@ class VariationalCategoricalHMM(_VariationalBaseHMM):
         super()._check()
 
         self.emissions_posterior_ = np.atleast_2d(self.emissions_posterior_)
-        n_features = getattr(self, "n_features", self.emissions_posterior_.shape[1])
+        n_features = getattr(self, "n_features",
+                             self.emissions_posterior_.shape[1])
         if self.emissions_posterior_.shape != (self.n_components, n_features):
             raise ValueError(
                 "emissionprob_ must have shape (n_components, n_features)")
         else:
             self.n_features = n_features
 
-    def _compute_subnormalized_likelihood(self, X):
-        return self.emissions_subnormalized_[:, np.concatenate(X)].T
+    def _compute_subnorm_likelihood(self, X):
+        return self.emissions_subnorm_[:, np.concatenate(X)].T
 
     def _compute_likelihood(self, X):
         """Computes per-component probability under the model.

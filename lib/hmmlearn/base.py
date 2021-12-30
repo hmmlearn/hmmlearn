@@ -109,7 +109,8 @@ class ConvergenceMonitor:
             message = self._template.format(
                 iter=self.iter + 1, log_prob=log_prob, delta=delta)
             print(message, file=sys.stderr)
-        if self.strict and len(self.history) > 0 and log_prob < self.history[-1]:
+        if self.strict and len(self.history) > 0 and \
+           log_prob < self.history[-1]:
             raise ValueError(f"Model is not converging.  Current: {log_prob}"
                              f" is not greater than {self.history[-1]}.")
         self.history.append(log_prob)

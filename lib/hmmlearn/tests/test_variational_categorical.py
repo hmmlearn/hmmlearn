@@ -1,5 +1,4 @@
 import numpy as np
-import pandas as pd
 import pytest
 import scipy.stats
 
@@ -54,12 +53,16 @@ class TestVariationalCategorical:
                 sequences.append(m.sample(39, random_state=random_state)[0])
                 lengths.append(len(sequences[-1]))
         sequences = np.concatenate(sequences)
-        model = vhmm.VariationalCategoricalHMM(12, n_iter=500,  implementation=implementation, tol=1e-6, random_state=random_state, verbose=False)
+        model = vhmm.VariationalCategoricalHMM(12, n_iter=500,
+                                               implementation=implementation,
+                                               tol=1e-6,
+                                               random_state=random_state,
+                                               verbose=False)
         model.fit(sequences, lengths)
         print(model.monitor_.history)
-        print(pd.Series(model.startprob_posterior_))
-        print(pd.DataFrame(model.transmat_posterior_))
-        print(pd.DataFrame(model.emissions_posterior_))
+        print(model.startprob_posterior_)
+        print(model.transmat_posterior_)
+        print(model.emissions_posterior_)
 
     @pytest.mark.parametrize("implementation", ["scaling", "log"])
     @pytest.mark.parametrize("decode_algo", ["viterbi", "map"])
@@ -73,16 +76,18 @@ class TestVariationalCategorical:
             lengths.append(len(sequences[-1]))
 
         sequences = np.concatenate(sequences)
-        model = vhmm.VariationalCategoricalHMM(4, n_iter=500, implementation=implementation, random_state=43)
+        model = vhmm.VariationalCategoricalHMM(4, n_iter=500,
+                                               implementation=implementation,
+                                               random_state=43)
 
         model.fit(sequences, lengths)
 
-        print(model.transmat_posterior_ / model.transmat_posterior_.sum(axis=1)[:, None])
-        print(pd.DataFrame(model.transmat_posterior_))
-        print(pd.DataFrame(model.emissions_posterior_))
         # The 3rd hidden state will be "unused"
-        assert np.all(model.transmat_posterior_[2, :] == pytest.approx(.25, rel=1e-3))
-        assert np.all(model.emissions_posterior_[2, :] == pytest.approx(.3333, rel=1e-3))
+        check = model.transmat_posterior_[2, :] == pytest.approx(.25, rel=1e-3)
+        assert np.all(check)
+        check = model.emissions_posterior_[2, :] == pytest.approx(.3333,
+                                                                  rel=1e-3)
+        assert np.all(check)
 
         # An EM Model should behave the same as a Variational Model,
         # When initialized with the normalized probabilities of the mode of the
@@ -92,18 +97,27 @@ class TestVariationalCategorical:
         em_hmm.transmat_ = model.transmat_normalized_
         em_hmm.emissionprob_ = model.emissions_normalized_
 
-        assert em_hmm.score(sequences, lengths) == pytest.approx(model.score(sequences, lengths)), implementation
-        assert np.all(em_hmm.predict(sequences, lengths) == model.predict(sequences, lengths)), implementation
-        em_logprob, em_path = em_hmm.decode(sequences, lengths, algorithm=decode_algo)
-        vi_logprob, vi_path = model.decode(sequences, lengths, algorithm=decode_algo)
-        assert em_logprob == pytest.approx(vi_logprob), (implementation, decode_algo)
-        assert np.all(em_path == vi_path), (implementation, decode_algo)
+        em_score = em_hmm.score(sequences, lengths)
+        vi_score = model.score(sequences, lengths)
+        em_scores = em_hmm.predict(sequences, lengths)
+        vi_scores = model.predict(sequences, lengths)
+        assert em_score == pytest.approx(vi_score)
+        assert np.all(em_scores == vi_scores)
 
-        assert np.all(em_hmm.predict(sequences, lengths) == model.predict(sequences, lengths))
+        em_logprob, em_path = em_hmm.decode(sequences, lengths,
+                                            algorithm=decode_algo)
+        vi_logprob, vi_path = model.decode(sequences, lengths,
+                                           algorithm=decode_algo)
+        assert em_logprob == pytest.approx(vi_logprob)
+        assert np.all(em_path == vi_path)
+
+        em_predict = em_hmm.predict(sequences, lengths)
+        vi_predict = model.predict(sequences, lengths)
+        assert np.all(em_predict == vi_predict)
         em_logprob, em_posteriors = em_hmm.score_samples(sequences, lengths)
         vi_logprob, vi_posteriors = model.score_samples(sequences, lengths)
         assert em_logprob == pytest.approx(vi_logprob), implementation
-        assert np.all(em_posteriors == pytest.approx(vi_posteriors)), implementation
+        assert np.all(em_posteriors == pytest.approx(vi_posteriors))
 
         em_obs, em_states = em_hmm.sample(100, random_state=42)
         vi_obs, vi_states = model.sample(100, random_state=42)
