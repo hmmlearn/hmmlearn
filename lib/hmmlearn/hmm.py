@@ -945,7 +945,6 @@ class GMMHMM(_BaseHMM):
 
         n_samples, _ = X.shape
 
-        # it's totally fine to save pointers
         stats['samples'].append(X)
 
         post_mix = np.zeros((n_samples, self.n_components, self.n_mix))
@@ -993,7 +992,12 @@ class GMMHMM(_BaseHMM):
             m_d[(self.weights_ == 0) & (m_n == 0).all(axis=-1)] = 1
             self.means_ = m_n / m_d[:, :, None]
 
-        # Maximizing covariances
+        # Maximizing covariances.
+        # Iterate over 'post_comp_mix' and 'samples' in memory-efficient way
+        # and accumulate the statistics. In other words, the sequence of
+        # matrices (chunks) are not flattened in one large matrix.
+        # Though for a large number of small chunks, it'd make sense to
+        # flatten all small chunks in one array.
         if 'c' in self.params:
             lambdas, mus = self.means_weight, self.means_prior
             centered_means = self.means_ - mus

@@ -201,31 +201,30 @@ class TestGMMHMMWithFullCovars(GMMHMMTestMixin):
 
 
 class TestGMMHMM_MultiSequence:
-    def test_chunked(self):
-        np.random.seed(0)
 
-        gmm = create_random_gmm(3, 2, covariance_type="diag")
+    @pytest.mark.parametrize("covtype",
+                             ["diag", "spherical", "tied", "full"])
+    def test_chunked(sellf, covtype):
+        np.random.seed(0)
+        gmm = create_random_gmm(3, 2, covariance_type=covtype, prng=0)
         gmm.covariances_ = gmm.covars_
         data = gmm.sample(n_samples=1000)[0]
 
-        for covtype in COVARIANCE_TYPES:
-            model1 = GMMHMM(n_components=3, n_mix=2, covariance_type=covtype)
-            model2 = GMMHMM(n_components=3, n_mix=2, covariance_type=covtype)
+        model1 = GMMHMM(n_components=3, n_mix=2, covariance_type=covtype,
+                        random_state=1)
+        model2 = GMMHMM(n_components=3, n_mix=2, covariance_type=covtype,
+                        random_state=1)
+        model1.fit(data)
+        model2.fit(data, lengths=[200] * 5)
 
-            np.random.seed(1)
-            model1.fit(data)
-
-            np.random.seed(1)
-            model2.fit(data, lengths=[100] * 10)
-
-            assert_array_almost_equal(model1.means_, model2.means_,
-                                      decimal=2)
-            assert_array_almost_equal(model1.covars_, model2.covars_,
-                                      decimal=3)
-            assert_array_almost_equal(model1.weights_, model2.weights_,
-                                      decimal=3)
-            assert_array_almost_equal(model1.transmat_, model2.transmat_,
-                                      decimal=2)
+        assert_array_almost_equal(model1.means_, model2.means_,
+                                  decimal=2)
+        assert_array_almost_equal(model1.covars_, model2.covars_,
+                                  decimal=3)
+        assert_array_almost_equal(model1.weights_, model2.weights_,
+                                  decimal=3)
+        assert_array_almost_equal(model1.transmat_, model2.transmat_,
+                                  decimal=2)
 
 
 class TestGMMHMM_KmeansInit:
