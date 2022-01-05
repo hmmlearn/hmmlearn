@@ -485,7 +485,7 @@ class _BaseHMM(BaseEstimator):
             Returns self.
         """
         X = check_array(X)
-        self._init(X, lengths=lengths)
+        self._init(X)
         self._check()
 
         self.monitor_._reset()
@@ -606,7 +606,7 @@ class _BaseHMM(BaseEstimator):
         for a non-degenerate fit.
         """
 
-    def _init(self, X, lengths):
+    def _init(self, X):
         """
         Initialize model parameters prior to fitting.
 
@@ -614,9 +614,6 @@ class _BaseHMM(BaseEstimator):
         ----------
         X : array-like, shape (n_samples, n_features)
             Feature matrix of individual samples.
-        lengths : array-like of integers, shape (n_sequences, )
-            Lengths of the individual sequences in ``X``. The sum of
-            these should be ``n_samples``.
         """
         init = 1. / self.n_components
         if self._needs_init("s", "startprob_"):

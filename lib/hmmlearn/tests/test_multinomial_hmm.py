@@ -133,7 +133,7 @@ class TestMultinomailHMM:
         # use init_function to initialize paramerters
         h = hmm.MultinomialHMM(self.n_components, params=params,
                                init_params=params)
-        h._init(X, lengths=lengths)
+        h._init(X)
 
         assert_log_likelihood_increasing(h, X, lengths, n_iter)
 
