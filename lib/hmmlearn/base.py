@@ -432,6 +432,7 @@ class _BaseHMM(BaseEstimator):
         Examples
         --------
         ::
+
             # generate samples continuously
             _, Z = model.sample(n_samples=10)
             X, Z = model.sample(n_samples=10, currstate=Z[-1])
