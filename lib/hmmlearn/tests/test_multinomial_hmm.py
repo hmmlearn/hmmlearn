@@ -45,7 +45,7 @@ class TestMultinomialAgainstWikipedia:
         assert np.allclose(state_sequence, [1, 0, 0])
 
     @pytest.mark.parametrize("implementation", ["scaling", "log"])
-    def test_predict(self ,implementation):
+    def test_predict(self, implementation):
         X = [[0], [1], [2]]
         h = self.new_hmm(implementation)
         state_sequence = h.predict(X)

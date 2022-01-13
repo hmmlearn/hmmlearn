@@ -1,13 +1,11 @@
 import numpy as np
+from numpy.testing import assert_array_almost_equal, assert_array_less
 import pytest
-from numpy.testing import assert_array_almost_equal
 
 from . import assert_log_likelihood_increasing
 from . import normalized
 from .test_gmm_hmm import create_random_gmm
-from ..hmm import GMMHMM, COVARIANCE_TYPES
-
-from numpy.testing import assert_array_almost_equal, assert_array_less
+from ..hmm import GMMHMM
 
 
 def sample_from_parallelepiped(low, high, n_samples, random_state):
