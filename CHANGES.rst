@@ -12,7 +12,7 @@ next
 - An implementation of the Forward-Backward algorithm based upon scaling
   is available by specifying ``implementation="scaling"`` when instantiating
   HMMs. In general, the scaling algorithm is more efficient than an
-  implementation based upon logarithms. See `examples/benchmark.py` for
+  implementation based upon logarithms. See `scripts/benchmark.py` for
   a comparison of the performance of the two implementations.
 - The *logprob* parameter to `.ConvergenceMonitor.report` has been renamed to
   *log_prob*.
