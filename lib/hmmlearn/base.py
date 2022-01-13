@@ -117,15 +117,12 @@ class ConvergenceMonitor:
                  self.history[-1] - self.history[-2] < self.tol))
 
 
-class _BaseHMM(BaseEstimator):
+class BaseHMM(BaseEstimator):
     """
     Base class for Hidden Markov Models.
 
-    This class allows for easy evaluation of, sampling from, and
-    maximum a posteriori estimation of the parameters of a HMM.
-
-    See the instance documentation for details specific to a
-    particular object.
+    This class allows for easy evaluation of, sampling from, and maximum a
+    posteriori estimation of the parameters of a HMM.
 
     Attributes
     ----------
@@ -135,6 +132,14 @@ class _BaseHMM(BaseEstimator):
         Initial state occupation distribution.
     transmat_ : array, shape (n_components, n_components)
         Matrix of transition probabilities between states.
+
+    Notes
+    -----
+    Normally, one should use a subclass of `.BaseHMM`, with its specialization
+    towards a given emission model.  In rare cases, the base class can also be
+    useful in itself, if one simply wants to generate a sequence of states
+    using `.BaseHMM.sample`.  In that case, the feature matrix will have zero
+    features.
     """
 
     def __init__(self, n_components=1,
@@ -678,7 +683,7 @@ class _BaseHMM(BaseEstimator):
             model states.
         """
         if self._compute_log_likelihood != \
-           _BaseHMM._compute_log_likelihood.__get__(self):  # prevent recursion
+            BaseHMM._compute_log_likelihood.__get__(self):  # prevent recursion
             return np.exp(self._compute_log_likelihood(X))
         else:
             raise NotImplementedError("Must be overridden in subclass")
@@ -699,7 +704,7 @@ class _BaseHMM(BaseEstimator):
             model states, i.e., ``log(p(X|state))``.
         """
         if self._compute_likelihood != \
-           _BaseHMM._compute_likelihood.__get__(self):  # prevent recursion
+            BaseHMM._compute_likelihood.__get__(self):  # prevent recursion
             return np.log(self._compute_likelihood(X))
         else:
             raise NotImplementedError("Must be overridden in subclass")
@@ -722,6 +727,7 @@ class _BaseHMM(BaseEstimator):
             A random sample from the emission distribution corresponding
             to a given component.
         """
+        return ()
 
     # Methods used by self.fit()
 
@@ -758,7 +764,7 @@ class _BaseHMM(BaseEstimator):
         ----------
         stats : dict
             Sufficient statistics as returned by
-            :meth:`~base._BaseHMM._initialize_sufficient_statistics`.
+            :meth:`~.BaseHMM._initialize_sufficient_statistics`.
 
         X : array, shape (n_samples, n_features)
             Sample sequence.
@@ -847,3 +853,6 @@ class _BaseHMM(BaseEstimator):
             transmat_ = np.maximum(self.transmat_prior - 1 + stats['trans'], 0)
             self.transmat_ = np.where(self.transmat_ == 0, 0, transmat_)
             normalize(self.transmat_, axis=1)
+
+
+_BaseHMM = BaseHMM  # Backcompat name, will be deprecated in the future.

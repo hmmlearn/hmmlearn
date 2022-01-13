@@ -1,7 +1,7 @@
 import numpy as np
 import pytest
 from scipy import special
-from hmmlearn.base import _BaseHMM, ConvergenceMonitor
+from hmmlearn.base import BaseHMM, ConvergenceMonitor
 
 
 class TestMonitor:
@@ -50,7 +50,7 @@ class TestMonitor:
         assert len(m.history) == n_iter
 
 
-class StubHMM(_BaseHMM):
+class StubHMM(BaseHMM):
     """An HMM with hardcoded observation probabilities."""
     def _compute_log_likelihood(self, X):
         return self.log_frameprob
