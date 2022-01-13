@@ -13,7 +13,7 @@ from sklearn.utils import check_random_state
 
 from . import _utils
 from .stats import log_multivariate_normal_density
-from .base import _BaseHMM
+from .base import BaseHMM
 from .utils import fill_covars, log_mask_zero, log_normalize, normalize
 
 __all__ = ["GMMHMM", "GaussianHMM", "MultinomialHMM"]
@@ -34,7 +34,7 @@ def _check_and_set_gaussian_n_features(model, X):
         model.n_features = n_features
 
 
-class GaussianHMM(_BaseHMM):
+class GaussianHMM(BaseHMM):
     """
     Hidden Markov Model with Gaussian emissions.
 
@@ -150,13 +150,13 @@ class GaussianHMM(_BaseHMM):
             logarithms ("log"), or using scaling ("scaling").  The default is
             to use logarithms for backwards compatability.
         """
-        _BaseHMM.__init__(self, n_components,
-                          startprob_prior=startprob_prior,
-                          transmat_prior=transmat_prior, algorithm=algorithm,
-                          random_state=random_state, n_iter=n_iter,
-                          tol=tol, params=params, verbose=verbose,
-                          init_params=init_params,
-                          implementation=implementation)
+        BaseHMM.__init__(self, n_components,
+                         startprob_prior=startprob_prior,
+                         transmat_prior=transmat_prior, algorithm=algorithm,
+                         random_state=random_state, n_iter=n_iter,
+                         tol=tol, params=params, verbose=verbose,
+                         init_params=init_params,
+                         implementation=implementation)
         self.covariance_type = covariance_type
         self.min_covar = min_covar
         self.means_prior = means_prior
@@ -331,7 +331,7 @@ def _multinomialhmm_fix_docstring_shape(func):
     return wrapper
 
 
-class MultinomialHMM(_BaseHMM):
+class MultinomialHMM(BaseHMM):
     """
     Hidden Markov Model with multinomial (discrete) emissions.
 
@@ -409,24 +409,24 @@ class MultinomialHMM(_BaseHMM):
             logarithms ("log"), or using scaling ("scaling").  The default is
             to use logarithms for backwards compatability.
         """
-        _BaseHMM.__init__(self, n_components,
-                          startprob_prior=startprob_prior,
-                          transmat_prior=transmat_prior,
-                          algorithm=algorithm,
-                          random_state=random_state,
-                          n_iter=n_iter, tol=tol, verbose=verbose,
-                          params=params, init_params=init_params,
-                          implementation=implementation)
+        BaseHMM.__init__(self, n_components,
+                         startprob_prior=startprob_prior,
+                         transmat_prior=transmat_prior,
+                         algorithm=algorithm,
+                         random_state=random_state,
+                         n_iter=n_iter, tol=tol, verbose=verbose,
+                         params=params, init_params=init_params,
+                         implementation=implementation)
 
     score_samples, score, decode, predict, predict_proba, sample, fit = map(
         _multinomialhmm_fix_docstring_shape, [
-            _BaseHMM.score_samples,
-            _BaseHMM.score,
-            _BaseHMM.decode,
-            _BaseHMM.predict,
-            _BaseHMM.predict_proba,
-            _BaseHMM.sample,
-            _BaseHMM.fit,
+            BaseHMM.score_samples,
+            BaseHMM.score,
+            BaseHMM.decode,
+            BaseHMM.predict,
+            BaseHMM.predict_proba,
+            BaseHMM.sample,
+            BaseHMM.fit,
         ])
 
     def _get_n_fit_scalars_per_param(self):
@@ -506,7 +506,7 @@ class MultinomialHMM(_BaseHMM):
             self.n_features = X.max() + 1
 
 
-class GMMHMM(_BaseHMM):
+class GMMHMM(BaseHMM):
     """
     Hidden Markov Model with Gaussian mixture emissions.
 
@@ -627,13 +627,13 @@ class GMMHMM(_BaseHMM):
             logarithms ("log"), or using scaling ("scaling").  The default is
             to use logarithms for backwards compatability.
         """
-        _BaseHMM.__init__(self, n_components,
-                          startprob_prior=startprob_prior,
-                          transmat_prior=transmat_prior,
-                          algorithm=algorithm, random_state=random_state,
-                          n_iter=n_iter, tol=tol, verbose=verbose,
-                          params=params, init_params=init_params,
-                          implementation=implementation)
+        BaseHMM.__init__(self, n_components,
+                         startprob_prior=startprob_prior,
+                         transmat_prior=transmat_prior,
+                         algorithm=algorithm, random_state=random_state,
+                         n_iter=n_iter, tol=tol, verbose=verbose,
+                         params=params, init_params=init_params,
+                         implementation=implementation)
         self.covariance_type = covariance_type
         self.min_covar = min_covar
         self.n_mix = n_mix
@@ -915,7 +915,7 @@ class GMMHMM(_BaseHMM):
         # These statistics are stored in arrays and updated in-place.
         # We accumulate chunks of data for multiple sequences (aka
         # multiple frames) during fitting. The fit(X, lengths) method
-        # in the _BaseHMM class will call
+        # in the BaseHMM class will call
         # _accumulate_sufficient_statistics once per sequence in the
         # training samples. Data from all sequences needs to be
         # accumulated and fed into _do_mstep.

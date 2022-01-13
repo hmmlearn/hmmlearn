@@ -61,7 +61,7 @@ Building HMM and generating samples
 
 You can build a HMM instance by passing the parameters described above to the
 constructor. Then, you can generate samples from the HMM by calling
-:meth:`~base._BaseHMM.sample`.
+:meth:`~.BaseHMM.sample`.
 
 >>> import numpy as np
 >>> from hmmlearn import hmm
@@ -86,7 +86,7 @@ left-right HMM can be defined as follows:
 ...                          [0.0, 0.5, 0.5],
 ...                          [0.0, 0.0, 1.0]])
 
-If any of the required parameters are missing, :meth:`~base._BaseHMM.sample`
+If any of the required parameters are missing, :meth:`~.BaseHMM.sample`
 will raise an exception:
 
 >>> model = hmm.GaussianHMM(n_components=3)
@@ -105,7 +105,7 @@ either random or computed from the data. It is possible to hook into this
 process and provide a starting point explicitly. To do so
 
 1. ensure that the character code for the parameter is missing from
-   :attr:`~base._BaseHMM.init_params` and then
+   :attr:`~.BaseHMM.init_params` and then
 2. set the parameter to the desired value.
 
 For example, consider a HMM with an explicitly initialized transition
@@ -118,7 +118,7 @@ probability matrix:
 
 A similar trick applies to parameter estimation. If you want to fix some
 parameter at a specific value, remove the corresponding character from
-:attr:`~base._BaseHMM.params` and set the parameter value before training.
+:attr:`~.BaseHMM.params` and set the parameter value before training.
 
 .. topic:: Examples:
 
@@ -127,7 +127,7 @@ parameter at a specific value, remove the corresponding character from
 Training HMM parameters and inferring the hidden states
 -------------------------------------------------------
 
-You can train an HMM by calling the :meth:`~base._BaseHMM.fit` method. The input
+You can train an HMM by calling the :meth:`~.BaseHMM.fit` method. The input
 is a matrix of concatenated sequences of observations (*aka* samples) along with
 the lengths of the sequences (see :ref:`Working with multiple sequences <multiple_sequences>`).
 
@@ -135,10 +135,10 @@ Note, since the EM algorithm is a gradient-based optimization method, it will
 generally get stuck in local optima. You should in general try to run ``fit``
 with various initializations and select the highest scored model.
 
-The score of the model can be calculated by the :meth:`~base._BaseHMM.score` method.
+The score of the model can be calculated by the :meth:`~.BaseHMM.score` method.
 
 The inferred optimal hidden states can be obtained by calling
-:meth:`~base._BaseHMM.predict` method. The ``predict`` method can be
+:meth:`~.BaseHMM.predict` method. The ``predict`` method can be
 specified with a decoder algorithm. Currently the Viterbi algorithm
 (``"viterbi"``), and maximum a posteriori estimation (``"map"``) are supported.
 
@@ -159,8 +159,7 @@ change in score is lower than the specified threshold ``tol``. Note, that
 depending on the data, the EM algorithm may or may not achieve convergence in the
 given number of steps.
 
-You can use the :attr:`~base._BaseHMM.monitor_` attribute to diagnose
-convergence:
+You can use the :attr:`~.BaseHMM.monitor_` attribute to diagnose convergence:
 
 >>> remodel.monitor_
 ConvergenceMonitor(
@@ -187,8 +186,8 @@ Consider two 1D sequences:
 >>> X1 = [[0.5], [1.0], [-1.0], [0.42], [0.24]]
 >>> X2 = [[2.4], [4.2], [0.5], [-0.24]]
 
-To pass both sequences to :meth:`~base._BaseHMM.fit` or
-:meth:`~base._BaseHMM.predict`, first concatenate them into a single array and
+To pass both sequences to :meth:`~.BaseHMM.fit` or
+:meth:`~.BaseHMM.predict`, first concatenate them into a single array and
 then compute an array of sequence lengths:
 
 >>> X = np.concatenate([X1, X2])
@@ -216,19 +215,21 @@ Implementing HMMs with custom emission probabilities
 ----------------------------------------------------
 
 If you want to implement a custom emission probability (e.g. Poisson), you have to
-subclass :class:`~base._BaseHMM` and override the following methods
+subclass :class:`~.BaseHMM` and override the following methods
+
+.. currentmodule:: hmmlearn.base
 
 .. autosummary::
 
-   base._BaseHMM._init
-   base._BaseHMM._check
-   base._BaseHMM._generate_sample_from_state
-   base._BaseHMM._compute_log_likelihood
-   base._BaseHMM._compute_likelihood
-   base._BaseHMM._initialize_sufficient_statistics
-   base._BaseHMM._accumulate_sufficient_statistics
-   base._BaseHMM._do_mstep
+   BaseHMM._init
+   BaseHMM._check
+   BaseHMM._generate_sample_from_state
+   BaseHMM._compute_log_likelihood
+   BaseHMM._compute_likelihood
+   BaseHMM._initialize_sufficient_statistics
+   BaseHMM._accumulate_sufficient_statistics
+   BaseHMM._do_mstep
 
-Optionally, only one of `base._BaseHMM._compute_likelihood` and
-`base._BaseHMM._compute_log_likelihood` need to be overridden, and the
+Optionally, only one of `~.BaseHMM._compute_likelihood` and
+`~.BaseHMM._compute_log_likelihood` need to be overridden, and the
 base implementation will provide the other.

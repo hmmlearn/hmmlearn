@@ -12,7 +12,7 @@ extensions = [
 project = 'hmmlearn'
 copyright = '2010-present, hmmlearn developers (BSD License)'
 version = release = hmmlearn.__version__
-default_role = 'any'
+default_role = 'py:obj'
 pygments_style = 'sphinx'
 language = 'en'
 

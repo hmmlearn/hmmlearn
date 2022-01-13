@@ -16,10 +16,10 @@ ConvergenceMonitor
 
 .. autoclass:: hmmlearn.base.ConvergenceMonitor
 
-_BaseHMM
+BaseHMM
 ~~~~~~~~
 
-.. autoclass:: hmmlearn.base._BaseHMM
+.. autoclass:: hmmlearn.base.BaseHMM
    :exclude-members: set_params, get_params, _get_param_names
    :private-members:
    :no-inherited-members:
