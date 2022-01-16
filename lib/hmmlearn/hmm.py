@@ -906,8 +906,11 @@ class GMMHMM(_BaseHMM):
         stats['post_mix_sum'] = np.zeros((self.n_components, self.n_mix))
         stats['post_sum'] = np.zeros(self.n_components)
 
-        lambdas, mus = self.means_weight, self.means_prior
-        stats['m_n'] = lambdas[:, :, None] * mus
+        if 'm' in self.params:
+            lambdas, mus = self.means_weight, self.means_prior
+            stats['m_n'] = lambdas[:, :, None] * mus
+        if 'c' in self.params:
+            stats['c_n'] = np.zeros_like(self.covars_)
 
         # These statistics are stored in arrays and updated in-place.
         # We accumulate chunks of data for multiple sequences (aka
@@ -929,7 +932,7 @@ class GMMHMM(_BaseHMM):
         # Statistics shapes:
         # post_comp_mix     (n_samples, n_components, n_mix)
         # samples           (n_samples, n_features)
-        # centred           (n_samples, n_components, n_mix, n_features)
+        # centered          (n_samples, n_components, n_mix, n_features)
 
         post_mix = np.zeros((n_samples, self.n_components, self.n_mix))
         for p in range(self.n_components):
@@ -944,8 +947,8 @@ class GMMHMM(_BaseHMM):
         stats['post_mix_sum'] += post_comp_mix.sum(axis=0)
         stats['post_sum'] += post_comp.sum(axis=0)
 
-        # means stats
-        stats['m_n'] += np.einsum('ijk,il->jkl', post_comp_mix, X)
+        if 'm' in self.params:  # means stats
+            stats['m_n'] += np.einsum('ijk,il->jkl', post_comp_mix, X)
 
         if 'c' in self.params:  # covariance stats
             centered = X[:, None, None, :] - self.means_
@@ -970,10 +973,7 @@ class GMMHMM(_BaseHMM):
                 centered_dots = outer_f(centered)
                 c_n = np.einsum('ijk,ijklm->jlm', post_comp_mix, centered_dots)
 
-            if 'c_n' in stats:
-                stats['c_n'] += c_n
-            else:
-                stats['c_n'] = c_n
+            stats['c_n'] += c_n
 
     def _do_mstep(self, stats):
         super()._do_mstep(stats)
@@ -999,7 +999,7 @@ class GMMHMM(_BaseHMM):
             m_d[(self.weights_ == 0) & (m_n == 0).all(axis=-1)] = 1
             self.means_ = m_n / m_d[:, :, None]
 
-        # Maximizing covariances.
+        # Maximizing covariances
         if 'c' in self.params:
             lambdas, mus = self.means_weight, self.means_prior
             centered_means = self.means_ - mus
