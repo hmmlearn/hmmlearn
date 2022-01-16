@@ -940,7 +940,6 @@ class GMMHMM(_BaseHMM):
 
         with np.errstate(under="ignore"):
             post_comp_mix = post_comp[:, :, None] * post_mix
-        stats['post_comp_mix'].append(post_comp_mix)
 
         stats['post_mix_sum'] += post_comp_mix.sum(axis=0)
         stats['post_sum'] += post_comp.sum(axis=0)
@@ -965,7 +964,6 @@ class GMMHMM(_BaseHMM):
                 centered2 = np.square(centered, out=centered)  # reuse
                 c_n = np.einsum('ijk,ijkl->jkl', post_comp_mix, centered2)
             elif self.covariance_type == 'spherical':
-
                 centered_norm = norm_last(centered)
                 c_n = np.einsum('ijk,ijk->jk', post_comp_mix, centered_norm)
             elif self.covariance_type == 'tied':
