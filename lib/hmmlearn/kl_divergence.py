@@ -1,3 +1,9 @@
+"""
+
+All implementations are based upon the following:
+    http://www.fil.ion.ucl.ac.uk/~wpenny/publications/densities.ps
+"""
+
 import numpy as np
 
 from scipy.special import gammaln, digamma
@@ -26,4 +32,113 @@ def kl_dirichlet(q, p):
                     (digamma(q) - digamma(qsum))
                 )
             )
+
+
+def kl_normal_distribution(mean_q, variance_q, mean_p, variance_p):
+    """
+    KL Divergence between two normal distributions
+
+    KL (q || P)  = .5 log (variance_p / variance_q) + (mean_q**2 + mean_p**2 + variance_q - 2 * mean_q * mean_p) / (2 * variance_p) - .5
+
+    """
+    result = (np.log(variance_p / variance_q)) / 2 + (mean_q**2 + mean_p**2 + variance_q - 2 * mean_q * mean_p) / (2 * variance_p) - .5
+    assert result >=0, result
+    return result
+
+
+def kl_multivariate_normal_distribution(mean_q, covariance_q, mean_p, covariance_p):
+    """
+    KL Divergence of two Multivariate Normal Distribtuions
+
+    q(x) = Normal(x; mean_q, variance_q)
+    p(x) = Normal(x; mean_p, variance_p)
+
+    """
+
+    # Ensure arrays
+    mean_q = np.asarray(mean_q)
+    covariance_q = np.asarray(covariance_q)
+    mean_p = np.asarray(mean_p)
+    covariance_p = np.asarray(covariance_p)
+
+    # Need the precision of distribution p
+    precision_p = np.linalg.inv(covariance_p)
+
+    mean_diff = mean_q - mean_p
+    D = mean_q.shape[0]
+
+    # These correspond to the four terms in the ~wpenny paper documented above
+    term1 = 0.5 * np.log(np.linalg.det(covariance_p)/np.linalg.det(covariance_q))
+    term2 = 0.5 * np.trace(np.dot(precision_p, covariance_q))
+    term3 = 0.5 * np.dot(np.dot(mean_diff, precision_p), mean_diff)
+    term4 = D/2
+
+    return term1 + term2 + term3 - term4
+
+
+def kl_gamma_distribution(b_q, c_q, b_p, c_p):
+    """
+    KL Divergence between two gamma distributions
+
+    q(x) = Gamma(x; b_q, c_q)
+    p(x) = Gamma(x; b_p, c_p)
+
+    """
+    result = (b_q - b_p) * digamma(b_q) - gammaln(b_q) + gammaln(b_p) + b_p * (np.log(c_q) - np.log(c_p)) + b_q * (c_p-c_q)  / c_q
+    assert result >= 0, result
+    return result
+
+
+def kl_wishart_distribution(dof_q, scale_q, dof_p, scale_p):
+    """
+
+    KL Divergence between two Wishart Distributions
+
+    q(x) = Wishart(R|dof_q, scale_q)
+    p(x) = Wishart(R|dof_p, scale_p)
+
+    Definition from:
+        Shihao Ji, B. Krishnapuram, and L. Carin,
+        “Variational Bayes for continuous hidden Markov models and its
+        application to active learning,” IEEE Transactions on Pattern
+        Analysis and Machine Intelligence, vol. 28, no. 4, pp. 522–532,
+        Apr. 2006, doi: 10.1109/TPAMI.2006.85.
+
+    """
+
+    scale_q = np.asarray(scale_q)
+    scale_p = np.asarray(scale_p)
+    D = scale_p.shape[0]
+
+    term1 = (dof_q - dof_p)/2 * _E(dof_q, scale_q)
+    term2 = -D * dof_q / 2
+    term3 = dof_q / 2 * np.trace(np.dot(scale_p, np.linalg.inv(scale_q)))
+
+    # Division of logarithm turned into subtraction here
+    term4 = _logZ(dof_p, scale_p)
+    term5 = -_logZ(dof_q, scale_q)
+    return term1 + term2 + term3 + term4 + term5
+
+def _E(dof, scale):
+    """
+
+    $L(a, B) = \int \mathcal{Wishart}(\Gamma; a, B) \log |\Gamma| d\Gamma$
+    """
+    term1 = -np.log(np.linalg.det(scale/2))
+    term2 = 0
+    for i in range(1, scale.shape[0] + 1):
+        term2 += digamma((dof + 1 - i)/2)
+    return term1 + term2
+
+
+def _logZ(dof, scale):
+    D = scale.shape[0]
+
+    term1 = (D * (D - 1)/4) * np.log(np.pi)
+    term2 = -dof/2 * np.log(np.linalg.det(scale/2))
+    term3 = 0
+    for i in range(1, scale.shape[0] + 1):
+        term3 += gammaln((dof + 1 - i) / 2)
+
+    return term1 + term2 + term3
 
