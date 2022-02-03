@@ -105,7 +105,8 @@ class _VariationalBaseHMM:
             "scaling": self._score_scaling,
             "log": self._score_log,
         }[self.implementation]
-        return impl(X=X, lengths=lengths, compute_posteriors=compute_posteriors)
+        return impl(X=X, lengths=lengths,
+                    compute_posteriors=compute_posteriors)
 
     def _score_log(self, X, lengths=None, *, compute_posteriors):
         """
@@ -136,11 +137,11 @@ class _VariationalBaseHMM:
         for sub_X in _utils.split_X_lengths(X, lengths):
             frameprob = self._compute_likelihood(sub_X)
             logprobij, fwdlattice, scaling_factors = \
-                    self._do_forward_scaling_pass(
-                        frameprob,
-                        startprob=self.startprob_normalized_,
-                        transmat=self.transmat_normalized_,
-                    )
+                self._do_forward_scaling_pass(
+                    frameprob,
+                    startprob=self.startprob_normalized_,
+                    transmat=self.transmat_normalized_,
+                )
             logprob += logprobij
             if compute_posteriors:
                 bwdlattice = self._do_backward_scaling_pass(
@@ -321,7 +322,7 @@ class _VariationalBaseHMM:
             these should be ``n_samples``.
         """
         init = 1. / self.n_components
-        random_state = check_random_state(self.random_state)
+        # We could consider random initialization here as well
         if self._needs_init("s", "startprob_posterior_") or \
            self._needs_init("s", "startprob_prior_"):
             if self.startprob_prior is None:
@@ -340,7 +341,7 @@ class _VariationalBaseHMM:
             self.transmat_prior_ = np.full(
                 (self.n_components, self.n_components), transmat_init)
             self.transmat_posterior_ = self.transmat_prior_ * \
-                    sum(lengths) / self.n_components
+                sum(lengths) / self.n_components
 
     def fit(self, X, lengths=None):
         """
@@ -515,17 +516,15 @@ class _VariationalBaseHMM:
             return True
         return False
 
-
     def _update_subnorm(self):
         # Update PI
-        self.startprob_log_subnorm_ = digamma(self.startprob_posterior_) \
+        startprob_log_subnorm = digamma(self.startprob_posterior_) \
             - digamma(self.startprob_posterior_.sum())
-        self.startprob_subnorm_ = np.exp(
-            self.startprob_log_subnorm_)
+        self.startprob_subnorm_ = np.exp(startprob_log_subnorm)
 
-        self.transmat_log_subnorm_ = digamma(self.transmat_posterior_) - \
+        transmat_log_subnorm = digamma(self.transmat_posterior_) - \
             digamma(self.transmat_posterior_.sum(axis=1)[:, None])
-        self.transmat_subnorm_ = np.exp(self.transmat_log_subnorm_)
+        self.transmat_subnorm_ = np.exp(transmat_log_subnorm)
 
     def _update_normalized(self):
         self.startprob_normalized_ = self.startprob_posterior_ / \
@@ -829,7 +828,7 @@ class VariationalCategoricalHMM(_VariationalBaseHMM):
         super()._init(X, lengths)
         random_state = check_random_state(self.random_state)
         self._check_and_set_categorical_features(X)
-        if self._needs_init("e", "emissions_posterior"):
+        if self._needs_init("e", "emissions_posterior_"):
             emissions_init = 1 / self.n_features
             if self.emissions_prior is not None:
                 emissions_init = self.emissions_prior
@@ -845,14 +844,14 @@ class VariationalCategoricalHMM(_VariationalBaseHMM):
         # Emissions
         self.emissions_log_subnorm_ = (
             digamma(self.emissions_posterior_)
-                   - digamma(self.emissions_posterior_.sum(axis=1)[:, None])
+            - digamma(self.emissions_posterior_.sum(axis=1)[:, None])
         )
         self.emissions_subnorm_ = np.exp(self.emissions_log_subnorm_)
 
     def _update_normalized(self):
         super()._update_normalized()
         self.emissions_normalized_ = self.emissions_posterior_ / \
-                self.emissions_posterior_.sum(axis=1)[:, None]
+            self.emissions_posterior_.sum(axis=1)[:, None]
 
     def _get_n_fit_scalars_per_param(self):
         """
@@ -903,6 +902,242 @@ class VariationalCategoricalHMM(_VariationalBaseHMM):
             model states.
         """
         return self.emissions_normalized_[:, np.concatenate(X)].T
+
+    def _generate_sample_from_state(self, state, random_state=None):
+        cdf = np.cumsum(self.emissions_normalized_[state, :])
+        random_state = check_random_state(random_state)
+        return [(cdf > random_state.rand()).argmax()]
+
+    def _initialize_sufficient_statistics(self):
+        """
+        Initialize sufficient statistics required for M-step.
+
+        The method is *pure*, meaning that it doesn't change the state of
+        the instance.  For extensibility computed statistics are stored
+        in a dictionary.
+
+        Returns
+        -------
+        nobs : int
+            Number of samples in the data.
+        start : array, shape (n_components, )
+            An array where the i-th element corresponds to the posterior
+            probability of the first sample being generated by the i-th state.
+        trans : array, shape (n_components, n_components)
+            An array where the (i, j)-th element corresponds to the posterior
+            probability of transitioning between the i-th to j-th states.
+        """
+        stats = super()._initialize_sufficient_statistics()
+        stats['obs'] = np.zeros((self.n_components, self.n_features))
+        return stats
+
+    def _accumulate_sufficient_statistics(self, stats, X, lattice,
+                                          posteriors, fwdlattice, bwdlattice):
+        """Updates sufficient statistics from a given sample.
+
+        Parameters
+        ----------
+        stats : dict
+            Sufficient statistics as returned by
+            :meth:`~base._BaseHMM._initialize_sufficient_statistics`.
+
+        X : array, shape (n_samples, n_features)
+            Sample sequence.
+
+        lattice : array, shape (n_samples, n_components)
+            Probabilities OR Log Probabilities of each sample
+            under each of the model states.  Depends on the choice
+            of implementation of the Forward-Backward algorithm
+
+        posteriors : array, shape (n_samples, n_components)
+            Posterior probabilities of each sample being generated by each
+            of the model states.
+
+        fwdlattice, bwdlattice : array, shape (n_samples, n_components)
+            forward and backward probabilities.
+        """
+        super()._accumulate_sufficient_statistics(stats=stats, X=X,
+                                                  lattice=lattice,
+                                                  posteriors=posteriors,
+                                                  fwdlattice=fwdlattice,
+                                                  bwdlattice=bwdlattice)
+
+        if 'e' in self.params:
+            np.add.at(stats['obs'].T, np.concatenate(X), posteriors)
+
+    def _do_mstep(self, stats):
+        """
+        Perform the M-step of EM algorithm.
+
+        Parameters
+        ----------
+        stats : dict
+            Sufficient statistics updated from all available samples.
+        """
+        super()._do_mstep(stats)
+
+        # emissions
+        if "e" in self.params:
+            self.emissions_posterior_ = self.emissions_prior_ + stats['obs']
+
+    def _lower_bound(self, log_prob):
+        lower_bound = super()._lower_bound(log_prob)
+        emissions_lower_bound = 0
+        for i in range(self.n_components):
+            emissions_lower_bound -= kl_dirichlet(
+                self.emissions_posterior_[i],
+                self.emissions_prior_[i]
+            )
+        return lower_bound + emissions_lower_bound
+
+
+class VariationalGaussianHMM(_VariationalBaseHMM):
+    """
+    Hidden Markov Model with categorical (discrete) emissions.
+
+    Attributes
+    ----------
+    n_features : int
+        Number of possible symbols emitted by the model (in the samples).
+
+    monitor_ : ConvergenceMonitor
+        Monitor object used to check the convergence of EM.
+
+    startprob_ : array, shape (n_components, )
+        Initial state occupation distribution.
+
+    transmat_ : array, shape (n_components, n_components)
+        Matrix of transition probabilities between states.
+
+    emissionprob_ : array, shape (n_components, n_features)
+        Probability of emitting a given symbol when in each state.
+
+    Examples
+    --------
+    >>> from hmmlearn.hmm import VariationalGaussianHMM
+    >>> VariationalGaussianHMM(n_components=2)  #doctest: +ELLIPSIS
+    VariationalGaussianHMM(algorithm='viterbi',...
+    """
+
+    # TODO: accept the prior on emissionprob_ for consistency.
+    def __init__(self, n_components=1, covariance_type="full",
+                 startprob_prior=None, transmat_prior=None,
+                 means_prior=None, beta_prior=None, dof_prior=None,
+                 scale_prior=None, algorithm="viterbi",
+                 random_state=None, n_iter=100, tol=1e-6, verbose=False,
+                 params="stmc", init_params="stmc",
+                 implementation="log"):
+        super().__init__(
+            n_components=n_components, startprob_prior=startprob_prior,
+            transmat_prior=transmat_prior,
+            algorithm=algorithm, random_state=random_state,
+            n_iter=n_iter, tol=tol, verbose=verbose,
+            params=params, init_params=init_params,
+            implementation=implementation
+        )
+        self.covariance_type = covariance_type
+        self.means_prior = means_prior
+        self.beta_prior = beta_prior
+        self.dof_prior = dof_prior
+        self.scale_prior = scale_prior
+
+    def _init(self, X, lengths):
+        """
+        Initialize model parameters prior to fitting.
+
+        Parameters
+        ----------
+        X : array-like, shape (n_samples, n_features)
+            Feature matrix of individual samples.
+        lengths : array-like of integers, shape (n_sequences, )
+            Lengths of the individual sequences in ``X``. The sum of
+            these should be ``n_samples``.
+        """
+        super()._init(X, lengths)
+        self.n_features = X.shape[1]
+        X_mean = X.mean(axis=0)
+        if self._needs_init("m", "means_posterorior_"):
+            self.means_prior_ = X_mean if self.means_prior is None else self.means_prior
+            self.beta_prior_ = 1 if self.beta_prior is None else self.means_prior
+
+        if self._needs_init("c", "covars_posterior_"):
+            if self.covariance_type == "full":
+                if self.dof_prior is None:
+                    self.dof_prior_ = np.full((self.n_components,), self.n_features)
+                else:
+                    self.dof_prior_ = self.dof_prior
+                if self.scale_prior is None:
+                    self.scale_prior_ = np.broadcast_to(
+                        np.identity(self.n_features) * 1e-3,
+                        (self.n_components, self.n_features, self.n_features)
+                    )
+                else:
+                    self.scale_prior_ = self.scale_prior
+            elif self.covariance_type == "tied":
+                assert False, "Not Finished"
+                self.dof_prior_ = 1 if self.dof_prior is None else self.dof_prior
+                self.scale_prior_ = 1 if self.scale_prior is None else self.scale_prior
+            elif self.covariance_type == "diag":
+                assert False, "Not Finished"
+                self.dof_prior_ = 1 if self.dof_prior is None else self.dof_prior
+                self.scale_prior_ = 1 if self.scale_prior is None else self.scale_prior
+            elif self.covariance_type == "spherical":
+                assert False, "Not Finished"
+                self.dof_prior_ = 1 if self.dof_prior is None else self.dof_prior
+                self.scale_prior_ = 1 if self.scale_prior is None else self.scale_prior
+            else:
+                raise ValueError(f"Unknown covariance_type: {covariance_type}")
+
+    def _update_subnorm(self):
+        super()._update_subnorm()
+        # Emissions
+        raise ValueError("asdf")
+
+    def _update_normalized(self):
+        super()._update_normalized()
+        self.emissions_normalized_ = self.emissions_posterior_ / \
+            self.emissions_posterior_.sum(axis=1)[:, None]
+
+    def _get_n_fit_scalars_per_param(self):
+        """
+        Return a mapping of fittable parameter names (as in ``self.params``)
+        to the number of corresponding scalar parameters that will actually be
+        fitted.
+
+        This is used to detect whether the user did not pass enough data points
+        for a non-degenerate fit.
+        """
+
+    def _check(self):
+        """
+        Validate model parameters prior to fitting.
+
+        Raises
+        ------
+        ValueError
+            If any of the parameters are invalid, e.g. if :attr:`startprob_`
+            don't sum to 1.
+        """
+        super()._check()
+
+    def _compute_subnorm_likelihood(self, X):
+        raise ValueError("ASDF")
+
+    def _compute_likelihood(self, X):
+        """Computes per-component probability under the model.
+
+        Parameters
+        ----------
+        X : array-like, shape (n_samples, n_features)
+            Feature matrix of individual samples.
+
+        Returns
+        -------
+        logprob : array, shape (n_samples, n_components)
+            Log probability of each sample in ``X`` for each of the
+            model states.
+        """
+        raise ValueError("Asdf")
 
     def _generate_sample_from_state(self, state, random_state=None):
         cdf = np.cumsum(self.emissions_normalized_[state, :])
