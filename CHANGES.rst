@@ -3,8 +3,10 @@ hmmlearn Changelog
 
 Here you can see the full list of changes between each hmmlearn release.
 
-next
-----
+Version 0.2.7
+-------------
+
+Released on February 10th, 2022.
 
 - Dropped support for Py3.5 (due to the absence of manylinux wheel supporting
   both Py3.5 and Py3.10).
@@ -18,7 +20,6 @@ next
   a comparison of the performance of the two implementations.
 - The *logprob* parameter to `.ConvergenceMonitor.report` has been renamed to
   *log_prob*.
-
 
 Version 0.2.6
 -------------
