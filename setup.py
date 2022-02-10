@@ -32,6 +32,7 @@ setup(
     name="hmmlearn",
     description="Hidden Markov Models in Python with scikit-learn like API",
     long_description=open("README.rst", encoding="utf-8").read(),
+    long_description_content_type="text/x-rst",
     maintainer="Antony Lee",
     url="https://github.com/hmmlearn/hmmlearn",
     license="new BSD",
