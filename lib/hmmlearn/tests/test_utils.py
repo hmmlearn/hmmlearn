@@ -1,4 +1,5 @@
 import numpy as np
+from numpy.testing import assert_allclose
 
 from hmmlearn.utils import normalize, fill_covars
 
@@ -8,7 +9,7 @@ def test_normalize():
     A[np.random.choice(len(A), size=16)] = 0.0
     assert (A == 0.0).any()
     normalize(A)
-    assert np.allclose(A.sum(), 1.)
+    assert_allclose(A.sum(), 1.)
 
 
 def test_normalize_along_axis():
@@ -17,7 +18,7 @@ def test_normalize_along_axis():
         A[np.random.choice(len(A), size=16), axis] = 0.0
         assert (A[:, axis] == 0.0).any()
         normalize(A, axis=axis)
-        assert np.allclose(A.sum(axis=axis), 1.)
+        assert_allclose(A.sum(axis=axis), 1.)
 
 
 def test_fill_covars():

@@ -1,6 +1,8 @@
 import numpy as np
+from numpy.testing import assert_allclose
 import pytest
 from scipy import special
+
 from hmmlearn.base import BaseHMM, ConvergenceMonitor
 
 
@@ -82,7 +84,7 @@ class TestBaseAgainstWikipedia:
                                 [0.0230, 0.0975],
                                 [0.0408, 0.0150],
                                 [0.0298, 0.0046]])
-        assert np.allclose(np.exp(fwdlattice), reffwdlattice, 4)
+        assert_allclose(np.exp(fwdlattice), reffwdlattice, 4)
 
     def test_do_forward_pass(self):
         log_prob, fwdlattice = \
@@ -94,7 +96,7 @@ class TestBaseAgainstWikipedia:
                                   [0.0230, 0.0975],
                                   [0.0408, 0.0150],
                                   [0.0298, 0.0046]])
-        assert np.allclose(np.exp(fwdlattice), reffwdlattice, 4)
+        assert_allclose(np.exp(fwdlattice), reffwdlattice, 4)
 
     def test_do_backward_scaling_pass(self):
         log_prob, fwdlattice, scaling_factors = \
@@ -109,7 +111,7 @@ class TestBaseAgainstWikipedia:
         scaling_factors = np.cumprod(scaling_factors[::-1])[::-1]
         bwdlattice_scaled = bwdlattice / scaling_factors[:, None]
         # Answer will be equivalent when the scaling factor is accounted for
-        assert np.allclose(bwdlattice_scaled, refbwdlattice, 4)
+        assert_allclose(bwdlattice_scaled, refbwdlattice, 4)
 
     def test_do_backward_log_pass(self):
         bwdlattice = self.hmm._do_backward_log_pass(self.log_frameprob)
@@ -118,13 +120,13 @@ class TestBaseAgainstWikipedia:
                                   [0.4593, 0.2437],
                                   [0.6900, 0.4100],
                                   [1.0000, 1.0000]])
-        assert np.allclose(np.exp(bwdlattice), refbwdlattice, 4)
+        assert_allclose(np.exp(bwdlattice), refbwdlattice, 4)
 
     def test_do_viterbi_pass(self):
         log_prob, state_sequence = \
             self.hmm._do_viterbi_pass(self.log_frameprob)
         refstate_sequence = [0, 0, 1, 0, 0]
-        assert np.allclose(state_sequence, refstate_sequence)
+        assert_allclose(state_sequence, refstate_sequence)
         ref_log_prob = -4.4590
         assert round(log_prob, 4) == ref_log_prob
 
@@ -132,7 +134,7 @@ class TestBaseAgainstWikipedia:
         # ``StubHMM` ignores the values in ```X``, so we just pass in an
         # array of the appropriate shape.
         log_prob, posteriors = self.hmm.score_samples(self.log_frameprob)
-        assert np.allclose(posteriors.sum(axis=1), np.ones(len(posteriors)))
+        assert_allclose(posteriors.sum(axis=1), np.ones(len(posteriors)))
         ref_log_prob = -3.3725
         assert round(log_prob, 4) == ref_log_prob
         refposteriors = np.array([[0.8673, 0.1327],
@@ -140,7 +142,7 @@ class TestBaseAgainstWikipedia:
                                   [0.3075, 0.6925],
                                   [0.8204, 0.1796],
                                   [0.8673, 0.1327]])
-        assert np.allclose(posteriors, refposteriors, atol=1e-4)
+        assert_allclose(posteriors, refposteriors, atol=1e-4)
 
     def test_generate_samples(self):
         X0, Z0 = self.hmm.sample(n_samples=10)
@@ -172,12 +174,12 @@ class TestBaseConsistentWithGMM:
         log_prob, hmmposteriors = self.hmm.score_samples(self.log_frameprob)
 
         n_samples, n_components = self.log_frameprob.shape
-        assert np.allclose(hmmposteriors.sum(axis=1), np.ones(n_samples))
+        assert_allclose(hmmposteriors.sum(axis=1), np.ones(n_samples))
 
         norm = special.logsumexp(self.log_frameprob, axis=1)[:, np.newaxis]
         gmmposteriors = np.exp(self.log_frameprob
                                - np.tile(norm, (1, n_components)))
-        assert np.allclose(hmmposteriors, gmmposteriors)
+        assert_allclose(hmmposteriors, gmmposteriors)
 
     def test_decode(self):
         _log_prob, state_sequence = self.hmm.decode(self.log_frameprob)
@@ -187,7 +189,7 @@ class TestBaseConsistentWithGMM:
         gmmposteriors = np.exp(self.log_frameprob
                                - np.tile(norm, (1, n_components)))
         gmmstate_sequence = gmmposteriors.argmax(axis=1)
-        assert np.allclose(state_sequence, gmmstate_sequence)
+        assert_allclose(state_sequence, gmmstate_sequence)
 
 
 def test_base_hmm_attributes():
@@ -202,7 +204,7 @@ def test_base_hmm_attributes():
     assert h.n_components == n_components
 
     h.startprob_ = startprob
-    assert np.allclose(h.startprob_, startprob)
+    assert_allclose(h.startprob_, startprob)
 
     with pytest.raises(ValueError):
         h.startprob_ = 2 * startprob
@@ -216,7 +218,7 @@ def test_base_hmm_attributes():
 
     h.startprob_ = startprob
     h.transmat_ = transmat
-    assert np.allclose(h.transmat_, transmat)
+    assert_allclose(h.transmat_, transmat)
     with pytest.raises(ValueError):
         h.transmat_ = 2 * transmat
         h._check()

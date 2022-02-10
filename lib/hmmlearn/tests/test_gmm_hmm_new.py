@@ -1,11 +1,10 @@
 import numpy as np
-from numpy.testing import assert_array_almost_equal, assert_array_less
+from numpy.testing import assert_allclose, assert_array_less
 import pytest
 
-from . import assert_log_likelihood_increasing
-from . import normalized
-from .test_gmm_hmm import create_random_gmm
 from ..hmm import GMMHMM
+from .test_gmm_hmm import create_random_gmm
+from . import assert_log_likelihood_increasing, normalized
 
 
 def sample_from_parallelepiped(low, high, n_samples, random_state):
@@ -123,10 +122,10 @@ class GMMHMMTestMixin:
         X, states = h.sample(n_samples)
 
         _ll, posteriors = h.score_samples(X)
-        assert np.allclose(np.sum(posteriors, axis=1), np.ones(n_samples))
+        assert_allclose(np.sum(posteriors, axis=1), np.ones(n_samples))
 
         _viterbi_ll, decoded_states = h.decode(X)
-        assert np.allclose(states, decoded_states)
+        assert_allclose(states, decoded_states)
 
     @pytest.mark.parametrize("implementation", ["scaling", "log"])
     def test_fit(self, implementation):
@@ -232,11 +231,7 @@ class TestGMMHMM_MultiSequence:
         model1.fit(data)
         model2.fit(data, lengths=[200] * 5)
 
-        assert_array_almost_equal(model1.means_, model2.means_,
-                                  decimal=2)
-        assert_array_almost_equal(model1.covars_, model2.covars_,
-                                  decimal=3)
-        assert_array_almost_equal(model1.weights_, model2.weights_,
-                                  decimal=3)
-        assert_array_almost_equal(model1.transmat_, model2.transmat_,
-                                  decimal=2)
+        assert_allclose(model1.means_, model2.means_, rtol=0, atol=1e-2)
+        assert_allclose(model1.covars_, model2.covars_, rtol=0, atol=1e-3)
+        assert_allclose(model1.weights_, model2.weights_, rtol=0, atol=1e-3)
+        assert_allclose(model1.transmat_, model2.transmat_, rtol=0, atol=1e-2)

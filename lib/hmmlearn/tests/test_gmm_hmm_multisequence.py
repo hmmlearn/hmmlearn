@@ -1,6 +1,7 @@
 import itertools
 
 import numpy as np
+from numpy.testing import assert_allclose
 import pytest
 
 from hmmlearn import hmm
@@ -275,4 +276,4 @@ def test_gmmhmm_multi_sequence_fit_invariant_to_sequence_ordering(
         scores.append(model.score(X, lengths))
 
     # Choice of rtol value is ad-hoc, no theoretical motivation.
-    assert np.allclose(scores, np.mean(scores), rtol=5e-03)
+    assert_allclose(scores, np.mean(scores), rtol=5e-03)

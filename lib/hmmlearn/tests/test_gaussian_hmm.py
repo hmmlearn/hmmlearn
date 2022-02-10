@@ -1,8 +1,8 @@
 import numpy as np
+from numpy.testing import assert_allclose
 import pytest
 
-from hmmlearn import hmm
-
+from .. import hmm
 from . import assert_log_likelihood_increasing, make_covar_matrix, normalized
 
 
@@ -52,10 +52,10 @@ class GaussianHMMTestMixin:
         h._init(X)
         ll, posteriors = h.score_samples(X)
         assert posteriors.shape == (n_samples, self.n_components)
-        assert np.allclose(posteriors.sum(axis=1), np.ones(n_samples))
+        assert_allclose(posteriors.sum(axis=1), np.ones(n_samples))
 
         viterbi_ll, stateseq = h.decode(X)
-        assert np.allclose(stateseq, gaussidx)
+        assert_allclose(stateseq, gaussidx)
 
     @pytest.mark.parametrize("implementation", ["scaling", "log"])
     def test_sample(self, implementation, n=1000):
@@ -118,7 +118,7 @@ class GaussianHMMTestMixin:
         X = self.prng.rand(sum(lengths), self.n_features)
 
         h = hmm.GaussianHMM(self.n_components, self.covariance_type,
-                                implementation=implementation)
+                            implementation=implementation)
         # This shouldn't raise
         # ValueError: setting an array element with a sequence.
         h.fit(X, lengths=lengths)
@@ -191,14 +191,15 @@ class GaussianHMMTestMixin:
 
         # Make sure we've converged to the right parameters.
         # a) means
-        assert np.allclose(sorted(h.means_.tolist()),
-                           sorted(h_learn.means_.tolist()),
-                           0.01)
+        assert_allclose(sorted(h.means_.tolist()),
+                        sorted(h_learn.means_.tolist()),
+                        0.01)
         # b) covars are hard to estimate precisely from a relatively small
         #    sample, thus the large threshold
-        assert np.allclose(sorted(h._covars_.tolist()),
-                           sorted(h_learn._covars_.tolist()),
-                           10)
+        assert_allclose(
+            *np.broadcast_arrays(sorted(h._covars_.tolist()),
+                                 sorted(h_learn._covars_.tolist())),
+            10)
 
 
 class TestGaussianHMMWithSphericalCovars(GaussianHMMTestMixin):
@@ -282,7 +283,7 @@ class TestGaussianHMMWithDiagonalCovars(GaussianHMMTestMixin):
 
         posteriors = h.predict_proba(X)
         assert not np.isnan(posteriors).any()
-        assert np.allclose(posteriors.sum(axis=1), 1.)
+        assert_allclose(posteriors.sum(axis=1), 1.)
 
         score, state_sequence = h.decode(X, algorithm="viterbi")
         assert np.isfinite(score)

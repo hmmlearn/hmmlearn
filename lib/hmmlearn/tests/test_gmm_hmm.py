@@ -1,10 +1,10 @@
 import numpy as np
+from numpy.testing import assert_allclose
 import pytest
 from sklearn.mixture import GaussianMixture
 from sklearn.utils import check_random_state
 
 from hmmlearn import hmm
-
 from . import assert_log_likelihood_increasing, make_covar_matrix, normalized
 
 pytestmark = pytest.mark.xfail()
@@ -55,10 +55,10 @@ class GMMHMMTestMixin:
         _ll, posteriors = h.score_samples(X)
 
         assert posteriors.shape == (n_samples, self.n_components)
-        assert np.allclose(posteriors.sum(axis=1), np.ones(n_samples))
+        assert_allclose(posteriors.sum(axis=1), np.ones(n_samples))
 
         _log_prob, stateseq = h.decode(X)
-        assert np.allclose(stateseq, refstateseq)
+        assert_allclose(stateseq, refstateseq)
 
     def test_sample(self, n_samples=1000):
         h = hmm.GMMHMM(self.n_components, covariance_type=self.covariance_type)

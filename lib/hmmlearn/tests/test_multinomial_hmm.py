@@ -1,4 +1,5 @@
 import numpy as np
+from numpy.testing import assert_allclose
 import pytest
 
 from hmmlearn import hmm
@@ -35,14 +36,14 @@ class TestMultinomialAgainstWikipedia:
         X = [[0], [1], [2]]
         log_prob, state_sequence = h.decode(X, algorithm="viterbi")
         assert round(np.exp(log_prob), 5) == 0.01344
-        assert np.allclose(state_sequence, [1, 0, 0])
+        assert_allclose(state_sequence, [1, 0, 0])
 
     @pytest.mark.parametrize("implementation", ["scaling", "log"])
     def test_decode_map(self, implementation):
         X = [[0], [1], [2]]
         h = self.new_hmm(implementation)
         _log_prob, state_sequence = h.decode(X, algorithm="map")
-        assert np.allclose(state_sequence, [1, 0, 0])
+        assert_allclose(state_sequence, [1, 0, 0])
 
     @pytest.mark.parametrize("implementation", ["scaling", "log"])
     def test_predict(self, implementation):
@@ -50,12 +51,12 @@ class TestMultinomialAgainstWikipedia:
         h = self.new_hmm(implementation)
         state_sequence = h.predict(X)
         posteriors = h.predict_proba(X)
-        assert np.allclose(state_sequence, [1, 0, 0])
-        assert np.allclose(posteriors, [
+        assert_allclose(state_sequence, [1, 0, 0])
+        assert_allclose(posteriors, [
             [0.23170303, 0.76829697],
             [0.62406281, 0.37593719],
             [0.86397706, 0.13602294],
-        ])
+        ], rtol=0, atol=1e-6)
 
 
 class TestMultinomailHMM:
@@ -90,7 +91,7 @@ class TestMultinomailHMM:
 
         ll, posteriors = h.score_samples(X)
         assert posteriors.shape == (n_samples, self.n_components)
-        assert np.allclose(posteriors.sum(axis=1), np.ones(n_samples))
+        assert_allclose(posteriors.sum(axis=1), np.ones(n_samples))
 
     @pytest.mark.parametrize("implementation", ["scaling", "log"])
     def test_sample(self, implementation, n_samples=1000):
