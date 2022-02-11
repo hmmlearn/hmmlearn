@@ -1,0 +1,7 @@
+version: 2
+
+python:
+  install:
+    - path: .
+      extra_requirements:
+        - docs

@@ -70,7 +70,12 @@ setup(
     ],
     extras_require={
         "tests": ["pytest"],
-        "docs": ["Sphinx", "sphinx-gallery", "Pillow", "matplotlib"],
+        "docs": [
+            "matplotlib",
+            "pydata_sphinx_theme",
+            "sphinx>=2.0",
+            "sphinx-gallery",
+        ],
     },
     entry_points={
         "console_scripts": [],
