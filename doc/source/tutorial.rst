@@ -122,7 +122,7 @@ parameter at a specific value, remove the corresponding character from
 
 .. topic:: Examples:
 
- * :ref:`sphx_glr_auto_examples_plot_hmm_sampling.py`
+ * :ref:`sphx_glr_auto_examples_plot_hmm_sampling_and_decoding.py`
 
 Training HMM parameters and inferring the hidden states
 -------------------------------------------------------
