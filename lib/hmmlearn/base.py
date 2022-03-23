@@ -505,7 +505,7 @@ class BaseHMM(BaseEstimator):
             curr_log_prob = 0
             for sub_X in _utils.split_X_lengths(X, lengths):
                 lattice, log_prob, posteriors, fwdlattice, bwdlattice = \
-                        impl(sub_X)
+                    impl(sub_X)
                 # Derived HMM classes will implement the following method to
                 # update their probability distributions, so keep
                 # a single call to this method for simplicity.
@@ -531,7 +531,7 @@ class BaseHMM(BaseEstimator):
     def _fit_scaling(self, X):
         frameprob = self._compute_likelihood(X)
         log_prob, fwdlattice, scaling_factors = \
-                self._do_forward_scaling_pass(frameprob)
+            self._do_forward_scaling_pass(frameprob)
         bwdlattice = self._do_backward_scaling_pass(frameprob, scaling_factors)
         posteriors = self._compute_posteriors_scaling(fwdlattice, bwdlattice)
         return frameprob, log_prob, posteriors, fwdlattice, bwdlattice
@@ -598,9 +598,7 @@ class BaseHMM(BaseEstimator):
                     "overwritten during initialization because 'init_params' "
                     "contains %r", name, code)
             return True
-        if not hasattr(self, name):
-            return True
-        return False
+        return not hasattr(self, name)
 
     def _get_n_fit_scalars_per_param(self):
         """
@@ -683,8 +681,8 @@ class BaseHMM(BaseEstimator):
             model states.
         """
         if self._compute_log_likelihood != \
-            BaseHMM._compute_log_likelihood.__get__(self):  # prevent recursion
-            return np.exp(self._compute_log_likelihood(X))
+                BaseHMM._compute_log_likelihood.__get__(self):
+            return np.exp(self._compute_log_likelihood(X))  # prevent recursion
         else:
             raise NotImplementedError("Must be overridden in subclass")
 
@@ -704,8 +702,8 @@ class BaseHMM(BaseEstimator):
             model states, i.e., ``log(p(X|state))``.
         """
         if self._compute_likelihood != \
-            BaseHMM._compute_likelihood.__get__(self):  # prevent recursion
-            return np.log(self._compute_likelihood(X))
+                BaseHMM._compute_likelihood.__get__(self):
+            return np.log(self._compute_likelihood(X))  # prevent recursion
         else:
             raise NotImplementedError("Must be overridden in subclass")
 

@@ -48,16 +48,17 @@ gen_model.covars_ = covars
 X, Z = gen_model.sample(500)
 
 # Plot the sampled data
-plt.plot(X[:, 0], X[:, 1], ".-", label="observations", ms=6,
-         mfc="orange", alpha=0.7)
+fig, ax = plt.subplots()
+ax.plot(X[:, 0], X[:, 1], ".-", label="observations", ms=6,
+        mfc="orange", alpha=0.7)
 
 # Indicate the component numbers
 for i, m in enumerate(means):
-    plt.text(m[0], m[1], 'Component %i' % (i + 1),
-             size=17, horizontalalignment='center',
-             bbox=dict(alpha=.7, facecolor='w'))
-plt.legend(loc='best')
-plt.show()
+    ax.text(m[0], m[1], 'Component %i' % (i + 1),
+            size=17, horizontalalignment='center',
+            bbox=dict(alpha=.7, facecolor='w'))
+ax.legend(loc='best')
+fig.show()
 
 # %%
 # Now, let's ensure we can recover our parameters.
@@ -65,19 +66,14 @@ plt.show()
 scores = list()
 models = list()
 for n_components in (3, 4, 5):
-    for idx in range(10):
-        # define our hidden Markov model
-        model = hmm.GaussianHMM(n_components=n_components,
-                                covariance_type='full',
-                                random_state=len(models), n_iter=10)
-        try:
-            model.fit(X[:X.shape[0] // 2])  # 50/50 train/validate
-            models.append(model)
-            scores.append(model.score(X[X.shape[0] // 2:]))
-            print(f'Converged: {model.monitor_.converged}'
-                  f'\tScore: {scores[-1]}')
-        except ValueError:
-            pass  # sometimes there is a linear algebra error
+    # define our hidden Markov model
+    model = hmm.GaussianHMM(n_components=n_components,
+                            covariance_type='full', n_iter=10)
+    model.fit(X[:X.shape[0] // 2])  # 50/50 train/validate
+    models.append(model)
+    scores.append(model.score(X[X.shape[0] // 2:]))
+    print(f'Converged: {model.monitor_.converged}'
+          f'\tScore: {scores[-1]}')
 
 # get the best model
 model = models[np.argmax(scores)]
@@ -85,7 +81,8 @@ n_states = model.n_components
 print(f'The best model had a score of {max(scores)} and {n_states} '
       'states')
 
-# use the model to predict states
+# use the Viterbi algorithm to predict the most likely sequence of states
+# given the model
 states = model.predict(X)
 
 # %%
@@ -102,6 +99,7 @@ ax.plot(Z, states)
 ax.set_title('States compared to generated')
 ax.set_xlabel('Generated State')
 ax.set_ylabel('Recovered State')
+fig.show()
 
 # plot the transition matrix
 fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(8, 5))
@@ -114,3 +112,4 @@ for ax in (ax1, ax2):
     ax.set_ylabel('State From')
 
 fig.tight_layout()
+fig.show()
