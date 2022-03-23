@@ -29,7 +29,7 @@ class Benchmark:
             cloned = sklearn.base.clone(model)
             cloned.fit(sequences, lengths)
             end = time.time()
-            elapsed.append(end - start)
+            elapsed.append(end-start)
             self.log_one_run(start, end, cloned, tag)
         return np.asarray(elapsed)
 
@@ -117,19 +117,19 @@ class MultinomialBenchmark(Benchmark):
 
     def new_model(self, implementation):
         return hmmlearn.hmm.MultinomialHMM(
-            n_components=3,
-            n_iter=self.n_iter,
-            verbose=self.verbose,
-            implementation=implementation
-        )
+                n_components=3,
+                n_iter=self.n_iter,
+                verbose=self.verbose,
+                implementation=implementation
+            )
 
     def generate_training_sequences(self):
 
         sampler = hmmlearn.hmm.MultinomialHMM(n_components=3)
         sampler.startprob_ = np.array([0.6, 0.3, 0.1])
         sampler.transmat_ = np.array([[0.6, 0.2, 0.2],
-                                      [0.3, 0.5, 0.2],
-                                      [0.4, 0.3, 0.3]])
+                             [0.3, 0.5, 0.2],
+                             [0.4, 0.3, 0.3]])
 
         sampler.emissionprob_ = np.array([
             [.1, .5, .1, .3],
@@ -163,7 +163,7 @@ class MultivariateGaussianBenchmark(GaussianBenchmark):
         ])
         sampler.means_ = np.asarray([
             [-1.5, 0],
-            [0, 0],
+            [0,  0],
             [1.5, 0],
             [3, 0]
         ])
