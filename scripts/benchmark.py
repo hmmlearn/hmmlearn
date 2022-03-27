@@ -33,8 +33,9 @@ class Benchmark:
             elapsed = (end-start)/1E9
             durations.append(elapsed)
             if cloned.n_iter < cloned.monitor_.iter:
-                raise ValueError(f"Model only performed {cloned.monitor_.iter},"
-                                 f"which is less than {cloned.n_iter}")
+                msg = f"Model only performed {cloned.monitor_.iter},"
+                      f"which is less than {cloned.n_iter}"
+                raise ValueError(msg
             self.log_one_run(elapsed, cloned, tag)
         return np.asarray(durations)
 
@@ -109,7 +110,8 @@ class GaussianBenchmark(Benchmark):
             .5
         ]).reshape(4, 1, 1,)
 
-        sequences, states = sampler.sample(50000, random_state=self.random_state)
+        sequences, states = sampler.sample(50000,
+            random_state=self.random_state)
         lengths = [len(sequences)]
         return sequences, lengths
 
@@ -144,7 +146,8 @@ class MultinomialBenchmark(Benchmark):
             [0, .5, .5, .0],
         ])
 
-        sequences, states = sampler.sample(50000, random_state=self.random_state)
+        sequences, states = sampler.sample(50000,
+            random_state=self.random_state)
         lengths = [len(sequences)]
         return sequences, lengths
 
@@ -186,7 +189,8 @@ class MultivariateGaussianBenchmark(GaussianBenchmark):
              [0, 0.5]],
         ])
 
-        observed, hidden = sampler.sample(50000, random_state=self.random_state)
+        observed, hidden = sampler.sample(50000,
+            random_state=self.random_state)
         lengths = [len(observed)]
         return observed, lengths
 
@@ -231,7 +235,8 @@ class GMMBenchmark(GaussianBenchmark):
         length = 5_000
         sequences = []
         for i in range(n_sequences):
-            seq, states = sampler.sample(5000, random_state=self.random_state)
+            seq, states = sampler.sample(5000,
+                random_state=self.random_state)
             print(states[0])
             sequences.append(seq)
         return np.concatenate(sequences), [length] * n_sequences

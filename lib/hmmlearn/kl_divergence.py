@@ -38,15 +38,15 @@ def kl_normal_distribution(mean_q, variance_q, mean_p, variance_p):
     """
     KL Divergence between two normal distributions
 
-    KL (q || P)  = .5 log (variance_p / variance_q) + (mean_q**2 + mean_p**2 + variance_q - 2 * mean_q * mean_p) / (2 * variance_p) - .5
-
     """
-    result = (np.log(variance_p / variance_q)) / 2 + (mean_q**2 + mean_p**2 + variance_q - 2 * mean_q * mean_p) / (2 * variance_p) - .5
+    result = (np.log(variance_p / variance_q)) / 2 \
+             + (mean_q**2 + mean_p**2 + variance_q - 2 * mean_q * mean_p) \
+            / (2 * variance_p) - .5
     assert result >=0, result
     return result
 
 
-def kl_multivariate_normal_distribution(mean_q, covariance_q, mean_p, covariance_p):
+def kl_multivariate_normal_distribution(mean_q, covar_q, mean_p, covar_p):
     """
     KL Divergence of two Multivariate Normal Distribtuions
 
@@ -57,19 +57,19 @@ def kl_multivariate_normal_distribution(mean_q, covariance_q, mean_p, covariance
 
     # Ensure arrays
     mean_q = np.asarray(mean_q)
-    covariance_q = np.asarray(covariance_q)
+    covar_q = np.asarray(covar_q)
     mean_p = np.asarray(mean_p)
-    covariance_p = np.asarray(covariance_p)
+    covar_p = np.asarray(covar_p)
 
     # Need the precision of distribution p
-    precision_p = np.linalg.inv(covariance_p)
+    precision_p = np.linalg.inv(covar_p)
 
     mean_diff = mean_q - mean_p
     D = mean_q.shape[0]
 
     # These correspond to the four terms in the ~wpenny paper documented above
-    term1 = 0.5 * np.log(np.linalg.det(covariance_p)/np.linalg.det(covariance_q))
-    term2 = 0.5 * np.trace(np.dot(precision_p, covariance_q))
+    term1 = 0.5 * np.log(np.linalg.det(covar_p)/np.linalg.det(covar_q))
+    term2 = 0.5 * np.trace(np.dot(precision_p, covar_q))
     term3 = 0.5 * np.dot(np.dot(mean_diff, precision_p), mean_diff)
     term4 = D/2
 
@@ -84,7 +84,10 @@ def kl_gamma_distribution(b_q, c_q, b_p, c_p):
     p(x) = Gamma(x; b_p, c_p)
 
     """
-    result = (b_q - b_p) * digamma(b_q) - gammaln(b_q) + gammaln(b_p) + b_p * (np.log(c_q) - np.log(c_p)) + b_q * (c_p-c_q)  / c_q
+    result = (b_q - b_p) * digamma(b_q) \
+            - gammaln(b_q) + gammaln(b_p) \
+            + b_p * (np.log(c_q) - np.log(c_p)) \
+            + b_q * (c_p-c_q)  / c_q
     assert result >= 0, result
     return result
 

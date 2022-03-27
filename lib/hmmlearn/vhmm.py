@@ -12,6 +12,7 @@ from . import _hmmc, _utils
 from .base import ConvergenceMonitor, DECODER_ALGORITHMS
 from .kl_divergence import kl_dirichlet, kl_multivariate_normal_distribution, \
         kl_wishart_distribution
+from .stats import log_multivariate_normal_density
 from .utils import log_mask_zero, log_normalize, normalize
 
 
@@ -20,7 +21,6 @@ _log = logging.getLogger(__name__)
 
 class _VariationalBaseHMM:
 
-    # TODO: accept the prior on emissionprob_ for consistency.
     def __init__(self, n_components=1,
                  startprob_prior=None, transmat_prior=None,
                  algorithm="viterbi", random_state=None,
@@ -370,6 +370,7 @@ class _VariationalBaseHMM:
         """
         X = check_array(X)
         self._init(X, lengths=lengths)
+        # TODO: Not ready
         # self._check()
 
         self.monitor_._reset()
@@ -403,21 +404,19 @@ class _VariationalBaseHMM:
             self.monitor_.report(lower_bound)
             if self.monitor_.converged:
                 break
-        self._update_normalized()
         return self
 
     def _lower_bound(self, log_prob):
+        # Get the contribution from the state transitions,
+        # initial probabilities, and the likelihood of the sequences
         startprob_lower_bound = -kl_dirichlet(self.startprob_posterior_,
                                               self.startprob_prior_)
         transmat_lower_bound = 0
-        print("lb: start", startprob_lower_bound)
         for i in range(self.n_components):
             transmat_lower_bound -= kl_dirichlet(
                 self.transmat_posterior_[i],
                 self.transmat_prior_[i]
             )
-        print("lb: transmat", transmat_lower_bound)
-        print("lb: log_prob", log_prob)
         return startprob_lower_bound + transmat_lower_bound + log_prob
 
     def _fit_scaling(self, X):
@@ -522,7 +521,11 @@ class _VariationalBaseHMM:
         return False
 
     def _update_subnorm(self):
-        # Update PI
+        """
+
+        """
+        # It is convenient to update the subnormalized probabilites and store
+        # them as class members.
         startprob_log_subnorm = digamma(self.startprob_posterior_) \
             - digamma(self.startprob_posterior_.sum())
         self.startprob_subnorm_ = np.exp(startprob_log_subnorm)
@@ -530,12 +533,6 @@ class _VariationalBaseHMM:
         transmat_log_subnorm = digamma(self.transmat_posterior_) - \
             digamma(self.transmat_posterior_.sum(axis=1)[:, None])
         self.transmat_subnorm_ = np.exp(transmat_log_subnorm)
-
-    def _update_normalized(self):
-        self.startprob_normalized_ = self.startprob_posterior_ / \
-            self.startprob_posterior_.sum()
-        self.transmat_normalized_ = self.transmat_posterior_ / \
-            self.transmat_posterior_.sum(axis=1)[:, None]
 
     def _get_n_fit_scalars_per_param(self):
         """
@@ -750,13 +747,22 @@ class _VariationalBaseHMM:
         """
         if 's' in self.params:
             self.startprob_posterior_ = self.startprob_prior_ + stats['start']
+
+            self.startprob_normalized_ = self.startprob_posterior_ / \
+                self.startprob_posterior_.sum()
         if 't' in self.params:
             self.transmat_posterior_ = self.transmat_prior_ + stats['trans']
+            self.transmat_normalized_ = self.transmat_posterior_ / \
+                self.transmat_posterior_.sum(axis=1)[:, None]
 
 
 class VariationalCategoricalHMM(_VariationalBaseHMM):
     """
-    Hidden Markov Model with categorical (discrete) emissions.
+    Hidden Markov Model with categorical (discrete) emissions
+    trained using Variational Inference.
+
+    Reference:
+    https://cse.buffalo.edu/faculty/mbeal/thesis/
 
     Attributes
     ----------
@@ -782,7 +788,6 @@ class VariationalCategoricalHMM(_VariationalBaseHMM):
     VariationalCategoricalHMM(algorithm='viterbi',...
     """
 
-    # TODO: accept the prior on emissionprob_ for consistency.
     def __init__(self, n_components=1,
                  startprob_prior=None, transmat_prior=None,
                  emissions_prior=None,
@@ -851,12 +856,6 @@ class VariationalCategoricalHMM(_VariationalBaseHMM):
             digamma(self.emissions_posterior_)
             - digamma(self.emissions_posterior_.sum(axis=1)[:, None])
         )
-        self.emissions_subnorm_ = np.exp(self.emissions_log_subnorm_)
-
-    def _update_normalized(self):
-        super()._update_normalized()
-        self.emissions_normalized_ = self.emissions_posterior_ / \
-            self.emissions_posterior_.sum(axis=1)[:, None]
 
     def _get_n_fit_scalars_per_param(self):
         """
@@ -889,8 +888,8 @@ class VariationalCategoricalHMM(_VariationalBaseHMM):
         else:
             self.n_features_ = n_features_
 
-    def _compute_subnorm_likelihood(self, X):
-        return self.emissions_subnorm_[:, np.concatenate(X)].T
+    def _compute_subnorm_log_likelihood(self, X):
+        return self.emissions_log_subnorm_[:, np.concatenate(X)].T
 
     def _compute_likelihood(self, X):
         """Computes per-component probability under the model.
@@ -985,8 +984,19 @@ class VariationalCategoricalHMM(_VariationalBaseHMM):
         if "e" in self.params:
             self.emissions_posterior_ = self.emissions_prior_ + stats['obs']
 
+            # Provide the normalized probabilities at the posterior median
+            self.emissions_normalized_ = self.emissions_posterior_ / \
+                    self.emissions_posterior_.sum(axis=1)[:, None]
+
     def _lower_bound(self, log_prob):
+        """
+        Compute the lower bound of the model
+        """
+        # First, get the contribution from the state transitions
+        # and initial probabilities
         lower_bound = super()._lower_bound(log_prob)
+
+        # The compute the contributions of the emissions
         emissions_lower_bound = 0
         for i in range(self.n_components):
             emissions_lower_bound -= kl_dirichlet(
@@ -1024,7 +1034,6 @@ class VariationalGaussianHMM(_VariationalBaseHMM):
     VariationalGaussianHMM(algorithm='viterbi',...
     """
 
-    # TODO: accept the prior on emissionprob_ for consistency.
     def __init__(self, n_components=1, covariance_type="full",
                  startprob_prior=None, transmat_prior=None,
                  means_prior=None, beta_prior=None, dof_prior=None,
@@ -1061,14 +1070,23 @@ class VariationalGaussianHMM(_VariationalBaseHMM):
         super()._init(X, lengths)
         self.n_features_ = X.shape[1]
         X_mean = X.mean(axis=0)
-        # Kmeans will be used for both means and covariances
+        # Kmeans will be used for initializing both the means
+        # and the covariances
         kmeans = cluster.KMeans(n_clusters=self.n_components,
                                 random_state=self.random_state)
         kmeans.fit(X)
         cluster_counts = np.bincount(kmeans.predict(X))
+
         if self._needs_init("m", "means_posterior_"):
-            self.means_prior_ = np.zeros((self.n_components, self.n_features_)) + X_mean if self.means_prior is None else self.means_prior
-            self.beta_prior_ = np.zeros(self.n_components) + 1 if self.beta_prior is None else self.beta_prior_
+            if self.means_prior is None:
+                self.means_prior_ = np.full(
+                    (self.n_components, self.n_features_), X_mean)
+            else:
+                self.means_prior_ = self.means_prior
+            if self.beta_prior is None:
+                self.beta_prior_ = np.zeros(self.n_components) + 1
+            else:
+                self.beta_prior_ = self.beta_prior_
 
             # Initialize to the data means
             self.means_posterior_ = np.copy(kmeans.cluster_centers_)
@@ -1078,7 +1096,8 @@ class VariationalGaussianHMM(_VariationalBaseHMM):
         if self._needs_init("c", "covars_posterior_"):
             if self.covariance_type == "full":
                 if self.dof_prior is None:
-                    self.dof_prior_ = np.full((self.n_components,), self.n_features_)
+                    self.dof_prior_ = np.full(
+                        (self.n_components,), self.n_features_)
                 else:
                     self.dof_prior_ = self.dof_prior
                 if self.scale_prior is None:
@@ -1088,27 +1107,29 @@ class VariationalGaussianHMM(_VariationalBaseHMM):
                     )
                 else:
                     self.W_0_inv_ = self.scale_prior
+
             elif self.covariance_type == "tied":
                 assert False, "Not Finished"
-                self.dof_prior_ = 1 if self.dof_prior is None else self.dof_prior
-                self.W_0_inv_ = 1 if self.scale_prior is None else self.scale_prior
             elif self.covariance_type == "diag":
                 assert False, "Not Finished"
-                self.dof_prior_ = 1 if self.dof_prior is None else self.dof_prior
-                self.W_0_inv_ = 1 if self.scale_prior is None else self.scale_prior
             elif self.covariance_type == "spherical":
                 assert False, "Not Finished"
-                self.dof_prior_ = 1 if self.dof_prior is None else self.dof_prior
-                self.W_0_inv_ = 1 if self.scale_prior is None else self.scale_prior
             else:
-                raise ValueError(f"Unknown covariance_type: {covariance_type}")
+                raise ValueError(
+                    f"Unknown covariance_type: {self.covariance_type}")
 
+            # Covariance posterior comes from the estimate of the data
             cv = np.cov(X.T) + 1E-3 * np.eye(X.shape[1])
             self.covars_posterior_ = \
-                np.copy(_utils.distribute_covar_matrix_to_match_covariance_type(
-                    cv, self.covariance_type, self.n_components).copy())
+                np.copy(
+                    _utils.distribute_covar_matrix_to_match_covariance_type(
+                    cv, self.covariance_type, self.n_components
+                    )
+                )
+
             self.dof_posterior_ = np.copy(cluster_counts)
-            self.W_k_inv_ = self.covars_posterior_ * self.dof_posterior_[:, None, None]
+            self.W_k_inv_ = self.covars_posterior_ * \
+                    self.dof_posterior_[:, None, None]
 
             self.W_k_ = np.linalg.inv(self.W_k_inv_)
             self.W_0_ = np.linalg.inv(self.W_0_inv_)
@@ -1136,15 +1157,12 @@ class VariationalGaussianHMM(_VariationalBaseHMM):
         super()._check()
 
     def _compute_subnorm_log_likelihood(self, X):
-        ll = np.zeros((X.shape[0], self.n_components))
-
-        # TODO - remove for loop!
-        # in the Gruhl/ Sick paper:
-        # .5 (\sum_{d=1}^{D} \digamma(\frac{dof_k + 1 - d}{2}) + D \log(2) + \log \det{W_j})
+        # Refer to the Gruhl/ Sick paper:
         term1 = np.zeros_like(self.dof_posterior_, dtype=float)
         for d in range(1, self.n_features_+1):
             term1 += digamma(.5 * self.dof_posterior_ + 1 - d)
-        term1 += self.n_features_ * np.log(2) + np.log(numpy.linalg.det(self.W_k_))
+        term1 += self.n_features_ * np.log(2)
+        term1 += np.log(numpy.linalg.det(self.W_k_))
         term1 /= 2
 
         # A constant, typically excluded in the literature
@@ -1158,7 +1176,8 @@ class VariationalGaussianHMM(_VariationalBaseHMM):
         # i is the length of the sequence X
         # j, k are the n_features_
         # output shape is length * number of components
-        dots = np.einsum("cij,cjk,cik,c->ic", delta, self.W_k_, delta, self.dof_posterior_)
+        dots = np.einsum("cij,cjk,cik,c->ic",
+                         delta, self.W_k_, delta, self.dof_posterior_)
         last_term = .5 * (dots + term3)
         lll = term1 - term2 - last_term
         return lll
@@ -1179,7 +1198,8 @@ class VariationalGaussianHMM(_VariationalBaseHMM):
             model states.
         """
         return log_multivariate_normal_density(
-            X, self.means_posterior_, self.covars_posterior_, self.covariance_type)
+            X, self.means_posterior_, self.covars_posterior_,
+            self.covariance_type)
 
     def _generate_sample_from_state(self, state, random_state=None):
         random_state = check_random_state(random_state)
@@ -1269,10 +1289,10 @@ class VariationalGaussianHMM(_VariationalBaseHMM):
         """
         super()._do_mstep(stats)
 
-        # emissions
         if "m" in self.params:
             self.beta_posterior_ = self.beta_prior_ + stats['post']
-            self.means_posterior_ = np.einsum("i,ij->ij", self.beta_prior_, self.means_prior_)
+            self.means_posterior_ = np.einsum("i,ij->ij", self.beta_prior_,
+                                              self.means_prior_)
             self.means_posterior_ += stats['obs']
             self.means_posterior_ /= self.beta_posterior_[:, None]
 
@@ -1281,21 +1301,26 @@ class VariationalGaussianHMM(_VariationalBaseHMM):
 
             self.dof_posterior_ = self.dof_prior_ + stats['post']
             if self.covariance_type == "full":
-
-                for state in range(self.n_components):
-
-                    tmp1 = self.beta_prior_[state] * np.outer(self.means_prior_[state], self.means_prior_[state])
-                    tmp2 = self.beta_posterior_[state] * np.outer(self.means_posterior_[state], self.means_posterior_[state])
-                    tmp3 = self.W_0_inv_[state] + stats['obs*obs.T'][state] + tmp1 - tmp2
-                    self.W_k_inv_[state] = tmp3
+                tmp1 = np.einsum("c,ci, cj->cij", self.beta_prior_,
+                                 self.means_prior_, self.means_prior_)
+                tmp2 = np.einsum("c,ci, cj->cij", self.beta_posterior_,
+                                 self.means_posterior_, self.means_posterior_)
+                self.W_k_inv_ = self.W_0_inv_ + stats['obs*obs.T'] \
+                        + tmp1 - tmp2
 
                 self.W_k_ = np.linalg.inv(self.W_k_inv_)
-                self.covars_posterior_ = np.copy(self.W_k_inv_) / self.dof_posterior_[:, None, None]
+                self.covars_posterior_ = np.copy(self.W_k_inv_) \
+                        / self.dof_posterior_[:, None, None]
             else:
                 assert False, "Not finished"
 
     def _lower_bound(self, log_prob):
+
+        # First, get the contribution from the state transitions
+        # and initial probabilities
         lower_bound = super()._lower_bound(log_prob)
+
+        # The compute the contributions of the emissions
         emissions_lower_bound = 0
         for i in range(self.n_components):
             # KL for the normal distributions

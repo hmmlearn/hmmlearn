@@ -18,12 +18,12 @@ class TestVariationalCategorical:
         # one should not set the random_state, and perform multiple
         # training steps, and take the model with the best lower-bound
 
-        self.prng = check_random_state(1984)
         self.n_components = n_components = 3
 
         self.implementations = ["scaling", "log"]
 
-    def get_beal_models(self):
+    @staticmethod
+    def get_beal_models():
         m1 = hmm.MultinomialHMM(3, init_params="")
         m1.n_features = 3
         m1.startprob_ = np.array([1/3., 1/3., 1/3.])
@@ -48,7 +48,7 @@ class TestVariationalCategorical:
 
     @pytest.mark.parametrize("implementation", ["scaling", "log"])
     def test_fit_beal(self, implementation):
-        rs = self.prng
+        rs = check_random_state(1984)
         m1, m2, m3 = self.get_beal_models()
         sequences = []
         lengths = []
@@ -71,29 +71,31 @@ class TestVariationalCategorical:
     @pytest.mark.parametrize("implementation", ["scaling", "log"])
     def test_fit_simple(self, implementation):
 
+        # Just fit the first of the beal models
         model = self.get_beal_models()[0]
         sequences = []
         lengths = []
         for i in range(7):
-            sequences.append(model.sample(39, random_state=self.prng)[0])
+            sequences.append(
+                model.sample(100, random_state=check_random_state(1984))[0])
             lengths.append(len(sequences[-1]))
 
         sequences = np.concatenate(sequences)
         model = vhmm.VariationalCategoricalHMM(4, n_iter=500,
-                                               implementation=implementation,
-                                               random_state=self.prng)
+                    implementation=implementation,
+                    random_state=check_random_state(1984))
 
         model.fit(sequences, lengths)
 
-        # print(model.monitor_.history)
-        # print(model.startprob_posterior_)
-        # print(model.transmat_posterior_)
-        # print(model.emissions_posterior_)
+        print(model.monitor_.history)
+        print(model.startprob_posterior_)
+        print(model.transmat_posterior_)
+        print(model.emissions_posterior_)
 
         # The 1st hidden state will be "unused"
-        check = model.transmat_posterior_[0, :] == pytest.approx(.25, rel=1e-3)
+        check = model.transmat_posterior_[1, :] == pytest.approx(.25, rel=1e-3)
         assert np.all(check)
-        check = model.emissions_posterior_[0, :] == pytest.approx(.3333,
+        check = model.emissions_posterior_[1, :] == pytest.approx(.3333,
                                                                   rel=1e-3)
         assert np.all(check)
 
