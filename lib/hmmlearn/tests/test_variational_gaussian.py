@@ -38,7 +38,7 @@ class TestVariationalGaussian:
                                             implementation=implementation,
                                             tol=1e-6,
                                             random_state=random_state,
-                                            verbose=False)
+                                            verbose=True)
         model.fit(sequences, lengths)
         print(model.monitor_.history)
         print(model.startprob_posterior_)
