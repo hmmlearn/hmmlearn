@@ -1,14 +1,17 @@
 import logging
 
 import numpy as np
+import numpy.linalg
 
 from scipy.special import digamma, logsumexp
 
+from sklearn import cluster
 from sklearn.utils import check_array, check_random_state
 
 from . import _hmmc, _utils
 from .base import ConvergenceMonitor, DECODER_ALGORITHMS
-from .kl_divergence import kl_dirichlet
+from .kl_divergence import kl_dirichlet, kl_multivariate_normal_distribution, \
+        kl_wishart_distribution
 from .utils import log_mask_zero, log_normalize, normalize
 
 
@@ -44,7 +47,7 @@ class _VariationalBaseHMM:
 
         Parameters
         ----------
-        X : array-like, shape (n_samples, n_features)
+        X : array-like, shape (n_samples, n_features_)
             Feature matrix of individual samples.
         lengths : array-like of integers, shape (n_sequences, ), optional
             Lengths of the individual sequences in ``X``. The sum of
@@ -70,7 +73,7 @@ class _VariationalBaseHMM:
 
         Parameters
         ----------
-        X : array-like, shape (n_samples, n_features)
+        X : array-like, shape (n_samples, n_features_)
             Feature matrix of individual samples.
         lengths : array-like of integers, shape (n_sequences, ), optional
             Lengths of the individual sequences in ``X``. The sum of
@@ -159,7 +162,7 @@ class _VariationalBaseHMM:
 
         Parameters
         ----------
-        X : array-like, shape (n_samples, n_features)
+        X : array-like, shape (n_samples, n_features_)
             Feature matrix of individual samples.
         lengths : array-like of integers, shape (n_sequences, ), optional
             Lengths of the individual sequences in ``X``. The sum of
@@ -221,7 +224,7 @@ class _VariationalBaseHMM:
 
         Parameters
         ----------
-        X : array-like, shape (n_samples, n_features)
+        X : array-like, shape (n_samples, n_features_)
             Feature matrix of individual samples.
         lengths : array-like of integers, shape (n_sequences, ), optional
             Lengths of the individual sequences in ``X``. The sum of
@@ -241,7 +244,7 @@ class _VariationalBaseHMM:
 
         Parameters
         ----------
-        X : array-like, shape (n_samples, n_features)
+        X : array-like, shape (n_samples, n_features_)
             Feature matrix of individual samples.
         lengths : array-like of integers, shape (n_sequences, ), optional
             Lengths of the individual sequences in ``X``. The sum of
@@ -271,7 +274,7 @@ class _VariationalBaseHMM:
 
         Returns
         -------
-        X : array, shape (n_samples, n_features)
+        X : array, shape (n_samples, n_features_)
             Feature matrix.
         state_sequence : array, shape (n_samples, )
             State sequence produced by the model.
@@ -315,7 +318,7 @@ class _VariationalBaseHMM:
 
         Parameters
         ----------
-        X : array-like, shape (n_samples, n_features)
+        X : array-like, shape (n_samples, n_features_)
             Feature matrix of individual samples.
         lengths : array-like of integers, shape (n_sequences, )
             Lengths of the individual sequences in ``X``. The sum of
@@ -354,7 +357,7 @@ class _VariationalBaseHMM:
 
         Parameters
         ----------
-        X : array-like, shape (n_samples, n_features)
+        X : array-like, shape (n_samples, n_features_)
             Feature matrix of individual samples.
         lengths : array-like of integers, shape (n_sequences, )
             Lengths of the individual sequences in ``X``. The sum of
@@ -397,7 +400,6 @@ class _VariationalBaseHMM:
             # XXX must be before convergence check, because otherwise
             #     there won't be any updates for the case ``n_iter=1``.
             self._do_mstep(stats)
-
             self.monitor_.report(lower_bound)
             if self.monitor_.converged:
                 break
@@ -408,11 +410,14 @@ class _VariationalBaseHMM:
         startprob_lower_bound = -kl_dirichlet(self.startprob_posterior_,
                                               self.startprob_prior_)
         transmat_lower_bound = 0
+        print("lb: start", startprob_lower_bound)
         for i in range(self.n_components):
             transmat_lower_bound -= kl_dirichlet(
                 self.transmat_posterior_[i],
                 self.transmat_prior_[i]
             )
+        print("lb: transmat", transmat_lower_bound)
+        print("lb: log_prob", log_prob)
         return startprob_lower_bound + transmat_lower_bound + log_prob
 
     def _fit_scaling(self, X):
@@ -590,7 +595,7 @@ class _VariationalBaseHMM:
 
         Parameters
         ----------
-        X : array-like, shape (n_samples, n_features)
+        X : array-like, shape (n_samples, n_features_)
             Feature matrix of individual samples.
 
         Returns
@@ -612,7 +617,7 @@ class _VariationalBaseHMM:
 
         Parameters
         ----------
-        X : array-like, shape (n_samples, n_features)
+        X : array-like, shape (n_samples, n_features_)
             Feature matrix of individual samples.
 
         Returns
@@ -665,7 +670,7 @@ class _VariationalBaseHMM:
             Sufficient statistics as returned by
             :meth:`~base._BaseHMM._initialize_sufficient_statistics`.
 
-        X : array, shape (n_samples, n_features)
+        X : array, shape (n_samples, n_features_)
             Sample sequence.
 
         lattice : array, shape (n_samples, n_components)
@@ -755,7 +760,7 @@ class VariationalCategoricalHMM(_VariationalBaseHMM):
 
     Attributes
     ----------
-    n_features : int
+    n_features_ : int
         Number of possible symbols emitted by the model (in the samples).
 
     monitor_ : ConvergenceMonitor
@@ -767,7 +772,7 @@ class VariationalCategoricalHMM(_VariationalBaseHMM):
     transmat_ : array, shape (n_components, n_components)
         Matrix of transition probabilities between states.
 
-    emissionprob_ : array, shape (n_components, n_features)
+    emissionprob_ : array, shape (n_components, n_features_)
         Probability of emitting a given symbol when in each state.
 
     Examples
@@ -805,13 +810,13 @@ class VariationalCategoricalHMM(_VariationalBaseHMM):
             raise ValueError("Symbols should be integers")
         if X.min() < 0:
             raise ValueError("Symbols should be nonnegative")
-        if hasattr(self, "n_features"):
-            if self.n_features - 1 < X.max():
+        if hasattr(self, "n_features_"):
+            if self.n_features_ - 1 < X.max():
                 raise ValueError(
                     "Largest symbol is {} but the model only emits symbols up "
-                    "to {}".format(X.max(), self.n_features - 1))
+                    "to {}".format(X.max(), self.n_features_ - 1))
         else:
-            self.n_features = X.max() + 1
+            self.n_features_ = X.max() + 1
 
     def _init(self, X, lengths):
         """
@@ -819,7 +824,7 @@ class VariationalCategoricalHMM(_VariationalBaseHMM):
 
         Parameters
         ----------
-        X : array-like, shape (n_samples, n_features)
+        X : array-like, shape (n_samples, n_features_)
             Feature matrix of individual samples.
         lengths : array-like of integers, shape (n_sequences, )
             Lengths of the individual sequences in ``X``. The sum of
@@ -829,13 +834,13 @@ class VariationalCategoricalHMM(_VariationalBaseHMM):
         random_state = check_random_state(self.random_state)
         self._check_and_set_categorical_features(X)
         if self._needs_init("e", "emissions_posterior_"):
-            emissions_init = 1 / self.n_features
+            emissions_init = 1 / self.n_features_
             if self.emissions_prior is not None:
                 emissions_init = self.emissions_prior
             self.emissions_prior_ = np.full(
-                (self.n_components, self.n_features), emissions_init)
+                (self.n_components, self.n_features_), emissions_init)
             self.emissions_posterior_ = random_state.dirichlet(
-                alpha=[emissions_init] * self.n_features,
+                alpha=[emissions_init] * self.n_features_,
                 size=self.n_components
             ) * sum(lengths) / self.n_components
 
@@ -876,13 +881,13 @@ class VariationalCategoricalHMM(_VariationalBaseHMM):
         super()._check()
 
         self.emissions_posterior_ = np.atleast_2d(self.emissions_posterior_)
-        n_features = getattr(self, "n_features",
+        n_features_ = getattr(self, "n_features_",
                              self.emissions_posterior_.shape[1])
-        if self.emissions_posterior_.shape != (self.n_components, n_features):
+        if self.emissions_posterior_.shape != (self.n_components, n_features_):
             raise ValueError(
-                "emissionprob_ must have shape (n_components, n_features)")
+                "emissionprob_ must have shape (n_components, n_features_)")
         else:
-            self.n_features = n_features
+            self.n_features_ = n_features_
 
     def _compute_subnorm_likelihood(self, X):
         return self.emissions_subnorm_[:, np.concatenate(X)].T
@@ -892,7 +897,7 @@ class VariationalCategoricalHMM(_VariationalBaseHMM):
 
         Parameters
         ----------
-        X : array-like, shape (n_samples, n_features)
+        X : array-like, shape (n_samples, n_features_)
             Feature matrix of individual samples.
 
         Returns
@@ -928,7 +933,7 @@ class VariationalCategoricalHMM(_VariationalBaseHMM):
             probability of transitioning between the i-th to j-th states.
         """
         stats = super()._initialize_sufficient_statistics()
-        stats['obs'] = np.zeros((self.n_components, self.n_features))
+        stats['obs'] = np.zeros((self.n_components, self.n_features_))
         return stats
 
     def _accumulate_sufficient_statistics(self, stats, X, lattice,
@@ -941,7 +946,7 @@ class VariationalCategoricalHMM(_VariationalBaseHMM):
             Sufficient statistics as returned by
             :meth:`~base._BaseHMM._initialize_sufficient_statistics`.
 
-        X : array, shape (n_samples, n_features)
+        X : array, shape (n_samples, n_features_)
             Sample sequence.
 
         lattice : array, shape (n_samples, n_components)
@@ -997,7 +1002,7 @@ class VariationalGaussianHMM(_VariationalBaseHMM):
 
     Attributes
     ----------
-    n_features : int
+    n_features_ : int
         Number of possible symbols emitted by the model (in the samples).
 
     monitor_ : ConvergenceMonitor
@@ -1009,7 +1014,7 @@ class VariationalGaussianHMM(_VariationalBaseHMM):
     transmat_ : array, shape (n_components, n_components)
         Matrix of transition probabilities between states.
 
-    emissionprob_ : array, shape (n_components, n_features)
+    emissionprob_ : array, shape (n_components, n_features_)
         Probability of emitting a given symbol when in each state.
 
     Examples
@@ -1047,56 +1052,66 @@ class VariationalGaussianHMM(_VariationalBaseHMM):
 
         Parameters
         ----------
-        X : array-like, shape (n_samples, n_features)
+        X : array-like, shape (n_samples, n_features_)
             Feature matrix of individual samples.
         lengths : array-like of integers, shape (n_sequences, )
             Lengths of the individual sequences in ``X``. The sum of
             these should be ``n_samples``.
         """
         super()._init(X, lengths)
-        self.n_features = X.shape[1]
+        self.n_features_ = X.shape[1]
         X_mean = X.mean(axis=0)
-        if self._needs_init("m", "means_posterorior_"):
-            self.means_prior_ = X_mean if self.means_prior is None else self.means_prior
-            self.beta_prior_ = 1 if self.beta_prior is None else self.means_prior
+        # Kmeans will be used for both means and covariances
+        kmeans = cluster.KMeans(n_clusters=self.n_components,
+                                random_state=self.random_state)
+        kmeans.fit(X)
+        cluster_counts = np.bincount(kmeans.predict(X))
+        if self._needs_init("m", "means_posterior_"):
+            self.means_prior_ = np.zeros((self.n_components, self.n_features_)) + X_mean if self.means_prior is None else self.means_prior
+            self.beta_prior_ = np.zeros(self.n_components) + 1 if self.beta_prior is None else self.beta_prior_
+
+            # Initialize to the data means
+            self.means_posterior_ = np.copy(kmeans.cluster_centers_)
+            # Count of items in each cluster
+            self.beta_posterior_ = np.copy(cluster_counts)
 
         if self._needs_init("c", "covars_posterior_"):
             if self.covariance_type == "full":
                 if self.dof_prior is None:
-                    self.dof_prior_ = np.full((self.n_components,), self.n_features)
+                    self.dof_prior_ = np.full((self.n_components,), self.n_features_)
                 else:
                     self.dof_prior_ = self.dof_prior
                 if self.scale_prior is None:
-                    self.scale_prior_ = np.broadcast_to(
-                        np.identity(self.n_features) * 1e-3,
-                        (self.n_components, self.n_features, self.n_features)
+                    self.W_0_inv_ = np.broadcast_to(
+                        np.identity(self.n_features_) * 1e-3,
+                        (self.n_components, self.n_features_, self.n_features_)
                     )
                 else:
-                    self.scale_prior_ = self.scale_prior
+                    self.W_0_inv_ = self.scale_prior
             elif self.covariance_type == "tied":
                 assert False, "Not Finished"
                 self.dof_prior_ = 1 if self.dof_prior is None else self.dof_prior
-                self.scale_prior_ = 1 if self.scale_prior is None else self.scale_prior
+                self.W_0_inv_ = 1 if self.scale_prior is None else self.scale_prior
             elif self.covariance_type == "diag":
                 assert False, "Not Finished"
                 self.dof_prior_ = 1 if self.dof_prior is None else self.dof_prior
-                self.scale_prior_ = 1 if self.scale_prior is None else self.scale_prior
+                self.W_0_inv_ = 1 if self.scale_prior is None else self.scale_prior
             elif self.covariance_type == "spherical":
                 assert False, "Not Finished"
                 self.dof_prior_ = 1 if self.dof_prior is None else self.dof_prior
-                self.scale_prior_ = 1 if self.scale_prior is None else self.scale_prior
+                self.W_0_inv_ = 1 if self.scale_prior is None else self.scale_prior
             else:
                 raise ValueError(f"Unknown covariance_type: {covariance_type}")
 
-    def _update_subnorm(self):
-        super()._update_subnorm()
-        # Emissions
-        raise ValueError("asdf")
+            cv = np.cov(X.T) + 1E-3 * np.eye(X.shape[1])
+            self.covars_posterior_ = \
+                np.copy(_utils.distribute_covar_matrix_to_match_covariance_type(
+                    cv, self.covariance_type, self.n_components).copy())
+            self.dof_posterior_ = np.copy(cluster_counts)
+            self.W_k_inv_ = self.covars_posterior_ * self.dof_posterior_[:, None, None]
 
-    def _update_normalized(self):
-        super()._update_normalized()
-        self.emissions_normalized_ = self.emissions_posterior_ / \
-            self.emissions_posterior_.sum(axis=1)[:, None]
+            self.W_k_ = np.linalg.inv(self.W_k_inv_)
+            self.W_0_ = np.linalg.inv(self.W_0_inv_)
 
     def _get_n_fit_scalars_per_param(self):
         """
@@ -1120,15 +1135,41 @@ class VariationalGaussianHMM(_VariationalBaseHMM):
         """
         super()._check()
 
-    def _compute_subnorm_likelihood(self, X):
-        raise ValueError("ASDF")
+    def _compute_subnorm_log_likelihood(self, X):
+        ll = np.zeros((X.shape[0], self.n_components))
 
-    def _compute_likelihood(self, X):
+        # TODO - remove for loop!
+        # in the Gruhl/ Sick paper:
+        # .5 (\sum_{d=1}^{D} \digamma(\frac{dof_k + 1 - d}{2}) + D \log(2) + \log \det{W_j})
+        term1 = np.zeros_like(self.dof_posterior_, dtype=float)
+        for d in range(1, self.n_features_+1):
+            term1 += digamma(.5 * self.dof_posterior_ + 1 - d)
+        term1 += self.n_features_ * np.log(2) + np.log(numpy.linalg.det(self.W_k_))
+        term1 /= 2
+
+        # A constant, typically excluded in the literature
+        # self.n_features_ * log(2 * M_PI ) / 2
+        term2 = 0
+        term3 = self.n_features_ / self.beta_posterior_
+
+        # (X - Means) * W_k * (X-Means)^T * self.dof_posterior_
+        delta = (X - self.means_posterior_[:, None])
+        # c is the HMM Component
+        # i is the length of the sequence X
+        # j, k are the n_features_
+        # output shape is length * number of components
+        dots = np.einsum("cij,cjk,cik,c->ic", delta, self.W_k_, delta, self.dof_posterior_)
+        last_term = .5 * (dots + term3)
+        lll = term1 - term2 - last_term
+        return lll
+
+
+    def _compute_log_likelihood(self, X):
         """Computes per-component probability under the model.
 
         Parameters
         ----------
-        X : array-like, shape (n_samples, n_features)
+        X : array-like, shape (n_samples, n_features_)
             Feature matrix of individual samples.
 
         Returns
@@ -1137,12 +1178,14 @@ class VariationalGaussianHMM(_VariationalBaseHMM):
             Log probability of each sample in ``X`` for each of the
             model states.
         """
-        raise ValueError("Asdf")
+        return log_multivariate_normal_density(
+            X, self.means_posterior_, self.covars_posterior_, self.covariance_type)
 
     def _generate_sample_from_state(self, state, random_state=None):
-        cdf = np.cumsum(self.emissions_normalized_[state, :])
         random_state = check_random_state(random_state)
-        return [(cdf > random_state.rand()).argmax()]
+        return random_state.multivariate_normal(
+            self.means_posterior_[state], self.covars_posterior_[state]
+        )
 
     def _initialize_sufficient_statistics(self):
         """
@@ -1164,7 +1207,12 @@ class VariationalGaussianHMM(_VariationalBaseHMM):
             probability of transitioning between the i-th to j-th states.
         """
         stats = super()._initialize_sufficient_statistics()
-        stats['obs'] = np.zeros((self.n_components, self.n_features))
+        stats['post'] = np.zeros(self.n_components)
+        stats['obs'] = np.zeros((self.n_components, self.n_features_))
+        stats['obs**2'] = np.zeros((self.n_components, self.n_features_))
+        if self.covariance_type in ('tied', 'full'):
+            stats['obs*obs.T'] = np.zeros((self.n_components, self.n_features_,
+                                           self.n_features_))
         return stats
 
     def _accumulate_sufficient_statistics(self, stats, X, lattice,
@@ -1177,7 +1225,7 @@ class VariationalGaussianHMM(_VariationalBaseHMM):
             Sufficient statistics as returned by
             :meth:`~base._BaseHMM._initialize_sufficient_statistics`.
 
-        X : array, shape (n_samples, n_features)
+        X : array, shape (n_samples, n_features_)
             Sample sequence.
 
         lattice : array, shape (n_samples, n_components)
@@ -1197,9 +1245,18 @@ class VariationalGaussianHMM(_VariationalBaseHMM):
                                                   posteriors=posteriors,
                                                   fwdlattice=fwdlattice,
                                                   bwdlattice=bwdlattice)
+        if 'm' in self.params or 'c' in self.params:
+            stats['post'] += posteriors.sum(axis=0)
+            stats['obs'] += np.dot(posteriors.T, X)
 
-        if 'e' in self.params:
-            np.add.at(stats['obs'].T, np.concatenate(X), posteriors)
+        if 'c' in self.params:
+            if self.covariance_type in ('spherical', 'diag'):
+                stats['obs**2'] += np.dot(posteriors.T, X ** 2)
+            elif self.covariance_type in ('tied', 'full'):
+                # posteriors: (nt, nc); obs: (nt, nf); obs: (nt, nf)
+                # -> (nc, nf, nf)
+                stats['obs*obs.T'] += np.einsum(
+                    'ij,ik,il->jkl', posteriors, X, X)
 
     def _do_mstep(self, stats):
         """
@@ -1213,15 +1270,51 @@ class VariationalGaussianHMM(_VariationalBaseHMM):
         super()._do_mstep(stats)
 
         # emissions
-        if "e" in self.params:
-            self.emissions_posterior_ = self.emissions_prior_ + stats['obs']
+        if "m" in self.params:
+            self.beta_posterior_ = self.beta_prior_ + stats['post']
+            self.means_posterior_ = np.einsum("i,ij->ij", self.beta_prior_, self.means_prior_)
+            self.means_posterior_ += stats['obs']
+            self.means_posterior_ /= self.beta_posterior_[:, None]
+
+
+        if "c" in self.params:
+
+            self.dof_posterior_ = self.dof_prior_ + stats['post']
+            if self.covariance_type == "full":
+
+                for state in range(self.n_components):
+
+                    tmp1 = self.beta_prior_[state] * np.outer(self.means_prior_[state], self.means_prior_[state])
+                    tmp2 = self.beta_posterior_[state] * np.outer(self.means_posterior_[state], self.means_posterior_[state])
+                    tmp3 = self.W_0_inv_[state] + stats['obs*obs.T'][state] + tmp1 - tmp2
+                    self.W_k_inv_[state] = tmp3
+
+                self.W_k_ = np.linalg.inv(self.W_k_inv_)
+                self.covars_posterior_ = np.copy(self.W_k_inv_) / self.dof_posterior_[:, None, None]
+            else:
+                assert False, "Not finished"
 
     def _lower_bound(self, log_prob):
         lower_bound = super()._lower_bound(log_prob)
         emissions_lower_bound = 0
         for i in range(self.n_components):
-            emissions_lower_bound -= kl_dirichlet(
-                self.emissions_posterior_[i],
-                self.emissions_prior_[i]
+            # KL for the normal distributions
+            precision = self.W_k_[i] * self.dof_posterior_[i]
+            term1 = np.linalg.inv(self.beta_posterior_[i] * precision)
+            term2 = np.linalg.inv(self.beta_prior_[i] * precision)
+            kln = kl_multivariate_normal_distribution(
+                self.means_posterior_[i], term1,
+                self.means_prior_[i], term2
             )
+            emissions_lower_bound -= kln
+            # KL for the wishart distributions
+            klw = 0.
+            if self.covariance_type == "full":
+                klw = kl_wishart_distribution(
+                    self.dof_posterior_[i], self.W_k_inv_[i],
+                    self.dof_prior_[i], self.W_0_inv_[i])
+            else:
+                assert False, "Not finished"
+
+            emissions_lower_bound -= klw
         return lower_bound + emissions_lower_bound

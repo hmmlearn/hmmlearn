@@ -43,5 +43,5 @@ class TestVariationalGaussian:
         print(model.monitor_.history)
         print(model.startprob_posterior_)
         print(model.transmat_posterior_)
-        print(model.means_posterorior_)
+        print(model.means_posterior_)
         print(model.covars_posterior_)
