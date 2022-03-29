@@ -210,14 +210,18 @@ class TestGaussianHMMWithSphericalCovars(GaussianHMMTestMixin):
         model = hmm.GaussianHMM(n_components=2, covariance_type="spherical")
         model.startprob_ = np.array([0.6, 0.4])
         model.transmat_ = np.array([[0.4, 0.6],
-                                                              [0.9, 0.1]])
+                                    [0.9, 0.1]])
         model.means_ = np.array([[3.0],[5.0]])
         model.covars_ = np.array([[[[4.0]]], [[[3.0]]]])
 
-        # self.n_features not being set correctly
-        covars = model.covars_
 
-        # Make sure covariance is of correct format
+        # If setting up an HMM to immediately sample from,
+        # the easiest thing is to just set n_features.  We could
+        # infer it from self.means_ perhaps
+        model.n_features = 1
+        covars = model.covars_
+        # Make sure covariance is of correct format - the spherical
+        # case would throw an exception here
         model.sample(1000)
 
     @pytest.mark.parametrize("implementation", ["scaling", "log"])
