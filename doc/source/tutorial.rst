@@ -150,6 +150,10 @@ in ``remodel`` will have a different order than those in the generating model.
 GaussianHMM(...
 >>> Z2 = remodel.predict(X)
 
+.. topic:: Examples:
+
+ * :ref:`sphx_glr_auto_examples_casino_example.py`
+
 Monitoring convergence
 ``````````````````````
 
