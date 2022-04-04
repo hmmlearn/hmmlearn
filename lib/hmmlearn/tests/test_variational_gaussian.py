@@ -11,13 +11,6 @@ from . import assert_log_likelihood_increasing, normalized, \
 
 class TestVariationalGaussian:
 
-    @pytest.fixture(autouse=True)
-    def setup(self):
-        self.prng = prng = np.random.RandomState(32)
-        self.n_components = n_components = 3
-
-        self.implementations = ["scaling", "log"]
-
     def get_mcgrory_titterington(self):
         m1 = hmm.GaussianHMM(4, init_params="")
         m1.n_features = 4
@@ -46,7 +39,7 @@ class TestVariationalGaussian:
                                             implementation=implementation,
                                             tol=1e-9,
                                             random_state=random_state,
-                                            verbose=True)
+                                            verbose=False)
         model.fit(sequences, lengths)
         print(model.monitor_.history)
         print(model.startprob_posterior_)

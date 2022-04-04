@@ -61,7 +61,7 @@ class TestVariationalCategorical:
                                                implementation=implementation,
                                                tol=1e-6,
                                                random_state=rs,
-                                               verbose=True)
+                                               verbose=False)
         model.fit(sequences, lengths)
         print(model.monitor_.history)
         print(model.startprob_posterior_)

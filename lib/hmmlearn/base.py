@@ -296,13 +296,10 @@ class BaseHMM(BaseEstimator):
         sub_posteriors = [np.empty((0, self.n_components))]
         for sub_X in _utils.split_X_lengths(X, lengths):
             log_frameprob = self._compute_log_likelihood(sub_X)
-            log_probij, fwdlattice = self._do_forward_log_pass(
-                log_frameprob, startprob=self.startprob_,
-                transmat=self.transmat_)
+            log_probij, fwdlattice = self._do_forward_log_pass(log_frameprob)
             log_prob += log_probij
             if compute_posteriors:
-                bwdlattice = self._do_backward_log_pass(log_frameprob,
-                    startprob=self.startprob_, transmat=self.transmat_)
+                bwdlattice = self._do_backward_log_pass(log_frameprob)
                 sub_posteriors.append(
                     self._compute_posteriors_log(fwdlattice, bwdlattice))
         return log_prob, np.concatenate(sub_posteriors)
@@ -313,13 +310,11 @@ class BaseHMM(BaseEstimator):
         for sub_X in _utils.split_X_lengths(X, lengths):
             frameprob = self._compute_likelihood(sub_X)
             log_probij, fwdlattice, scaling_factors = \
-                    self._do_forward_scaling_pass(frameprob,
-                        startprob=self.startprob_, transmat=self.transmat_)
+                    self._do_forward_scaling_pass(frameprob)
             log_prob += log_probij
             if compute_posteriors:
                 bwdlattice = self._do_backward_scaling_pass(
-                    frameprob, scaling_factors,
-                    startprob=self.startprob_, transmat=self.transmat_)
+                    frameprob, scaling_factors)
                 sub_posteriors.append(
                     self._compute_posteriors_scaling(fwdlattice, bwdlattice))
 
@@ -552,11 +547,8 @@ class BaseHMM(BaseEstimator):
 
     def _fit_log(self, X):
         log_frameprob = self._compute_log_likelihood(X)
-        log_prob, fwdlattice = self._do_forward_log_pass(
-            log_frameprob, startprob=self.startprob_,
-            transmat=self.transmat_)
-        bwdlattice = self._do_backward_log_pass(log_frameprob,
-            startprob=self.startprob_, transmat=self.transmat_)
+        log_prob, fwdlattice = self._do_forward_log_pass(log_frameprob)
+        bwdlattice = self._do_backward_log_pass(log_frameprob)
         posteriors = self._compute_posteriors_log(fwdlattice, bwdlattice)
         return log_frameprob, log_prob, posteriors, fwdlattice, bwdlattice
 
@@ -566,14 +558,22 @@ class BaseHMM(BaseEstimator):
             log_frameprob)
         return log_prob, state_sequence
 
-    def _do_forward_scaling_pass(self, frameprob, startprob, transmat):
+    def _do_forward_scaling_pass(self, frameprob, startprob=None,
+                                 transmat=None):
+        startprob = self.startprob_ if startprob is None else startprob
+        transmat = self.transmat_ if transmat is None else transmat
+
         fwdlattice, scaling_factors = _hmmc.forward_scaling(
             np.asarray(startprob), np.asarray(transmat),
             frameprob)
         log_prob = -np.sum(np.log(scaling_factors))
         return log_prob, fwdlattice, scaling_factors
 
-    def _do_forward_log_pass(self, framelogprob, startprob, transmat):
+    def _do_forward_log_pass(self, framelogprob, startprob=None,
+                             transmat=None):
+        startprob = self.startprob_ if startprob is None else startprob
+        transmat = self.transmat_ if transmat is None else transmat
+
         n_samples, n_components = framelogprob.shape
         fwdlattice = _hmmc.forward_log(log_mask_zero(startprob),
                                        log_mask_zero(transmat),
@@ -582,13 +582,18 @@ class BaseHMM(BaseEstimator):
             return special.logsumexp(fwdlattice[-1]), fwdlattice
 
     def _do_backward_scaling_pass(self, frameprob, scaling_factors,
-                                  startprob, transmat):
+                                  startprob=None, transmat=None):
+        startprob = self.startprob_ if startprob is None else startprob
+        transmat = self.transmat_ if transmat is None else transmat
         bwdlattice = _hmmc.backward_scaling(
             np.asarray(startprob), np.asarray(transmat),
             frameprob, scaling_factors)
         return bwdlattice
 
-    def _do_backward_log_pass(self, framelogprob, startprob, transmat):
+    def _do_backward_log_pass(self, framelogprob, startprob=None,
+                              transmat=None):
+        startprob = self.startprob_ if startprob is None else startprob
+        transmat = self.transmat_ if transmat is None else transmat
         bwdlattice = _hmmc.backward_log(
             log_mask_zero(startprob), log_mask_zero(transmat),
             framelogprob)
@@ -896,8 +901,13 @@ class VariationalBaseHMM(BaseHMM):
         self.params = params
         self.init_params = init_params
         self.implementation = implementation
+        # For the case of updating all model components
+        # at each iteration, we can be strict with the convergence
+        # monitory - we know that the Lower Bound will improve
+        # at each iteration
         self.monitor_ = ConvergenceMonitor(self.tol, self.n_iter,
-                                           self.verbose, strict=True)
+                                           self.verbose,
+                                           strict=params=="ste")
 
     def _init(self, X, lengths):
         """
@@ -939,9 +949,16 @@ class VariationalBaseHMM(BaseHMM):
         Estimate model parameters.
 
         An initialization step is performed before entering the
-        EM algorithm. If you want to avoid this step for a subset of
+        VB-EM algorithm. If you want to avoid this step for a subset of
         the parameters, pass proper ``init_params`` keyword argument
         to estimator's constructor.
+
+        Fitting differs from the base class in the following ways:
+          * we compute the "subnormalized" probabilities at
+            the beginning of each iteration
+          * we use these probabilities in the forward-backward algorithm
+          * We compute the Variational Lower Bound at each step, and
+            require it to be strictly increasing
 
         Parameters
         ----------
@@ -995,6 +1012,26 @@ class VariationalBaseHMM(BaseHMM):
         return self
 
     def _lower_bound(self, log_prob):
+        """
+        Compute the Variational Lower Bound of the model as currently
+        configured.
+
+        Following the pattern elsewhere, derived implementations should call
+        this method to get the contribution of the current log_prob,
+        transmat, and startprob towards the lower bound
+
+        Parameters
+        ----------
+        log_prob : float
+                   The current log probability of the data as computed at
+                   the subnormalized model parameters.
+
+        Returns
+        -------
+        lower_bound: float
+                     Returns the computed lower bound contribution of the
+                     log_prob, startprob, and transmat.
+        """
         # Get the contribution from the state transitions,
         # initial probabilities, and the likelihood of the sequences
         startprob_lower_bound = -kl_dirichlet(self.startprob_posterior_,
@@ -1007,6 +1044,8 @@ class VariationalBaseHMM(BaseHMM):
             )
         return startprob_lower_bound + transmat_lower_bound + log_prob
 
+    # For Variational Inference, we compute the forward/backward algorithm
+    # using subnormalized probabilities.
     def _fit_scaling(self, X):
         frameprob = self._compute_subnorm_likelihood(X)
         logprob, fwdlattice, scaling_factors = \
@@ -1039,34 +1078,11 @@ class VariationalBaseHMM(BaseHMM):
         posteriors = self._compute_posteriors_log(fwdlattice, bwdlattice)
         return framelogprob, logprob, posteriors, fwdlattice, bwdlattice
 
-    def _compute_posteriors_log(self, fwdlattice, bwdlattice):
-        # gamma is guaranteed to be correctly normalized by logprob at
-        # all frames, unless we do approximate inference using pruning.
-        # So, we will normalize each frame explicitly in case we
-        # pruned too aggressively.
-        log_gamma = fwdlattice + bwdlattice
-        log_normalize(log_gamma, axis=1)
-        with np.errstate(under="ignore"):
-            return np.exp(log_gamma)
-
-    def _needs_init(self, code, name):
-        if code in self.init_params:
-            if hasattr(self, name):
-                _log.warning(
-                    "Even though the %r attribute is set, it will be "
-                    "overwritten during initialization because 'init_params' "
-                    "contains %r", name, code)
-            return True
-        if not hasattr(self, name):
-            return True
-        return False
-
     def _update_subnorm(self):
         """
-
+        Update the subnormalized model parameters.  Called at the beginning of
+        each iteration of fit()
         """
-        # It is convenient to update the subnormalized probabilites and store
-        # them as class members.
         startprob_log_subnorm = special.digamma(self.startprob_posterior_) \
             - special.digamma(self.startprob_posterior_.sum())
         self.startprob_subnorm_ = np.exp(startprob_log_subnorm)
@@ -1074,16 +1090,6 @@ class VariationalBaseHMM(BaseHMM):
         transmat_log_subnorm = special.digamma(self.transmat_posterior_) - \
             special.digamma(self.transmat_posterior_.sum(axis=1)[:, None])
         self.transmat_subnorm_ = np.exp(transmat_log_subnorm)
-
-    def _get_n_fit_scalars_per_param(self):
-        """
-        Return a mapping of fittable parameter names (as in ``self.params``)
-        to the number of corresponding scalar parameters that will actually be
-        fitted.
-
-        This is used to detect whether the user did not pass enough data points
-        for a non-degenerate fit.
-        """
 
     def _check(self):
         """
@@ -1125,49 +1131,6 @@ class VariationalBaseHMM(BaseHMM):
         if self._compute_subnorm_likelihood != \
            VariationalBaseHMM._compute_subnorm_likelihood.__get__(self):
             return np.log(self._compute_subnorm_likelihood(X))
-        else:
-            raise NotImplementedError("Must be overridden in subclass")
-
-    def _compute_likelihood(self, X):
-        """Computes per-component probability under the model.
-
-        Parameters
-        ----------
-        X : array-like, shape (n_samples, n_features_)
-            Feature matrix of individual samples.
-
-        Returns
-        -------
-        logprob : array, shape (n_samples, n_components)
-            Log probability of each sample in ``X`` for each of the
-            model states.
-        """
-        # prevent recursion
-        if self._compute_log_likelihood != \
-           VariationalBaseHMM._compute_log_likelihood.__get__(self):
-            return np.exp(self._compute_log_likelihood(X))
-        else:
-            raise NotImplementedError("Must be overridden in subclass")
-
-    def _compute_log_likelihood(self, X):
-        """
-        Compute per-component emission log probability under the model.
-
-        Parameters
-        ----------
-        X : array-like, shape (n_samples, n_features_)
-            Feature matrix of individual samples.
-
-        Returns
-        -------
-        logprob : array, shape (n_samples, n_components)
-            Emission log probability of each sample in ``X`` for each of the
-            model states, i.e., ``log(p(X|state))``.
-        """
-        # prevent recursion
-        if self._compute_likelihood != \
-           VariationalBaseHMM._compute_likelihood.__get__(self):
-            return np.log(self._compute_likelihood(X))
         else:
             raise NotImplementedError("Must be overridden in subclass")
 
