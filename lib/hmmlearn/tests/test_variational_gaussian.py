@@ -58,8 +58,8 @@ class TestVariationalGaussian:
                                  implementation=implementation,
                                  covariance_type="full"
                                 )
-        em_hmm.startprob_ = model.startprob_normalized_
-        em_hmm.transmat_ = model.transmat_normalized_
+        em_hmm.startprob_ = model.startprob_
+        em_hmm.transmat_ = model.transmat_
         em_hmm.means_ = model.means_posterior_
         em_hmm.covars_ = model.covars_posterior_
 

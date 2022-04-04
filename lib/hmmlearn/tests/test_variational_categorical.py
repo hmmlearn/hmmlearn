@@ -103,9 +103,9 @@ class TestVariationalCategorical:
         # When initialized with the normalized probabilities of the mode of the
         # Variational MOdel.
         em_hmm = hmm.MultinomialHMM(n_components=4, init_params="")
-        em_hmm.startprob_ = model.startprob_normalized_
-        em_hmm.transmat_ = model.transmat_normalized_
-        em_hmm.emissionprob_ = model.emissions_normalized_
+        em_hmm.startprob_ = model.startprob_
+        em_hmm.transmat_ = model.transmat_
+        em_hmm.emissionprob_ = model.emissionprob_
 
         compare_variational_and_em_models(model, em_hmm, sequences, lengths)
 
