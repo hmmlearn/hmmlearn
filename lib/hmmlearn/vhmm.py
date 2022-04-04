@@ -24,8 +24,8 @@ class VariationalCategoricalHMM(VariationalBaseHMM):
     Hidden Markov Model with categorical (discrete) emissions
     trained using Variational Inference.
 
-    Reference:
-    https://cse.buffalo.edu/faculty/mbeal/thesis/
+    References:
+        * https://cse.buffalo.edu/faculty/mbeal/thesis/
 
     Attributes
     ----------
@@ -121,14 +121,13 @@ class VariationalCategoricalHMM(VariationalBaseHMM):
         )
 
     def _get_n_fit_scalars_per_param(self):
-        """
-        Return a mapping of fittable parameter names (as in ``self.params``)
-        to the number of corresponding scalar parameters that will actually be
-        fitted.
-
-        This is used to detect whether the user did not pass enough data points
-        for a non-degenerate fit.
-        """
+        nc = self.n_components
+        nf = self.n_features
+        return {
+            "s": nc - 1,
+            "t": nc * (nc - 1),
+            "e": nc * (nf - 1),
+        }
 
     def _check(self):
         """
@@ -271,12 +270,17 @@ class VariationalCategoricalHMM(VariationalBaseHMM):
 
 class VariationalGaussianHMM(VariationalBaseHMM):
     """
-    Hidden Markov Model with categorical (discrete) emissions.
+    Hidden Markov Model with Multivariate Gaussian Emissions
+
+    References:
+        * https://arxiv.org/abs/1605.08618
+        * http://citeseerx.ist.psu.edu/viewdoc/summary?doi=10.1.1.61.3078
+        * https://theses.gla.ac.uk/6941/7/2005McGroryPhD.pdf
 
     Attributes
     ----------
     n_features_ : int
-        Number of possible symbols emitted by the model (in the samples).
+        Dimensionality of the Gaussian emissions.
 
     monitor_ : ConvergenceMonitor
         Monitor object used to check the convergence of EM.
@@ -287,8 +291,18 @@ class VariationalGaussianHMM(VariationalBaseHMM):
     transmat_ : array, shape (n_components, n_components)
         Matrix of transition probabilities between states.
 
-    emissionprob_ : array, shape (n_components, n_features_)
-        Probability of emitting a given symbol when in each state.
+    means_ : array, shape (n_components, n_features)
+        Mean parameters for each state.
+
+    covars_ : array
+        Covariance parameters for each state.
+
+        The shape depends on :attr:`covariance_type`:
+
+        * (n_components, )                        if "spherical",
+        * (n_components, n_features)              if "diag",
+        * (n_components, n_features, n_features)  if "full",
+        * (n_features, n_features)                if "tied".
 
     Examples
     --------
@@ -398,14 +412,19 @@ class VariationalGaussianHMM(VariationalBaseHMM):
             self.W_0_ = np.linalg.inv(self.W_0_inv_)
 
     def _get_n_fit_scalars_per_param(self):
-        """
-        Return a mapping of fittable parameter names (as in ``self.params``)
-        to the number of corresponding scalar parameters that will actually be
-        fitted.
-
-        This is used to detect whether the user did not pass enough data points
-        for a non-degenerate fit.
-        """
+        nc = self.n_components
+        nf = self.n_features
+        return {
+            "s": nc - 1,
+            "t": nc * (nc - 1),
+            "m": nc * nf,
+            "c": {
+                "spherical": nc,
+                "diag": nc * nf,
+                "full": nc * nf * (nf + 1) // 2,
+                "tied": nf * (nf + 1) // 2,
+            }[self.covariance_type],
+        }
 
     def _check(self):
         """
@@ -420,7 +439,7 @@ class VariationalGaussianHMM(VariationalBaseHMM):
         super()._check()
 
     def _compute_subnorm_log_likelihood(self, X):
-        # Refer to the Gruhl/ Sick paper:
+        # Refer to the Gruhl/Sick paper
         term1 = np.zeros_like(self.dof_posterior_, dtype=float)
         for d in range(1, self.n_features_+1):
             term1 += digamma(.5 * self.dof_posterior_ + 1 - d)
@@ -444,7 +463,6 @@ class VariationalGaussianHMM(VariationalBaseHMM):
         last_term = .5 * (dots + term3)
         lll = term1 - term2 - last_term
         return lll
-
 
     def _compute_log_likelihood(self, X):
         """Computes per-component probability under the model.
