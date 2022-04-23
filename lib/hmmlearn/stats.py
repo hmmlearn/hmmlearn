@@ -47,36 +47,35 @@ def log_multivariate_normal_density(X, means, covars, covariance_type='diag'):
 def _log_multivariate_normal_density_diag(X, means, covars):
     """Compute Gaussian log-density at X for a diagonal model."""
     # X: (ns, nf); means: (nc, nf); covars: (nc, nf) -> (ns, nc)
-    n_samples, n_dim = X.shape
+    nc, nf = means.shape
     # Avoid 0 log 0 = nan in degenerate covariance case.
     covars = np.maximum(covars, np.finfo(float).tiny)
     with np.errstate(over="ignore"):
-        return -0.5 * (n_dim * np.log(2 * np.pi)
+        return -0.5 * (nf * np.log(2 * np.pi)
                        + np.log(covars).sum(axis=-1)
                        + ((X[:, None, :] - means) ** 2 / covars).sum(axis=-1))
 
 
 def _log_multivariate_normal_density_spherical(X, means, covars):
     """Compute Gaussian log-density at X for a spherical model."""
-    cv = covars.copy()
+    nc, nf = means.shape
     if covars.ndim == 1:
-        cv = cv[:, np.newaxis]
-    if cv.shape[1] == 1:
-        cv = np.tile(cv, (1, X.shape[-1]))
-    return _log_multivariate_normal_density_diag(X, means, cv)
+        covars = covars[:, np.newaxis]
+    covars = np.broadcast_to(covars, (nc, nf))
+    return _log_multivariate_normal_density_diag(X, means, covars)
 
 
 def _log_multivariate_normal_density_tied(X, means, covars):
     """Compute Gaussian log-density at X for a tied model."""
-    cv = np.tile(covars, (means.shape[0], 1, 1))
+    nc, nf = means.shape
+    cv = np.broadcast_to(covars, (nc, nf, nf))
     return _log_multivariate_normal_density_full(X, means, cv)
 
 
 def _log_multivariate_normal_density_full(X, means, covars, min_covar=1.e-7):
     """Log probability for full covariance matrices."""
-    n_samples, n_dim = X.shape
-    nmix = len(means)
-    log_prob = np.empty((n_samples, nmix))
+    nc, nf = means.shape
+    log_prob = []
     for c, (mu, cv) in enumerate(zip(means, covars)):
         try:
             cv_chol = linalg.cholesky(cv, lower=True)
@@ -84,7 +83,7 @@ def _log_multivariate_normal_density_full(X, means, covars, min_covar=1.e-7):
             # The model is most probably stuck in a component with too
             # few observations, we need to reinitialize this components
             try:
-                cv_chol = linalg.cholesky(cv + min_covar * np.eye(n_dim),
+                cv_chol = linalg.cholesky(cv + min_covar * np.eye(nf),
                                           lower=True)
             except linalg.LinAlgError:
                 raise ValueError("'covars' must be symmetric, "
@@ -92,7 +91,8 @@ def _log_multivariate_normal_density_full(X, means, covars, min_covar=1.e-7):
 
         cv_log_det = 2 * np.sum(np.log(np.diagonal(cv_chol)))
         cv_sol = linalg.solve_triangular(cv_chol, (X - mu).T, lower=True).T
-        log_prob[:, c] = - .5 * (np.sum(cv_sol ** 2, axis=1) +
-                                 n_dim * np.log(2 * np.pi) + cv_log_det)
+        log_prob.append(-.5 * (nf * np.log(2 * np.pi)
+                               + (cv_sol ** 2).sum(axis=1)
+                               + cv_log_det))
 
-    return log_prob
+    return np.transpose(log_prob)
