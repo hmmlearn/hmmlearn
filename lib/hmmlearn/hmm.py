@@ -360,8 +360,7 @@ class MultinomialHMM(BaseHMM):
     MultinomialHMM(algorithm='viterbi',...
     """
 
-    # TODO: accept the prior on emissionprob_ for consistency.
-    def __init__(self, n_components=1,
+    def __init__(self, n_components=1, emissionprob_prior=None,
                  startprob_prior=1.0, transmat_prior=1.0,
                  algorithm="viterbi", random_state=None,
                  n_iter=10, tol=1e-2, verbose=False,
@@ -372,6 +371,9 @@ class MultinomialHMM(BaseHMM):
         ----------
         n_components : int
             Number of states.
+
+        emissionprob_prior : array, shape (n_components, n_features), optional
+            The prior on the emission parameters for each state.
 
         startprob_prior : array, shape (n_components, ), optional
             Parameters of the Dirichlet prior distribution for
@@ -418,6 +420,7 @@ class MultinomialHMM(BaseHMM):
                          n_iter=n_iter, tol=tol, verbose=verbose,
                          params=params, init_params=init_params,
                          implementation=implementation)
+        self.emissionprob_prior = emissionprob_prior
 
     score_samples, score, decode, predict, predict_proba, sample, fit = map(
         _multinomialhmm_fix_docstring_shape, [
@@ -444,9 +447,12 @@ class MultinomialHMM(BaseHMM):
         super()._init(X)
         self.random_state = check_random_state(self.random_state)
 
-        if 'e' in self.init_params:
-            self.emissionprob_ = self.random_state \
-                .rand(self.n_components, self.n_features)
+        if self._needs_init('e', 'emissionprob_'):
+            if self.emissionprob_prior is None:
+                self.emissionprob_ = self.random_state.rand(
+                    self.n_components, self.n_features)
+            else:
+                self.emissionprob_ = self.emissionprob_prior
             normalize(self.emissionprob_, axis=1)
 
     def _check(self):

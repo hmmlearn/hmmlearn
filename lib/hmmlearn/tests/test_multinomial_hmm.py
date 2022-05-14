@@ -138,6 +138,15 @@ class TestMultinomailHMM:
 
         assert_log_likelihood_increasing(h, X, lengths, n_iter)
 
+        # check with emissionprob_prior
+        emissionprob_prior = np.array([[0.3, 0.2, 0.5],
+                                       [0.5, 0.3, 0.2]])
+        h = hmm.MultinomialHMM(
+            self.n_components, params=params, init_params=params,
+            emissionprob_prior=emissionprob_prior)
+        h._init(X)
+        assert_allclose(h.emissionprob_, emissionprob_prior)
+
     @pytest.mark.parametrize("implementation", ["scaling", "log"])
     def test__check_and_set_multinomial_n_features(self, implementation):
         h = self.new_hmm(implementation)
