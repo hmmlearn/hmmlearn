@@ -360,7 +360,7 @@ class MultinomialHMM(BaseHMM):
     MultinomialHMM(algorithm='viterbi',...
     """
 
-    def __init__(self, n_components=1, emissionprob_prior=None,
+    def __init__(self, n_components=1, emissionprob_prior=1.0,
                  startprob_prior=1.0, transmat_prior=1.0,
                  algorithm="viterbi", random_state=None,
                  n_iter=10, tol=1e-2, verbose=False,
@@ -373,7 +373,8 @@ class MultinomialHMM(BaseHMM):
             Number of states.
 
         emissionprob_prior : array, shape (n_components, n_features), optional
-            The prior on the emission parameters for each state.
+            Parameters of the Dirichlet prior distribution for
+            :attr:`emissionprob_`.
 
         startprob_prior : array, shape (n_components, ), optional
             Parameters of the Dirichlet prior distribution for
@@ -448,11 +449,8 @@ class MultinomialHMM(BaseHMM):
         self.random_state = check_random_state(self.random_state)
 
         if self._needs_init('e', 'emissionprob_'):
-            if self.emissionprob_prior is None:
-                self.emissionprob_ = self.random_state.rand(
-                    self.n_components, self.n_features)
-            else:
-                self.emissionprob_ = self.emissionprob_prior
+            self.emissionprob_ = self.random_state.rand(
+                self.n_components, self.n_features)
             normalize(self.emissionprob_, axis=1)
 
     def _check(self):
@@ -492,8 +490,9 @@ class MultinomialHMM(BaseHMM):
     def _do_mstep(self, stats):
         super()._do_mstep(stats)
         if 'e' in self.params:
-            self.emissionprob_ = (
-                stats['obs'] / stats['obs'].sum(axis=1, keepdims=True))
+            self.emissionprob_ = np.maximum(
+                self.emissionprob_prior - 1 + stats['obs'],
+                0) / stats['obs'].sum(axis=1, keepdims=True)
 
     def _check_and_set_multinomial_n_features(self, X):
         """
