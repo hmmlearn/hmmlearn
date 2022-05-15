@@ -1173,7 +1173,7 @@ class PoissonHMM(BaseHMM):
         return random_state.poisson(self.lambdas_[state])
 
     def _compute_log_likelihood(self, X):
-        return np.array([np.sum(poisson.pmf(X, lambdas), axis=1)
+        return np.array([np.sum(poisson.logpmf(X, lambdas), axis=1)
                          for lambdas in self.lambdas_]).T
 
     def _compute_likelihood(self, X):
@@ -1190,14 +1190,12 @@ class PoissonHMM(BaseHMM):
                                           posteriors, fwdlattice, bwdlattice):
         super()._accumulate_sufficient_statistics(
             stats, obs, lattice, posteriors, fwdlattice, bwdlattice)
-        pdb.set_trace()
         if 'l' in self.params:
             stats['post'] += posteriors.sum(axis=0)
             stats['obs'] += np.dot(posteriors.T, obs)
 
     def _do_mstep(self, stats):
         super()._do_mstep(stats)
-        pdb.set_trace()
         if 'l' in self.params:
             self.lambdas_ = (
                 stats['obs'] / stats['obs'].sum(axis=1, keepdims=True))
