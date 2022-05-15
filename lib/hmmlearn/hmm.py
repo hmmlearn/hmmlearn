@@ -1141,13 +1141,9 @@ class PoissonHMM(BaseHMM):
         super()._init(X)
         self.random_state = check_random_state(self.random_state)
 
-        if self._needs_init('e', 'emissionprob_'):
-            if isinstance(self.lambda_prior, np.ndarray):
-                self.lambdas_ = self.lambda_prior
-            else:
-                self.lambdas_ = self.random_state.poisson(
-                    self.lambda_prior,
-                    size=(self.n_components, self.n_features))
+        if self._needs_init('l', 'lambdas_'):
+            self.lambdas_ = self.random_state.gamma(
+                shape=2, size=(self.n_components, self.n_features))
 
     def _get_n_fit_scalars_per_param(self):
         nc = self.n_components
@@ -1197,5 +1193,5 @@ class PoissonHMM(BaseHMM):
     def _do_mstep(self, stats):
         super()._do_mstep(stats)
         if 'l' in self.params:
-            self.lambdas_ = (
-                stats['obs'] / stats['obs'].sum(axis=1, keepdims=True))
+            self.lambdas_ = np.maximum(self.lambda_prior - 1 + stats['obs'],
+                                       0) / stats['post'][:, None]

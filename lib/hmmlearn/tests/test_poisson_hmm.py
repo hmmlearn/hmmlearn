@@ -35,7 +35,6 @@ class TestPoissonHMM:
         X, state_sequence = h.sample(n_samples)
         assert X.ndim == 2
         assert len(X) == len(state_sequence) == n_samples
-        assert len(np.unique(X)) == self.n_features
 
         ll, posteriors = h.score_samples(X)
         assert posteriors.shape == (n_samples, self.n_components)
@@ -55,7 +54,8 @@ class TestPoissonHMM:
         h.transmat_ = normalized(
             np.random.random((self.n_components, self.n_components)),
             axis=1)
-        h.lambdsa_ = np.random.rand((self.n_components, self.n_features))
+        h.lambdas_ = np.random.gamma(
+            shape=2, size=(self.n_components, self.n_features))
 
         assert_log_likelihood_increasing(h, X, lengths, n_iter)
 
