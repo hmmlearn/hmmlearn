@@ -360,8 +360,8 @@ class MultinomialHMM(BaseHMM):
     MultinomialHMM(algorithm='viterbi',...
     """
 
-    def __init__(self, n_components=1, emissionprob_prior=1.0,
-                 startprob_prior=1.0, transmat_prior=1.0,
+    def __init__(self, n_components=1, startprob_prior=1.0,
+                 transmat_prior=1.0, *, emissionprob_prior=1.0,
                  algorithm="viterbi", random_state=None,
                  n_iter=10, tol=1e-2, verbose=False,
                  params="ste", init_params="ste",
@@ -372,10 +372,6 @@ class MultinomialHMM(BaseHMM):
         n_components : int
             Number of states.
 
-        emissionprob_prior : array, shape (n_components, n_features), optional
-            Parameters of the Dirichlet prior distribution for
-            :attr:`emissionprob_`.
-
         startprob_prior : array, shape (n_components, ), optional
             Parameters of the Dirichlet prior distribution for
             :attr:`startprob_`.
@@ -383,6 +379,10 @@ class MultinomialHMM(BaseHMM):
         transmat_prior : array, shape (n_components, n_components), optional
             Parameters of the Dirichlet prior distribution for each row
             of the transition probabilities :attr:`transmat_`.
+
+        emissionprob_prior : array, shape (n_components, n_features), optional
+            Parameters of the Dirichlet prior distribution for
+            :attr:`emissionprob_`.
 
         algorithm : {"viterbi", "map"}, optional
             Decoder algorithm.
