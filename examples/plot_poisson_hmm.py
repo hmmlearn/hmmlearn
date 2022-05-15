@@ -1,106 +1,114 @@
 """
-Sampling from and decoding a Poisson HMM
-----------------------------------------
+Using a Hidden Markov Model with Poisson Emissions to Understand Earthquakes
+----------------------------------------------------------------------------
 
-This script shows how to sample points from a Poisson Hidden Markov Model
-(HMM) with three states:
-
-The plots show the sequence of observations generated with the transitions
-between them. We can see that, as specified by our transition matrix,
-there are no transition between component 1 and 3.
-
-Then, we decode our model to recover the input parameters.
+Let's look at data of magnitude 7+ earthquakes between 1900-2006 in the
+world collected by the US Geological Survey as described in this textbook:
+https://ayorho.files.wordpress.com/2011/05/chapter1.pdf. The goal is to
+see if we can separate out different tectonic processes that cause
+earthquakes based on their frequency of occurance. The idea is that each
+tectonic boundary may cause earthquakes with a particular distribution
+of waiting times depending on how active it is. This might tell help us
+predict future earthquake danger, espeically on a geological time scale.
 """
 
 import numpy as np
 import matplotlib.pyplot as plt
 
+from scipy.stats import poisson
 from hmmlearn import hmm
 
-# Prepare parameters for a 3-components HMM
-# Initial population probability
-startprob = np.array([0.6, 0.3, 0.1])
-# The transition matrix
-transmat = np.array([[0.1, 0.2, 0.7],
-                     [0.3, 0.5, 0.2],
-                     [0.5, 0.5, 0.0]])
-# The means of each component
-lambdas = np.array([[17.4, 22.1],
-                    [35.3, 60.8],
-                    [50.1, 12.9]])
+# earthquake data from http://earthquake.usgs.gov/
+earthquakes = np.array([
+    13, 14, 8, 10, 16, 26, 32, 27, 18, 32, 36, 24, 22, 23, 22, 18,
+    25, 21, 21, 14, 8, 11, 14, 23, 18, 17, 19, 20, 22, 19, 13, 26,
+    13, 14, 22, 24, 21, 22, 26, 21, 23, 24, 27, 41, 31, 27, 35, 26,
+    28, 36, 39, 21, 17, 22, 17, 19, 15, 34, 10, 15, 22, 18, 15, 20,
+    15, 22, 19, 16, 30, 27, 29, 23, 20, 16, 21, 21, 25, 16, 18, 15,
+    18, 14, 10, 15, 8, 15, 6, 11, 8, 7, 18, 16, 13, 12, 13, 20,
+    15, 16, 12, 18, 15, 16, 13, 15, 16, 11, 11])
 
-# Build an HMM instance and set parameters
-gen_model = hmm.PoissonHMM(n_components=3, random_state=99)
-
-# Instead of fitting it from the data, we directly set the estimated
-# parameters, the means and covariance of the components
-gen_model.startprob_ = startprob
-gen_model.transmat_ = transmat
-gen_model.lambdas_ = lambdas
-
-# Generate samples
-X, Z = gen_model.sample(500)
 
 # Plot the sampled data
 fig, ax = plt.subplots()
-ax.plot(X[:, 0], X[:, 1], ".-", label="observations", ms=6,
-        mfc="orange", alpha=0.7, linewidth=0.1)
-
-# Indicate the component numbers
-for i, m in enumerate(lambdas):
-    ax.text(m[0], m[1], 'Component %i' % (i + 1),
-            size=17, horizontalalignment='center',
-            bbox=dict(alpha=.7, facecolor='w'))
-ax.legend(loc='best')
+ax.plot(earthquakes, ".-", ms=6, mfc="orange", alpha=0.7)
+ax.set_xticks(range(0, earthquakes.size, 10))
+ax.set_xticklabels(range(1906, 2007, 10))
+ax.set_xlabel('Year')
+ax.set_ylabel('Count')
 fig.show()
 
 # %%
-# Now, let's ensure we can recover our parameters.
+# Now, fit a Poisson Hidden Markov Model to the data.
 
 scores = list()
 models = list()
-for idx in range(50):
-    # define our hidden Markov model
-    model = hmm.PoissonHMM(n_components=3, random_state=idx)
-    model.fit(X[:X.shape[0] // 2])  # 50/50 train/validate
-    models.append(model)
-    scores.append(model.score(X[X.shape[0] // 2:]))
-    print(f'Converged: {model.monitor_.converged}'
-          f'\tScore: {scores[-1]}')
+for n_components in range(1, 5):
+    for idx in range(50):
+        # define our hidden Markov model
+        model = hmm.PoissonHMM(n_components=3, random_state=idx)
+        model.fit(earthquakes[:, None])
+        models.append(model)
+        scores.append(model.score(earthquakes[:, None]))
+        print(f'Converged: {model.monitor_.converged}\t\t'
+              f'Score: {scores[-1]}')
 
 # get the best model
 model = models[np.argmax(scores)]
-print(f'The best model had a score of {max(scores)}')
+print(f'The best model had a score of {max(scores)} and '
+      f'{model.n_components} components')
 
 # use the Viterbi algorithm to predict the most likely sequence of states
 # given the model
-states = model.predict(X)
+states = model.predict(earthquakes[:, None])
 
 # %%
-# Let's plot our states compared to those generated and our transition matrix
-# to get a sense of our model. We can see that the recovered states follow
-# the same path as the generated states, just with the identities of the
-# states transposed (i.e. instead of following a square as in the first
-# figure, the nodes are switch around but this does not change the basic
-# pattern). The same is true for the transition matrix.
+# Let's plot the waiting times from our most likely series of states of
+# earthquake activity with the earthquake data. As we can see, the
+# model with the maximum likelihood had three states which may reflect
+# times of low, medium and high earthquake danger.
 
 # plot model states over time
 fig, ax = plt.subplots()
-ax.plot(Z, states)
+ax.plot(model.lambdas_[states], ".-", ms=6, mfc="orange")
+ax.plot(earthquakes)
 ax.set_title('States compared to generated')
-ax.set_xlabel('Generated State')
-ax.set_ylabel('Recovered State')
+ax.set_xlabel('State')
 fig.show()
 
-# plot the transition matrix
-fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(8, 5))
-ax1.imshow(gen_model.transmat_, aspect='auto', cmap='spring')
-ax1.set_title('Generated Transition Matrix')
-ax2.imshow(model.transmat_, aspect='auto', cmap='spring')
-ax2.set_title('Recovered Transition Matrix')
-for ax in (ax1, ax2):
-    ax.set_xlabel('State To')
-    ax.set_ylabel('State From')
+# %%
+# Fortunately, 2006 ended with a period of relative tectonic stability, and,
+# if we look at our transition matrix, we can see that the off-diagonal terms
+# are small, meaning that the state transitions are rare and it's unlikely that
+# there will be high earthquake danger in the near future. The transitions from
+# state 1, which has longest waiting time between earthquakes to state 2, which
+# has the shortest is 0.001, meaning that the years following 2006 are unlikely
+# to have more earthquakes than average.
 
-fig.tight_layout()
+fig, ax = plt.subplots()
+ax.imshow(model.transmat_, aspect='auto', cmap='spring')
+ax.set_title('Transition Matrix')
+ax.set_xlabel('State To')
+ax.set_ylabel('State From')
+fig.show()
+
+# %%
+# Finally, let's look at the distribution of earthquakes compared to our
+# waiting time parameter values. We can see that our model fits the
+# distribution fairly well, replicating results from the reference.
+
+# get probabilities for each state given the data, take the average
+# to find the proportion of time in that state
+prop_per_state = model.predict_proba(earthquakes[:, None]).mean(axis=0)
+
+# earthquake counts to plot
+bins = sorted(np.unique(earthquakes))
+
+fig, ax = plt.subplots()
+ax.hist(earthquakes, bins=bins, density=True)
+ax.plot(bins, np.dot(poisson.pmf(bins, model.lambdas_).T,
+                     prop_per_state[:, None]))
+ax.set_title('Histogram of Earthquakes with Fitted Poisson States')
+ax.set_xlabel('Number of Earthquakes')
+ax.set_ylabel('Proportion')
 fig.show()
