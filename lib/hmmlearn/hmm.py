@@ -430,6 +430,15 @@ class MultinomialHMM(BaseHMM):
             BaseHMM.fit,
         ])
 
+    def _get_n_fit_scalars_per_param(self):
+        nc = self.n_components
+        nf = self.n_features
+        return {
+            "s": nc - 1,
+            "t": nc * (nc - 1),
+            "e": nc * (nf - 1),
+        }
+
     def _init(self, X):
         self._check_and_set_multinomial_n_features(X)
         super()._init(X)
@@ -439,15 +448,6 @@ class MultinomialHMM(BaseHMM):
             self.emissionprob_ = self.random_state \
                 .rand(self.n_components, self.n_features)
             normalize(self.emissionprob_, axis=1)
-
-    def _get_n_fit_scalars_per_param(self):
-        nc = self.n_components
-        nf = self.n_features
-        return {
-            "s": nc - 1,
-            "t": nc * (nc - 1),
-            "e": nc * (nf - 1),
-        }
 
     def _check(self):
         super()._check()
