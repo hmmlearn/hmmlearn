@@ -195,16 +195,8 @@ class BaseHMM(BaseEstimator):
         self.tol = tol
         self.verbose = verbose
         self.implementation = implementation
-        self.monitor_ = ConvergenceMonitor(self.tol, self.n_iter, self.verbose)
+        self.monitor_ = ConvergenceMonitor(self.tol, self.n_iter, self.verbose)        
 
-    def _get_n_fit_scalars_per_param(self):
-        nc = self.n_components
-        nf = self.n_features
-        return {
-            "s": nc - 1,
-            "t": nc * (nc - 1),
-            "e": nc * (nf - 1),
-        }
 
     def get_stationary_distribution(self):
         """Compute the stationary distribution of states."""
@@ -620,6 +612,13 @@ class BaseHMM(BaseEstimator):
         This is used to detect whether the user did not pass enough data points
         for a non-degenerate fit.
         """
+        nc = self.n_components
+        nf = self.n_features
+        return {
+            "s": nc - 1,
+            "t": nc * (nc - 1),
+            "e": nc * (nf - 1),
+        }
 
     def _init(self, X):
         """

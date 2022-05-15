@@ -440,6 +440,15 @@ class MultinomialHMM(BaseHMM):
                 .rand(self.n_components, self.n_features)
             normalize(self.emissionprob_, axis=1)
 
+    def _get_n_fit_scalars_per_param(self):
+        nc = self.n_components
+        nf = self.n_features
+        return {
+            "s": nc - 1,
+            "t": nc * (nc - 1),
+            "e": nc * (nf - 1),
+        }
+
     def _check(self):
         super()._check()
 
@@ -1067,7 +1076,7 @@ class PoissonHMM(BaseHMM):
                  startprob_prior=1.0, transmat_prior=1.0,
                  algorithm="viterbi", random_state=None,
                  n_iter=10, tol=1e-2, verbose=False,
-                 params="ste", init_params="ste",
+                 params="stl", init_params="stl",
                  implementation="log"):
         """
         Parameters
@@ -1134,48 +1143,61 @@ class PoissonHMM(BaseHMM):
 
         if self._needs_init('e', 'emissionprob_'):
             if isinstance(self.lambda_prior, np.ndarray):
-                self.emissionprob_ = self.lambda_prior
+                self.lambdas_ = self.lambda_prior
             else:
-                self.emissionprob_ = self.random_state.random.poisson(
+                self.lambdas_ = self.random_state.poisson(
                     self.lambda_prior,
                     size=(self.n_components, self.n_features))
+
+    def _get_n_fit_scalars_per_param(self):
+        nc = self.n_components
+        nf = self.n_features
+        return {
+            "s": nc - 1,
+            "t": nc * (nc - 1),
+            "l": nc * (nf - 1),
+        }
 
     def _check(self):
         super()._check()
 
-        self.emissionprob_ = np.atleast_2d(self.emissionprob_)
-        n_features = getattr(self, "n_features", self.emissionprob_.shape[1])
-        if self.emissionprob_.shape != (self.n_components, n_features):
+        self.lambdas_ = np.atleast_2d(self.lambdas_)
+        n_features = getattr(self, "n_features", self.lambdas_.shape[1])
+        if self.lambdas_.shape != (self.n_components, n_features):
             raise ValueError(
-                "emissionprob_ must have shape (n_components, n_features)")
-        self._check_sum_1("emissionprob_")
+                "lambdas_ must have shape (n_components, n_features)")
         self.n_features = n_features
 
+    def _generate_sample_from_state(self, state, random_state=None):
+        random_state = check_random_state(random_state)
+        return random_state.poisson(self.lambdas_[state])
+
     def _compute_log_likelihood(self, X):
-        return poisson.logpmf(self.emissionprob_)[:, np.concatenate(X)].T
+        return np.array([np.sum(poisson.pmf(X, lambdas), axis=1)
+                         for lambdas in self.lambdas_]).T
 
     def _compute_likelihood(self, X):
-        return self.emissionprob_[:, np.concatenate(X)].T
-
-    def _generate_sample_from_state(self, state, random_state=None):
-        cdf = np.cumsum(self.emissionprob_[state, :])
-        random_state = check_random_state(random_state)
-        return [(cdf > random_state.rand()).argmax()]
+        return np.array([np.prod(poisson.pmf(X, lambdas), axis=1)
+                         for lambdas in self.lambdas_]).T
 
     def _initialize_sufficient_statistics(self):
         stats = super()._initialize_sufficient_statistics()
+        stats['post'] = np.zeros(self.n_components)
         stats['obs'] = np.zeros((self.n_components, self.n_features))
         return stats
 
-    def _accumulate_sufficient_statistics(self, stats, X, lattice,
+    def _accumulate_sufficient_statistics(self, stats, obs, lattice,
                                           posteriors, fwdlattice, bwdlattice):
         super()._accumulate_sufficient_statistics(
-            stats, X, lattice, posteriors, fwdlattice, bwdlattice)
-        if 'e' in self.params:
-            np.add.at(stats['obs'].T, np.concatenate(X), posteriors)
+            stats, obs, lattice, posteriors, fwdlattice, bwdlattice)
+        pdb.set_trace()
+        if 'l' in self.params:
+            stats['post'] += posteriors.sum(axis=0)
+            stats['obs'] += np.dot(posteriors.T, obs)
 
     def _do_mstep(self, stats):
         super()._do_mstep(stats)
-        if 'e' in self.params:
-            self.emissionprob_ = (
+        pdb.set_trace()
+        if 'l' in self.params:
+            self.lambdas_ = (
                 stats['obs'] / stats['obs'].sum(axis=1, keepdims=True))

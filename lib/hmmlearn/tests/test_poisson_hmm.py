@@ -16,25 +16,23 @@ class TestPoissonHMM:
         h = hmm.PoissonHMM(self.n_components, implementation=impl)
         h.startprob_ = np.array([0.6, 0.4])
         h.transmat_ = np.array([[0.7, 0.3], [0.4, 0.6]])
-        h.emissionprob_ = np.array([[0.1, 0.4, 0.5], [0.6, 0.3, 0.1]])
+        h.lambdas_ = np.array([[0.1, 0.4, 0.5], [0.6, 0.3, 0.1]])
         return h
 
     @pytest.mark.parametrize("implementation", ["scaling", "log"])
     def test_attributes(self, implementation):
         with pytest.raises(ValueError):
             h = self.new_hmm(implementation)
-            h.emissionprob_ = []
+            h.lambdas_ = []
             h._check()
         with pytest.raises(ValueError):
-            h.emissionprob_ = np.zeros((self.n_components - 2,
-                                        self.n_features))
+            h.lambdas_ = np.zeros((self.n_components - 2, self.n_features))
             h._check()
 
     @pytest.mark.parametrize("implementation", ["scaling", "log"])
     def test_score_samples(self, implementation, n_samples=10):
         rng = np.random.default_rng(0)
         lambdas = rng.random(size=(self.n_components, self.n_features)) * 5
-        X = np.random.poisson(lambdas, size=(n_samples, self.n_features))
         h = self.new_hmm(implementation)
 
         ll, posteriors = h.score_samples(X)

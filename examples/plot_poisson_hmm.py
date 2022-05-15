@@ -1,11 +1,11 @@
 """
-Sampling from and decoding an HMM
----------------------------------
+Sampling from and decoding a Poisson HMM
+----------------------------------------
 
-This script shows how to sample points from a Hidden Markov Model (HMM):
-we use a 4-state model with specified mean and covariance.
+This script shows how to sample points from a Poisson Hidden Markov Model
+(HMM) with three states:
 
-The plot shows the sequence of observations generated with the transitions
+The plots show the sequence of observations generated with the transitions
 between them. We can see that, as specified by our transition matrix,
 there are no transition between component 1 and 3.
 
@@ -17,32 +17,26 @@ import matplotlib.pyplot as plt
 
 from hmmlearn import hmm
 
-# Prepare parameters for a 4-components HMM
+# Prepare parameters for a 3-components HMM
 # Initial population probability
-startprob = np.array([0.6, 0.3, 0.1, 0.0])
-# The transition matrix, note that there are no transitions possible
-# between component 1 and 3
-transmat = np.array([[0.7, 0.2, 0.0, 0.1],
-                     [0.3, 0.5, 0.2, 0.0],
-                     [0.0, 0.3, 0.5, 0.2],
-                     [0.2, 0.0, 0.2, 0.6]])
+startprob = np.array([0.6, 0.3, 0.1])
+# The transition matrix
+transmat = np.array([[0.1, 0.2, 0.7],
+                     [0.3, 0.5, 0.2],
+                     [0.5, 0.5, 0.0]])
 # The means of each component
-means = np.array([[0.0, 0.0],
-                  [0.0, 11.0],
-                  [9.0, 10.0],
-                  [11.0, -1.0]])
-# The covariance of each component
-covars = .5 * np.tile(np.identity(2), (4, 1, 1))
+lambdas = np.array([[17.4, 22.1],
+                    [35.3, 60.8],
+                    [50.1, 12.9]])
 
 # Build an HMM instance and set parameters
-gen_model = hmm.GaussianHMM(n_components=4, covariance_type="full")
+gen_model = hmm.PoissonHMM(n_components=3, random_state=99)
 
 # Instead of fitting it from the data, we directly set the estimated
 # parameters, the means and covariance of the components
 gen_model.startprob_ = startprob
 gen_model.transmat_ = transmat
-gen_model.means_ = means
-gen_model.covars_ = covars
+gen_model.lambdas_ = lambdas
 
 # Generate samples
 X, Z = gen_model.sample(500)
@@ -50,10 +44,10 @@ X, Z = gen_model.sample(500)
 # Plot the sampled data
 fig, ax = plt.subplots()
 ax.plot(X[:, 0], X[:, 1], ".-", label="observations", ms=6,
-        mfc="orange", alpha=0.7)
+        mfc="orange", alpha=0.7, linewidth=0.1)
 
 # Indicate the component numbers
-for i, m in enumerate(means):
+for i, m in enumerate(lambdas):
     ax.text(m[0], m[1], 'Component %i' % (i + 1),
             size=17, horizontalalignment='center',
             bbox=dict(alpha=.7, facecolor='w'))
@@ -65,10 +59,9 @@ fig.show()
 
 scores = list()
 models = list()
-for n_components in (3, 4, 5):
+for idx in range(50):
     # define our hidden Markov model
-    model = hmm.GaussianHMM(n_components=n_components,
-                            covariance_type='full', n_iter=10)
+    model = hmm.PoissonHMM(n_components=3, random_state=idx)
     model.fit(X[:X.shape[0] // 2])  # 50/50 train/validate
     models.append(model)
     scores.append(model.score(X[X.shape[0] // 2:]))
@@ -77,9 +70,7 @@ for n_components in (3, 4, 5):
 
 # get the best model
 model = models[np.argmax(scores)]
-n_states = model.n_components
-print(f'The best model had a score of {max(scores)} and {n_states} '
-      'states')
+print(f'The best model had a score of {max(scores)}')
 
 # use the Viterbi algorithm to predict the most likely sequence of states
 # given the model
