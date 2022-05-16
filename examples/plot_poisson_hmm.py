@@ -45,9 +45,10 @@ fig.show()
 scores = list()
 models = list()
 for n_components in range(1, 5):
-    for idx in range(100):
+    for idx in range(10):
         # define our hidden Markov model
-        model = hmm.PoissonHMM(n_components=n_components, random_state=idx)
+        model = hmm.PoissonHMM(n_components=n_components, random_state=idx,
+                               n_iter=100)
         model.fit(earthquakes[:, None])
         models.append(model)
         scores.append(model.score(earthquakes[:, None]))

@@ -1210,8 +1210,8 @@ class PoissonHMM(BaseHMM):
             # Based on: Hyvönen & Tolonen, "Bayesian Inference 2019"
             # section 3.2
             # https://vioshyvo.github.io/Bayesian_inference
-            alpha, beta = self.lambdas_prior, self.lambdas_weight
+            alphas, betas = self.lambdas_prior, self.lambdas_weight
             n = stats['nobs']
-            kappa = beta / (beta + n)
+            kappas = betas / (betas + n)
             y_bar = stats['obs'] / stats['post'][:, None]
-            self.lambdas_ = kappa * (alpha / beta) + (1 - kappa) * y_bar
+            self.lambdas_ = kappas * (alphas / betas) + (1 - kappas) * y_bar

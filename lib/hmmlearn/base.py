@@ -513,6 +513,7 @@ class BaseHMM(BaseEstimator):
                     stats, sub_X, lattice, posteriors, fwdlattice,
                     bwdlattice)
                 curr_log_prob += log_prob
+            stats['nobs'] = iter + 1
 
             # XXX must be before convergence check, because otherwise
             #     there won't be any updates for the case ``n_iter=1``.
@@ -796,7 +797,6 @@ class BaseHMM(BaseEstimator):
         Implementation of `_accumulate_sufficient_statistics`
         for ``implementation = "log"``.
         """
-        stats['nobs'] += 1
         if 's' in self.params:
             stats['start'] += posteriors[0]
         if 't' in self.params:
@@ -815,7 +815,6 @@ class BaseHMM(BaseEstimator):
         Implementation of `_accumulate_sufficient_statistics`
         for ``implementation = "log"``.
         """
-        stats['nobs'] += 1
         if 's' in self.params:
             stats['start'] += posteriors[0]
         if 't' in self.params:
