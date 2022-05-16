@@ -3,12 +3,16 @@ hmmlearn Changelog
 
 Here you can see the full list of changes between each hmmlearn release.
 
+Next
+----
+
+- The ``PoissonHMM`` class was added with an example use case.
+
 Version 0.2.7
 -------------
 
 Released on February 10th, 2022.
 
-- The ``PoissonHMM`` class was added with an example use case.
 - Dropped support for Py3.5 (due to the absence of manylinux wheel supporting
   both Py3.5 and Py3.10).
 - ``_BaseHMM`` has been promoted to public API and has been renamed to

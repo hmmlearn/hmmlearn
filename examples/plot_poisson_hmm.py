@@ -4,7 +4,8 @@ Using a Hidden Markov Model with Poisson Emissions to Understand Earthquakes
 
 Let's look at data of magnitude 7+ earthquakes between 1900-2006 in the
 world collected by the US Geological Survey as described in this textbook:
-https://ayorho.files.wordpress.com/2011/05/chapter1.pdf. The goal is to
+Zucchini & MacDonald, "Hidden Markov Models for Time Series"
+(https://ayorho.files.wordpress.com/2011/05/chapter1.pdf). The goal is to
 see if we can separate out different tectonic processes that cause
 earthquakes based on their frequency of occurance. The idea is that each
 tectonic boundary may cause earthquakes with a particular distribution
@@ -44,9 +45,9 @@ fig.show()
 scores = list()
 models = list()
 for n_components in range(1, 5):
-    for idx in range(50):
+    for idx in range(100):
         # define our hidden Markov model
-        model = hmm.PoissonHMM(n_components=3, random_state=idx)
+        model = hmm.PoissonHMM(n_components=n_components, random_state=idx)
         model.fit(earthquakes[:, None])
         models.append(model)
         scores.append(model.score(earthquakes[:, None]))
@@ -65,8 +66,8 @@ states = model.predict(earthquakes[:, None])
 # %%
 # Let's plot the waiting times from our most likely series of states of
 # earthquake activity with the earthquake data. As we can see, the
-# model with the maximum likelihood had three states which may reflect
-# times of low, medium and high earthquake danger.
+# model with the maximum likelihood had different states which may reflect
+# times of varying earthquake danger.
 
 # plot model states over time
 fig, ax = plt.subplots()
@@ -74,23 +75,18 @@ ax.plot(model.lambdas_[states], ".-", ms=6, mfc="orange")
 ax.plot(earthquakes)
 ax.set_title('States compared to generated')
 ax.set_xlabel('State')
-fig.show()
 
 # %%
 # Fortunately, 2006 ended with a period of relative tectonic stability, and,
 # if we look at our transition matrix, we can see that the off-diagonal terms
 # are small, meaning that the state transitions are rare and it's unlikely that
-# there will be high earthquake danger in the near future. The transitions from
-# state 1, which has longest waiting time between earthquakes to state 2, which
-# has the shortest is 0.001, meaning that the years following 2006 are unlikely
-# to have more earthquakes than average.
+# there will be high earthquake danger in the near future.
 
 fig, ax = plt.subplots()
 ax.imshow(model.transmat_, aspect='auto', cmap='spring')
 ax.set_title('Transition Matrix')
 ax.set_xlabel('State To')
 ax.set_ylabel('State From')
-fig.show()
 
 # %%
 # Finally, let's look at the distribution of earthquakes compared to our
@@ -111,4 +107,5 @@ ax.plot(bins, np.dot(poisson.pmf(bins, model.lambdas_).T,
 ax.set_title('Histogram of Earthquakes with Fitted Poisson States')
 ax.set_xlabel('Number of Earthquakes')
 ax.set_ylabel('Proportion')
-fig.show()
+
+plt.show()

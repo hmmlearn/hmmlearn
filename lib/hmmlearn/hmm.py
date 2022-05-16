@@ -1072,8 +1072,9 @@ class PoissonHMM(BaseHMM):
         feature in a given state.
     """
 
-    def __init__(self, n_components=1, lambda_prior=1.0,
-                 startprob_prior=1.0, transmat_prior=1.0,
+    def __init__(self, n_components=1, startprob_prior=1.0,
+                 transmat_prior=1.0, lambdas_prior=None,
+                 lambdas_weight=None,
                  algorithm="viterbi", random_state=None,
                  n_iter=10, tol=1e-2, verbose=False,
                  params="stl", init_params="stl",
@@ -1084,11 +1085,6 @@ class PoissonHMM(BaseHMM):
         n_components : int
             Number of states.
 
-        lambda_prior : float, array, shape (n_components, n_features), optional
-            The prior on the lambda values. Either an array with lambda
-            values for each component and feature or a lambda value with which
-            to generate random values from a Poisson distribution.
-
         startprob_prior : array, shape (n_components, ), optional
             Parameters of the Dirichlet prior distribution for
             :attr:`startprob_`.
@@ -1096,6 +1092,11 @@ class PoissonHMM(BaseHMM):
         transmat_prior : array, shape (n_components, n_components), optional
             Parameters of the Dirichlet prior distribution for each row
             of the transition probabilities :attr:`transmat_`.
+
+        lambdas_prior, lambdas_weight : array, shape (n_components,), optional
+            The gamma prior on the lambda values using alpha-beta notation,
+            respectivley. If None, will be set based on the method of
+            moments.
 
         algorithm : {"viterbi", "map"}, optional
             Decoder algorithm.
@@ -1118,8 +1119,8 @@ class PoissonHMM(BaseHMM):
         params, init_params : string, optional
             The parameters that get updated during (``params``) or initialized
             before (``init_params``) the training.  Can contain any
-            combination of 's' for startprob, 't' for transmat, and 'e' for
-            emissionprob.  Defaults to all parameters.
+            combination of 's' for startprob, 't' for transmat, and 'l' for
+            lambdas.  Defaults to all parameters.
 
         implementation: string, optional
             Determines if the forward-backward algorithm is implemented with
@@ -1134,16 +1135,28 @@ class PoissonHMM(BaseHMM):
                          n_iter=n_iter, tol=tol, verbose=verbose,
                          params=params, init_params=init_params,
                          implementation=implementation)
-        self.lambda_prior = lambda_prior
+        self.lambdas_prior = lambdas_prior
+        self.lambdas_weight = lambdas_weight
 
     def _init(self, X):
         _check_and_set_n_features(self, X)
         super()._init(X)
         self.random_state = check_random_state(self.random_state)
 
+        exp_X = X.mean()
+        var_X = X.var()
+
         if self._needs_init('l', 'lambdas_'):
+            # initialize with method of moments based on X
             self.lambdas_ = self.random_state.gamma(
-                shape=2, size=(self.n_components, self.n_features))
+                shape=exp_X**2 / var_X,
+                scale=var_X / exp_X,  # numpy uses theta = 1 / beta
+                size=(self.n_components, self.n_features))
+
+        if self.lambdas_prior is None:
+            self.lambdas_prior = exp_X**2 / var_X
+        if self.lambdas_weight is None:
+            self.lambdas_weight = exp_X / var_X  # use beta notation here
 
     def _get_n_fit_scalars_per_param(self):
         nc = self.n_components
@@ -1192,6 +1205,13 @@ class PoissonHMM(BaseHMM):
 
     def _do_mstep(self, stats):
         super()._do_mstep(stats)
+
         if 'l' in self.params:
-            self.lambdas_ = np.maximum(self.lambda_prior - 1 + stats['obs'],
-                                       0) / stats['post'][:, None]
+            # Based on: Hyvönen & Tolonen, "Bayesian Inference 2019"
+            # section 3.2
+            # https://vioshyvo.github.io/Bayesian_inference
+            alpha, beta = self.lambdas_prior, self.lambdas_weight
+            n = stats['nobs']
+            kappa = beta / (beta + n)
+            y_bar = stats['obs'] / stats['post'][:, None]
+            self.lambdas_ = kappa * (alpha / beta) + (1 - kappa) * y_bar
