@@ -51,6 +51,7 @@ class TestPoissonHMM:
         X, _state_sequence = h.sample(lengths.sum())
 
         # Mess up the parameters and see if we can re-learn them.
+        np.random.seed(0)
         h.startprob_ = normalized(np.random.random(self.n_components))
         h.transmat_ = normalized(
             np.random.random((self.n_components, self.n_components)),
