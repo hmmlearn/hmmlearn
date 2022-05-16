@@ -33,7 +33,7 @@ from hmmlearn import hmm
 gen_model = hmm.MultinomialHMM(n_components=2, random_state=99)
 
 # the first state is the fair die so let's start there so no one
-# catches on rigth away
+# catches on right away
 gen_model.startprob_ = np.array([1.0, 0.0])
 
 # now let's say that we sneak the loaded die in:
@@ -95,16 +95,14 @@ for idx in range(n_fits):
     # we need to initialize with random transition matrix probabilities
     # because the default is an even likelihood transition
     # we know transitions are rare (otherwise the casino would get caught!)
-    # so let's have an uniform random prior distribution on our transitions
-    # between 0 and 0.25 to train our model faster (than uniform random 0 to 1)
-    fair_to_loaded = np.random.random() / 4
-    loaded_to_fair = np.random.random() / 4
-    model.transmat_ = np.array([[1 - fair_to_loaded, fair_to_loaded],
-                                [loaded_to_fair, 1 - loaded_to_fair]])
+    # so let's have an Dirichlet random prior with an alpha value of
+    # (0.1, 0.9) to enforce our assumption transitions happen roughly 10%
+    # of the time
+    model.transmat_ = np.array([np.random.dirichlet([0.9, 0.1]),
+                                np.random.dirichlet([0.1, 0.9])])
     model.fit(X_train)
     score = model.score(X_validate)
     print(f'Model #{idx}\tScore: {score}')
-    idx += 1
     if best_score is None or score > best_score:
         best_model = model
         best_score = score
