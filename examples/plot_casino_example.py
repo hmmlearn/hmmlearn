@@ -87,7 +87,7 @@ gen_score = gen_model.score(X_validate)
 
 best_score = best_model = None
 n_fits = 50
-rng = np.random.default_rng(13)
+np.random.seed(13)
 for idx in range(n_fits):
     model = hmm.MultinomialHMM(
         n_components=2, random_state=idx,
@@ -98,8 +98,8 @@ for idx in range(n_fits):
     # so let's have an Dirichlet random prior with an alpha value of
     # (0.1, 0.9) to enforce our assumption transitions happen roughly 10%
     # of the time
-    model.transmat_ = np.array([rng.dirichlet([0.9, 0.1]),
-                                rng.dirichlet([0.1, 0.9])])
+    model.transmat_ = np.array([np.random.dirichlet([0.9, 0.1]),
+                                np.random.dirichlet([0.1, 0.9])])
     model.fit(X_train)
     score = model.score(X_validate)
     print(f'Model #{idx}\tScore: {score}')
