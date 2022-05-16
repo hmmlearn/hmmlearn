@@ -8,6 +8,10 @@ Next
 
 - The ``PoissonHMM`` class was added with an example use case.
 
+- ``startmat_`` and ``transmat_`` will both be initialized with random
+  variables drawn from a Dirichlet distribution, to maintain the old
+  behavior, these must be initialized as ``1 / n_components``.
+
 Version 0.2.7
 -------------
 
