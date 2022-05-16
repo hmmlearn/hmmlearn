@@ -13,7 +13,8 @@ class TestPoissonHMM:
     n_features = 3
 
     def new_hmm(self, impl):
-        h = hmm.PoissonHMM(self.n_components, implementation=impl)
+        h = hmm.PoissonHMM(self.n_components, implementation=impl,
+                           random_state=0)
         h.startprob_ = np.array([0.6, 0.4])
         h.transmat_ = np.array([[0.7, 0.3], [0.4, 0.6]])
         h.lambdas_ = np.array([[3.1, 1.4, 4.5], [1.6, 5.3, 0.1]])
