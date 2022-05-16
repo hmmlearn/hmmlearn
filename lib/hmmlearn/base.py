@@ -502,6 +502,7 @@ class BaseHMM(BaseEstimator):
         }[self.implementation]
         for iter in range(self.n_iter):
             stats = self._initialize_sufficient_statistics()
+            stats['nobs'] = iter + 1
             curr_log_prob = 0
             for sub_X in _utils.split_X_lengths(X, lengths):
                 lattice, log_prob, posteriors, fwdlattice, bwdlattice = \
@@ -513,7 +514,6 @@ class BaseHMM(BaseEstimator):
                     stats, sub_X, lattice, posteriors, fwdlattice,
                     bwdlattice)
                 curr_log_prob += log_prob
-            stats['nobs'] = iter + 1
 
             # XXX must be before convergence check, because otherwise
             #     there won't be any updates for the case ``n_iter=1``.
