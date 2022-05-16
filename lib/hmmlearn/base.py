@@ -502,7 +502,6 @@ class BaseHMM(BaseEstimator):
         }[self.implementation]
         for iter in range(self.n_iter):
             stats = self._initialize_sufficient_statistics()
-            stats['nobs'] = iter + 1
             curr_log_prob = 0
             for sub_X in _utils.split_X_lengths(X, lengths):
                 lattice, log_prob, posteriors, fwdlattice, bwdlattice = \
@@ -797,6 +796,7 @@ class BaseHMM(BaseEstimator):
         Implementation of `_accumulate_sufficient_statistics`
         for ``implementation = "log"``.
         """
+        stats['nobs'] += 1
         if 's' in self.params:
             stats['start'] += posteriors[0]
         if 't' in self.params:
@@ -815,6 +815,7 @@ class BaseHMM(BaseEstimator):
         Implementation of `_accumulate_sufficient_statistics`
         for ``implementation = "log"``.
         """
+        stats['nobs'] += 1
         if 's' in self.params:
             stats['start'] += posteriors[0]
         if 't' in self.params:
