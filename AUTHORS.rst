@@ -25,3 +25,4 @@ Authors and contributors, in no particular order:
 * Alexandr Yanenko
 * Antony Lee
 * Matthew Danielson
+* Alex Rockhill

@@ -5,7 +5,7 @@ Sampling from and decoding an HMM
 This script shows how to sample points from a Hidden Markov Model (HMM):
 we use a 4-state model with specified mean and covariance.
 
-The plot show the sequence of observations generated with the transitions
+The plot shows the sequence of observations generated with the transitions
 between them. We can see that, as specified by our transition matrix,
 there are no transition between component 1 and 3.
 

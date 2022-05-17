@@ -3,6 +3,11 @@ hmmlearn Changelog
 
 Here you can see the full list of changes between each hmmlearn release.
 
+Next
+----
+
+- The ``PoissonHMM`` class was added with an example use case.
+
 Version 0.2.7
 -------------
 

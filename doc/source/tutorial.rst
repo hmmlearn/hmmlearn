@@ -218,7 +218,7 @@ GaussianHMM(...
 Implementing HMMs with custom emission probabilities
 ----------------------------------------------------
 
-If you want to implement a custom emission probability (e.g. Poisson), you have to
+If you want to implement a custom emission probability (e.g. Cauchy), you have to
 subclass :class:`~.BaseHMM` and override the following methods
 
 .. currentmodule:: hmmlearn.base
