@@ -1143,20 +1143,20 @@ class PoissonHMM(BaseHMM):
         super()._init(X)
         self.random_state = check_random_state(self.random_state)
 
-        exp_X = X.mean()
+        mean_X = X.mean()
         var_X = X.var()
 
         if self._needs_init('l', 'lambdas_'):
             # initialize with method of moments based on X
             self.lambdas_ = self.random_state.gamma(
-                shape=exp_X**2 / var_X,
-                scale=var_X / exp_X,  # numpy uses theta = 1 / beta
+                shape=mean_X**2 / var_X,
+                scale=var_X / mean_X,  # numpy uses theta = 1 / beta
                 size=(self.n_components, self.n_features))
 
         if self.lambdas_prior is None:
-            self.lambdas_prior = exp_X**2 / var_X
+            self.lambdas_prior = mean_X**2 / var_X
         if self.lambdas_weight is None:
-            self.lambdas_weight = exp_X / var_X  # use beta notation here
+            self.lambdas_weight = mean_X / var_X  # use beta notation here
 
     def _get_n_fit_scalars_per_param(self):
         nc = self.n_components
