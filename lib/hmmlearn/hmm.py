@@ -1164,7 +1164,7 @@ class PoissonHMM(BaseHMM):
         return {
             "s": nc - 1,
             "t": nc * (nc - 1),
-            "l": nc * (nf - 1),
+            "l": nc * nf,
         }
 
     def _check(self):
