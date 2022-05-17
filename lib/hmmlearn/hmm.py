@@ -1191,7 +1191,6 @@ class PoissonHMM(BaseHMM):
 
     def _initialize_sufficient_statistics(self):
         stats = super()._initialize_sufficient_statistics()
-        stats['nsamples'] = 0
         stats['post'] = np.zeros(self.n_components)
         stats['obs'] = np.zeros((self.n_components, self.n_features))
         return stats
@@ -1201,7 +1200,6 @@ class PoissonHMM(BaseHMM):
         super()._accumulate_sufficient_statistics(
             stats, obs, lattice, posteriors, fwdlattice, bwdlattice)
         if 'l' in self.params:
-            stats['nsamples'] += obs.shape[0]
             stats['post'] += posteriors.sum(axis=0)
             stats['obs'] += np.dot(posteriors.T, obs)
 
@@ -1213,7 +1211,10 @@ class PoissonHMM(BaseHMM):
             # section 3.2
             # https://vioshyvo.github.io/Bayesian_inference
             alphas, betas = self.lambdas_prior, self.lambdas_weight
-            n = stats['nsamples']
-            kappas = betas / (betas + n)
-            y_bar = stats['obs'] / stats['post'][:, None]
-            self.lambdas_ = kappas * (alphas / betas) + (1 - kappas) * y_bar
+            # the same as kappa notation (more intuitive) but avoids divide by
+            # 0, where:
+            # kappas = betas / (betas + stats['post'][:, None])
+            # self.lambdas_ = \
+            #     kappas * (alphas / betas) + (1 - kappas) * stats['obs']
+            self.lambdas_ = \
+                (alphas + stats['obs']) / (betas + stats['post'][:, None])
