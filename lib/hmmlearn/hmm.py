@@ -1215,7 +1215,6 @@ class PoissonHMM(BaseHMM):
             y_bar = stats['obs'] / stats['post'][:, None]
             # the same as kappa notation (more intuitive) but avoids divide by
             # 0, where:
-            # kappas = betas / (betas + stats['post'][:, None])
-            # self.lambdas_ = \
-            #     kappas * (alphas / betas) + (1 - kappas) * stats['obs']
+            # kappas = betas / (betas + n)
+            # self.lambdas_ = kappas * (alphas / betas) + (1 - kappas) * y_bar
             self.lambdas_ = (alphas + n * y_bar) / (betas + n)
