@@ -1211,10 +1211,11 @@ class PoissonHMM(BaseHMM):
             # section 3.2
             # https://vioshyvo.github.io/Bayesian_inference
             alphas, betas = self.lambdas_prior, self.lambdas_weight
+            n = stats['post'].sum()
+            y_bar = stats['obs'] / stats['post'][:, None]
             # the same as kappa notation (more intuitive) but avoids divide by
             # 0, where:
             # kappas = betas / (betas + stats['post'][:, None])
             # self.lambdas_ = \
             #     kappas * (alphas / betas) + (1 - kappas) * stats['obs']
-            self.lambdas_ = \
-                (alphas + stats['obs']) / (betas + stats['post'][:, None])
+            self.lambdas_ = (alphas + n * y_bar) / (betas + n)
