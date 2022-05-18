@@ -227,8 +227,7 @@ class GaussianHMM(BaseHMM):
         return log_multivariate_normal_density(
             X, self.means_, self._covars_, self.covariance_type)
 
-    def _generate_sample_from_state(self, state, random_state=None):
-        random_state = check_random_state(random_state)
+    def _generate_sample_from_state(self, state, random_state):
         return random_state.multivariate_normal(
             self.means_[state], self.covars_[state]
         )
@@ -478,8 +477,7 @@ class MultinomialHMM(BaseHMM):
             logprobs.append(score)
         return np.vstack(logprobs).T
 
-    def _generate_sample_from_state(self, state, random_state=None):
-        random_state = check_random_state(random_state)
+    def _generate_sample_from_state(self, state, random_state):
         sample = multinomial.rvs(
             n=self.n_trials, p=self.emissionprob_[state, :],
             size=1, random_state=self.random_state)
@@ -666,9 +664,8 @@ class CategoricalHMM(BaseHMM):
     def _compute_likelihood(self, X):
         return self.emissionprob_[:, np.concatenate(X)].T
 
-    def _generate_sample_from_state(self, state, random_state=None):
+    def _generate_sample_from_state(self, state, random_state):
         cdf = np.cumsum(self.emissionprob_[state, :])
-        random_state = check_random_state(random_state)
         return [(cdf > random_state.rand()).argmax()]
 
     def _initialize_sufficient_statistics(self):
@@ -1062,11 +1059,7 @@ class GMMHMM(BaseHMM):
                         _log.warning("Covariance of state #%d, mixture #%d "
                                      "has a null eigenvalue.", i, j)
 
-    def _generate_sample_from_state(self, state, random_state=None):
-        if random_state is None:
-            random_state = self.random_state
-        random_state = check_random_state(random_state)
-
+    def _generate_sample_from_state(self, state, random_state):
         cur_weights = self.weights_[state]
         i_gauss = random_state.choice(self.n_mix, p=cur_weights)
         if self.covariance_type == 'tied':
@@ -1373,8 +1366,7 @@ class PoissonHMM(BaseHMM):
                 "lambdas_ must have shape (n_components, n_features)")
         self.n_features = n_features
 
-    def _generate_sample_from_state(self, state, random_state=None):
-        random_state = check_random_state(random_state)
+    def _generate_sample_from_state(self, state, random_state):
         return random_state.poisson(self.lambdas_[state])
 
     def _compute_log_likelihood(self, X):
