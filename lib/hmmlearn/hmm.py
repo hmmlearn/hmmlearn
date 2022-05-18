@@ -1073,8 +1073,8 @@ class PoissonHMM(BaseHMM):
     """
 
     def __init__(self, n_components=1, startprob_prior=1.0,
-                 transmat_prior=1.0, lambdas_prior=None,
-                 lambdas_weight=None,
+                 transmat_prior=1.0, lambdas_prior=0.0,
+                 lambdas_weight=0.0,
                  algorithm="viterbi", random_state=None,
                  n_iter=10, tol=1e-2, verbose=False,
                  params="stl", init_params="stl",
@@ -1153,11 +1153,6 @@ class PoissonHMM(BaseHMM):
                 scale=var_X / mean_X,  # numpy uses theta = 1 / beta
                 size=(self.n_components, self.n_features))
 
-        if self.lambdas_prior is None:
-            self.lambdas_prior = mean_X**2 / var_X
-        if self.lambdas_weight is None:
-            self.lambdas_weight = mean_X / var_X  # use beta notation here
-
     def _get_n_fit_scalars_per_param(self):
         nc = self.n_components
         nf = self.n_features
@@ -1191,7 +1186,6 @@ class PoissonHMM(BaseHMM):
 
     def _initialize_sufficient_statistics(self):
         stats = super()._initialize_sufficient_statistics()
-        stats['nsamples'] = 0
         stats['post'] = np.zeros(self.n_components)
         stats['obs'] = np.zeros((self.n_components, self.n_features))
         return stats
@@ -1201,7 +1195,6 @@ class PoissonHMM(BaseHMM):
         super()._accumulate_sufficient_statistics(
             stats, obs, lattice, posteriors, fwdlattice, bwdlattice)
         if 'l' in self.params:
-            stats['nsamples'] += obs.shape[0]
             stats['post'] += posteriors.sum(axis=0)
             stats['obs'] += np.dot(posteriors.T, obs)
 
@@ -1213,7 +1206,10 @@ class PoissonHMM(BaseHMM):
             # section 3.2
             # https://vioshyvo.github.io/Bayesian_inference
             alphas, betas = self.lambdas_prior, self.lambdas_weight
-            n = stats['nsamples']
-            kappas = betas / (betas + n)
+            n = stats['post'].sum()
             y_bar = stats['obs'] / stats['post'][:, None]
-            self.lambdas_ = kappas * (alphas / betas) + (1 - kappas) * y_bar
+            # the same as kappa notation (more intuitive) but avoids divide by
+            # 0, where:
+            # kappas = betas / (betas + n)
+            # self.lambdas_ = kappas * (alphas / betas) + (1 - kappas) * y_bar
+            self.lambdas_ = (alphas + n * y_bar) / (betas + n)
