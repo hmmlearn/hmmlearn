@@ -1073,8 +1073,8 @@ class PoissonHMM(BaseHMM):
     """
 
     def __init__(self, n_components=1, startprob_prior=1.0,
-                 transmat_prior=1.0, lambdas_prior=None,
-                 lambdas_weight=None,
+                 transmat_prior=1.0, lambdas_prior=0.0,
+                 lambdas_weight=0.0,
                  algorithm="viterbi", random_state=None,
                  n_iter=10, tol=1e-2, verbose=False,
                  params="stl", init_params="stl",
@@ -1152,11 +1152,6 @@ class PoissonHMM(BaseHMM):
                 shape=mean_X**2 / var_X,
                 scale=var_X / mean_X,  # numpy uses theta = 1 / beta
                 size=(self.n_components, self.n_features))
-
-        if self.lambdas_prior is None:
-            self.lambdas_prior = mean_X**2 / var_X
-        if self.lambdas_weight is None:
-            self.lambdas_weight = mean_X / var_X  # use beta notation here
 
     def _get_n_fit_scalars_per_param(self):
         nc = self.n_components
