@@ -491,8 +491,8 @@ class MultinomialHMM(BaseHMM):
         super()._do_mstep(stats)
         if 'e' in self.params:
             self.emissionprob_ = np.maximum(
-                self.emissionprob_prior - 1 + stats['obs'],
-                0) / stats['obs'].sum(axis=1, keepdims=True)
+                self.emissionprob_prior - 1 + stats['obs'], 0)
+            normalize(self.emissionprob_, axis=1)
 
     def _check_and_set_multinomial_n_features(self, X):
         """
