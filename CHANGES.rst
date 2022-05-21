@@ -7,6 +7,8 @@ Next
 ----
 
 - The ``PoissonHMM`` class was added with an example use case.
+- For ``MultinomialHMM``, parameters after ``transmat_prior`` are now
+  keyword-only.
 
 Version 0.2.7
 -------------
