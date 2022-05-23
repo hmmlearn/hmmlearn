@@ -622,11 +622,13 @@ class BaseHMM(BaseEstimator):
             Feature matrix of individual samples.
         """
         init = 1. / self.n_components
+        random_state = check_random_state(self.random_state)
         if self._needs_init("s", "startprob_"):
-            self.startprob_ = np.full(self.n_components, init)
+            self.startprob_ = random_state.dirichlet(
+                np.full(self.n_components, init))
         if self._needs_init("t", "transmat_"):
-            self.transmat_ = np.full((self.n_components, self.n_components),
-                                     init)
+            self.transmat_ = random_state.dirichlet(
+                np.full(self.n_components, init), size=self.n_components)
         n_fit_scalars_per_param = self._get_n_fit_scalars_per_param()
         if n_fit_scalars_per_param is not None:
             n_fit_scalars = sum(

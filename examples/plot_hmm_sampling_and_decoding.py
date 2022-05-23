@@ -66,14 +66,16 @@ fig.show()
 scores = list()
 models = list()
 for n_components in (3, 4, 5):
-    # define our hidden Markov model
-    model = hmm.GaussianHMM(n_components=n_components,
-                            covariance_type='full', n_iter=10)
-    model.fit(X[:X.shape[0] // 2])  # 50/50 train/validate
-    models.append(model)
-    scores.append(model.score(X[X.shape[0] // 2:]))
-    print(f'Converged: {model.monitor_.converged}'
-          f'\tScore: {scores[-1]}')
+    for idx in range(10):
+        # define our hidden Markov model
+        model = hmm.GaussianHMM(n_components=n_components,
+                                covariance_type='full',
+                                random_state=idx)
+        model.fit(X[:X.shape[0] // 2])  # 50/50 train/validate
+        models.append(model)
+        scores.append(model.score(X[X.shape[0] // 2:]))
+        print(f'Converged: {model.monitor_.converged}'
+              f'\tScore: {scores[-1]}')
 
 # get the best model
 model = models[np.argmax(scores)]

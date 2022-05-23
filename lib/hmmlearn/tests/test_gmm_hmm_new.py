@@ -218,16 +218,23 @@ class TestGMMHMM_MultiSequence:
 
     @pytest.mark.parametrize("covtype",
                              ["diag", "spherical", "tied", "full"])
-    def test_chunked(sellf, covtype):
+    def test_chunked(sellf, covtype, init_params='mcw'):
         np.random.seed(0)
         gmm = create_random_gmm(3, 2, covariance_type=covtype, prng=0)
         gmm.covariances_ = gmm.covars_
         data = gmm.sample(n_samples=1000)[0]
 
         model1 = GMMHMM(n_components=3, n_mix=2, covariance_type=covtype,
-                        random_state=1)
+                        random_state=1, init_params=init_params)
         model2 = GMMHMM(n_components=3, n_mix=2, covariance_type=covtype,
-                        random_state=1)
+                        random_state=1, init_params=init_params)
+        # don't use random parameters for testing
+        init = 1. / model1.n_components
+        for model in (model1, model2):
+            model.startprob_ = np.full(model.n_components, init)
+            model.transmat_ = \
+                np.full((model.n_components, model.n_components), init)
+
         model1.fit(data)
         model2.fit(data, lengths=[200] * 5)
 

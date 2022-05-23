@@ -154,7 +154,8 @@ class GaussianHMMTestMixin:
         h.fit(X)
 
     @pytest.mark.parametrize("implementation", ["scaling", "log"])
-    def test_fit_with_priors(self, implementation, params='stmc', n_iter=5):
+    def test_fit_with_priors(self, implementation, init_params='mc',
+                             params='stmc', n_iter=5):
         startprob_prior = 10 * self.startprob + 2.0
         transmat_prior = 10 * self.transmat + 2.0
         means_prior = self.means
@@ -183,7 +184,14 @@ class GaussianHMMTestMixin:
         # Re-initialize the parameters and check that we can converge to
         # the original parameter values.
         h_learn = hmm.GaussianHMM(self.n_components, self.covariance_type,
-                                  params=params, implementation=implementation)
+                                  init_params=init_params, params=params,
+                                  implementation=implementation,)
+        # don't use random parameters for testing
+        init = 1. / h_learn.n_components
+        h_learn.startprob_ = np.full(h_learn.n_components, init)
+        h_learn.transmat_ = \
+            np.full((h_learn.n_components, h_learn.n_components), init)
+
         h_learn.n_iter = 0
         h_learn.fit(X, lengths=lengths)
 

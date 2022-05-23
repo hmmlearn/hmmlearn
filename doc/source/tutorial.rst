@@ -96,7 +96,7 @@ Traceback (most recent call last):
 sklearn.exceptions.NotFittedError: This GaussianHMM instance is not fitted yet. Call 'fit' with appropriate arguments before using this method.
 
 Fixing parameters
-`````````````````
+-----------------
 
 Each HMM parameter has a character code which can be used to customize its
 initialization and estimation.  The EM algorithm needs a starting point to
@@ -155,7 +155,7 @@ GaussianHMM(...
  * :ref:`sphx_glr_auto_examples_casino_example.py`
 
 Monitoring convergence
-``````````````````````
+----------------------
 
 The number of EM algorithm iterations is upper bounded by the ``n_iter``
 parameter. The training proceeds until ``n_iter`` steps were performed or the
@@ -168,7 +168,7 @@ You can use the :attr:`~.BaseHMM.monitor_` attribute to diagnose convergence:
 >>> remodel.monitor_
 ConvergenceMonitor(
     history=[...],
-    iter=10,
+    iter=15,
     n_iter=100,
     tol=0.01,
     verbose=False,
@@ -179,7 +179,7 @@ True
 .. _multiple_sequences:
 
 Working with multiple sequences
-```````````````````````````````
+-------------------------------
 
 All of the examples so far were using a single sequence of observations.
 The input format in the case of multiple sequences is a bit involved and
