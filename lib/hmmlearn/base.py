@@ -711,7 +711,7 @@ class BaseHMM(BaseEstimator):
         else:
             raise NotImplementedError("Must be overridden in subclass")
 
-    def _generate_sample_from_state(self, state, random_state=None):
+    def _generate_sample_from_state(self, state, random_state):
         """
         Generate a random sample from a given component.
 
@@ -719,9 +719,9 @@ class BaseHMM(BaseEstimator):
         ----------
         state : int
             Index of the component to condition on.
-        random_state: RandomState or an int seed
-            A random number generator instance. If ``None``, the object's
-            ``random_state`` is used.
+        random_state: RandomState
+            A random number generator instance.  (`sample` is the only caller
+            for this method and already normalizes *random_state*.)
 
         Returns
         -------
