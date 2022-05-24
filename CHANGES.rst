@@ -16,6 +16,7 @@ Next
   what it actually implements), and a new ``MultinomialHMM`` class was
   introduced (with a warning) that actually implements a multinomial
   distribution.
+- ``hmmlearn.utils.log_mask_zero`` has been deprecated.
 
 Version 0.2.7
 -------------

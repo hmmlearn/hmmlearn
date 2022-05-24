@@ -86,6 +86,9 @@ def log_mask_zero(a):
 
     This function masks this unharmful warning.
     """
+    warnings.warn(
+        "log_mask_zero is deprecated and will be removed in the future.",
+        DeprecationWarning, stacklevel=2)
     a = np.asarray(a)
     with np.errstate(divide="ignore"):
         return np.log(a)

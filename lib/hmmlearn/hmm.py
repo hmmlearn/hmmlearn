@@ -15,7 +15,7 @@ from sklearn.utils import check_random_state
 from . import _utils
 from .stats import log_multivariate_normal_density
 from .base import BaseHMM
-from .utils import fill_covars, log_mask_zero, log_normalize, normalize
+from .utils import fill_covars, log_normalize, normalize
 
 
 __all__ = [
@@ -229,8 +229,7 @@ class GaussianHMM(BaseHMM):
 
     def _generate_sample_from_state(self, state, random_state):
         return random_state.multivariate_normal(
-            self.means_[state], self.covars_[state]
-        )
+            self.means_[state], self.covars_[state])
 
     def _initialize_sufficient_statistics(self):
         stats = super()._initialize_sufficient_statistics()
@@ -410,10 +409,6 @@ class MultinomialHMM(BaseHMM):
             "https://github.com/hmmlearn/hmmlearn/issues/335\n"
             "https://github.com/hmmlearn/hmmlearn/issues/340")
 
-    # From the API: Return a mapping of fittable parameter names
-    # (as in self.params) to the number of corresponding scalar parameters
-    # that will actually be fitted. This is used to detect whether the user
-    # did not pass enough data points for a non-degenerate fit.
     def _get_n_fit_scalars_per_param(self):
         nc = self.n_components
         nf = self.n_features
@@ -657,9 +652,6 @@ class CategoricalHMM(BaseHMM):
                 "emissionprob_ must have shape (n_components, n_features)")
         self._check_sum_1("emissionprob_")
         self.n_features = n_features
-
-    def _compute_log_likelihood(self, X):
-        return log_mask_zero(self.emissionprob_)[:, np.concatenate(X)].T
 
     def _compute_likelihood(self, X):
         return self.emissionprob_[:, np.concatenate(X)].T
@@ -1340,7 +1332,7 @@ class PoissonHMM(BaseHMM):
         mean_X = X.mean()
         var_X = X.var()
 
-        if self._needs_init('l', 'lambdas_'):
+        if self._needs_init("l", "lambdas_"):
             # initialize with method of moments based on X
             self.lambdas_ = self.random_state.gamma(
                 shape=mean_X**2 / var_X,

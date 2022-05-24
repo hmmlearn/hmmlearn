@@ -658,8 +658,8 @@ class BaseHMM(BaseEstimator):
             Log probability of each sample in ``X`` for each of the
             model states.
         """
-        if self._compute_log_likelihood != \
-            BaseHMM._compute_log_likelihood.__get__(self):  # prevent recursion
+        if (self._compute_log_likelihood  # prevent recursion
+                != BaseHMM._compute_log_likelihood.__get__(self)):
             return np.exp(self._compute_log_likelihood(X))
         else:
             raise NotImplementedError("Must be overridden in subclass")
@@ -679,9 +679,12 @@ class BaseHMM(BaseEstimator):
             Emission log probability of each sample in ``X`` for each of the
             model states, i.e., ``log(p(X|state))``.
         """
-        if self._compute_likelihood != \
-            BaseHMM._compute_likelihood.__get__(self):  # prevent recursion
-            return np.log(self._compute_likelihood(X))
+        if (self._compute_likelihood  # prevent recursion
+                != BaseHMM._compute_likelihood.__get__(self)):
+            likelihood = self._compute_likelihood(X)
+            # Probabilities equal to zero do occur, and log(0) = -inf is OK.
+            with np.errstate(divide="ignore"):
+                return np.log(likelihood)
         else:
             raise NotImplementedError("Must be overridden in subclass")
 
