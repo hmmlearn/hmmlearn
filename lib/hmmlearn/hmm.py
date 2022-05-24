@@ -8,7 +8,7 @@ import logging
 
 import numpy as np
 from scipy import linalg, special
-from scipy.stats import poisson
+from scipy.stats import multinomial, poisson
 from sklearn import cluster
 from sklearn.utils import check_random_state
 
@@ -17,7 +17,10 @@ from .stats import log_multivariate_normal_density
 from .base import BaseHMM
 from .utils import fill_covars, log_mask_zero, log_normalize, normalize
 
-__all__ = ["GMMHMM", "GaussianHMM", "MultinomialHMM", "PoissonHMM"]
+
+__all__ = [
+    "GMMHMM", "GaussianHMM", "CategoricalHMM", "MultinomialHMM", "PoissonHMM",
+]
 
 
 _log = logging.getLogger(__name__)
@@ -308,33 +311,9 @@ class GaussianHMM(BaseHMM):
                                      (cvweight + stats['post'][:, None, None]))
 
 
-_MULTINOMIALHMM_DOC_SUFFIX = """
-
-Notes
------
-Unlike other HMM classes, `MultinomialHMM` ``X`` arrays have shape
-``(n_samples, 1)`` (instead of ``(n_samples, n_features)``).  Consider using
-`sklearn.preprocessing.LabelEncoder` to transform your input to the right
-format.
-"""
-
-
-def _multinomialhmm_fix_docstring_shape(func):
-    doc = inspect.getdoc(func)
-    if doc is None:
-        wrapper = func
-    else:
-        wrapper = functools.wraps(func)(
-            lambda *args, **kwargs: func(*args, **kwargs))
-        wrapper.__doc__ = (
-            doc.replace("(n_samples, n_features)", "(n_samples, 1)")
-            + _MULTINOMIALHMM_DOC_SUFFIX)
-    return wrapper
-
-
 class MultinomialHMM(BaseHMM):
     """
-    Hidden Markov Model with multinomial (discrete) emissions.
+    Hidden Markov Model with multinomial emissions
 
     Attributes
     ----------
@@ -356,8 +335,225 @@ class MultinomialHMM(BaseHMM):
     Examples
     --------
     >>> from hmmlearn.hmm import MultinomialHMM
-    >>> MultinomialHMM(n_components=2)  #doctest: +ELLIPSIS
-    MultinomialHMM(algorithm='viterbi',...
+    """
+
+    def __init__(self, n_components=1, n_trials=None,
+                 startprob_prior=1.0, transmat_prior=1.0,
+                 algorithm="viterbi", random_state=None,
+                 n_iter=10, tol=1e-2, verbose=False,
+                 params="ste", init_params="ste",
+                 implementation="log"):
+        """
+        Parameters
+        ----------
+        n_components : int
+            Number of states
+
+        n_trials : int
+            Number of trials
+            for now assume all samples have the same n_trials
+
+        startprob_prior : array, shape (n_components, ), optional
+            Parameters of the Dirichlet prior distribution for
+            :attr:`startprob_`.
+
+        transmat_prior : array, shape (n_components, n_components), optional
+            Parameters of the Dirichlet prior distribution for each row
+            of the transition probabilities :attr:`transmat_`.
+
+        algorithm : {"viterbi", "map"}, optional
+            Decoder algorithm.
+
+        random_state: RandomState or an int seed, optional
+            A random number generator instance.
+
+        n_iter : int, optional
+            Maximum number of iterations to perform.
+
+        tol : float, optional
+            Convergence threshold. EM will stop if the gain in log-likelihood
+            is below this value.
+
+        verbose : bool, optional
+            Whether per-iteration convergence reports are printed to
+            :data:`sys.stderr`.  Convergence can also be diagnosed using the
+            :attr:`monitor_` attribute.
+
+        params, init_params : string, optional
+            The parameters that get updated during (``params``) or initialized
+            before (``init_params``) the training.  Can contain any
+            combination of 's' for startprob, 't' for transmat, and 'e' for
+            emissionprob.  Defaults to all parameters.
+
+        implementation: string, optional
+            Determines if the forward-backward algorithm is implemented with
+            logarithms ("log"), or using scaling ("scaling").  The default is
+            to use logarithms for backwards compatability.
+        """
+        BaseHMM.__init__(self, n_components,
+                         startprob_prior=startprob_prior,
+                         transmat_prior=transmat_prior,
+                         algorithm=algorithm,
+                         random_state=random_state,
+                         n_iter=n_iter, tol=tol, verbose=verbose,
+                         params=params, init_params=init_params,
+                         implementation=implementation)
+        self.n_trials = n_trials
+
+        _log.warning(
+            "MultinomialHMM has undergone major changes. "
+            "The previous version was implementing CategoricalHMM "
+            "(a special case of MultinomialHMM). "
+            "This new implementation follows the standard definition for "
+            "a Multinomial distribution, e.g. as in "
+            "https://en.wikipedia.org/wiki/Multinomial_distribution"
+            "See these issues for details:\n"
+            "https://github.com/hmmlearn/hmmlearn/issues/335\n"
+            "https://github.com/hmmlearn/hmmlearn/issues/340")
+
+    # From the API: Return a mapping of fittable parameter names
+    # (as in self.params) to the number of corresponding scalar parameters
+    # that will actually be fitted. This is used to detect whether the user
+    # did not pass enough data points for a non-degenerate fit.
+    def _get_n_fit_scalars_per_param(self):
+        nc = self.n_components
+        nf = self.n_features
+        return {
+            "s": nc - 1,
+            "t": nc * (nc - 1),
+            "e": nc * (nf - 1),
+        }
+
+    def _check_and_set_multinomial_n_features_n_trials(self, X):
+        """
+        Check if ``X`` is a sample from a multinomial distribution, i.e. an
+        array of non-negative integers, summing up to n_trials.
+        """
+        n_samples, n_features = X.shape
+        self.n_features = n_features
+
+        if not np.issubdtype(X.dtype, np.integer) or X.min() < 0:
+            raise ValueError("Symbol counts should be nonnegative integers")
+
+        sample_n_trials = X.sum(axis=1)[0]
+        if self.n_trials is None:
+            self.n_trials = sample_n_trials
+
+        if not (X.sum(axis=1) == self.n_trials).all():
+            raise ValueError("Total count for each sample should add up to "
+                             "the number of trials")
+
+    def _init(self, X):
+        self._check_and_set_multinomial_n_features_n_trials(X)
+        super()._init(X)
+        self.random_state = check_random_state(self.random_state)
+        if 'e' in self.init_params:
+            self.emissionprob_ = self.random_state \
+                .rand(self.n_components, self.n_features)
+            normalize(self.emissionprob_, axis=1)
+
+    def _check(self):
+        super()._check()
+        self.emissionprob_ = np.atleast_2d(self.emissionprob_)
+        n_features = getattr(self, "n_features", self.emissionprob_.shape[1])
+        if self.emissionprob_.shape != (self.n_components, n_features):
+            raise ValueError(
+                "emissionprob_ must have shape (n_components, n_features)")
+        else:
+            self.n_features = n_features
+
+    def _compute_likelihood(self, X):
+        probs = []
+        for component in range(self.n_components):
+            score = multinomial.pmf(
+                X, n=self.n_trials, p=self.emissionprob_[component, :])
+            probs.append(score)
+        return np.vstack(probs).T
+
+    def _compute_log_likelihood(self, X):
+        logprobs = []
+        for component in range(self.n_components):
+            score = multinomial.logpmf(
+                X, n=self.n_trials, p=self.emissionprob_[component, :])
+            logprobs.append(score)
+        return np.vstack(logprobs).T
+
+    def _generate_sample_from_state(self, state, random_state=None):
+        random_state = check_random_state(random_state)
+        sample = multinomial.rvs(
+            n=self.n_trials, p=self.emissionprob_[state, :],
+            size=1, random_state=self.random_state)
+        return sample.squeeze(0)  # shape (1, nf) -> (nf,)
+
+    def _initialize_sufficient_statistics(self):
+        stats = super()._initialize_sufficient_statistics()
+        stats['obs'] = np.zeros((self.n_components, self.n_features))
+        return stats
+
+    def _accumulate_sufficient_statistics(self, stats, X, framelogprob,
+                                          posteriors, fwdlattice, bwdlattice):
+        super()._accumulate_sufficient_statistics(
+            stats, X, framelogprob, posteriors, fwdlattice, bwdlattice)
+        if 'e' in self.params:
+            stats['obs'] += np.dot(posteriors.T, X)
+
+    def _do_mstep(self, stats):
+        super()._do_mstep(stats)
+        if 'e' in self.params:
+            self.emissionprob_ = (
+                stats['obs'] / stats['obs'].sum(axis=1, keepdims=True))
+
+
+_CATEGORICALHMM_DOC_SUFFIX = """
+
+Notes
+-----
+Unlike other HMM classes, `CategoricalHMM` ``X`` arrays have shape
+``(n_samples, 1)`` (instead of ``(n_samples, n_features)``).  Consider using
+`sklearn.preprocessing.LabelEncoder` to transform your input to the right
+format.
+"""
+
+
+def _categoricalhmm_fix_docstring_shape(func):
+    doc = inspect.getdoc(func)
+    if doc is None:
+        wrapper = func
+    else:
+        wrapper = functools.wraps(func)(
+            lambda *args, **kwargs: func(*args, **kwargs))
+        wrapper.__doc__ = (
+            doc.replace("(n_samples, n_features)", "(n_samples, 1)")
+            + _CATEGORICALHMM_DOC_SUFFIX)
+    return wrapper
+
+
+class CategoricalHMM(BaseHMM):
+    """
+    Hidden Markov Model with categorical (discrete) emissions.
+
+    Attributes
+    ----------
+    n_features : int
+        Number of possible symbols emitted by the model (in the samples).
+
+    monitor_ : ConvergenceMonitor
+        Monitor object used to check the convergence of EM.
+
+    startprob_ : array, shape (n_components, )
+        Initial state occupation distribution.
+
+    transmat_ : array, shape (n_components, n_components)
+        Matrix of transition probabilities between states.
+
+    emissionprob_ : array, shape (n_components, n_features)
+        Probability of emitting a given symbol when in each state.
+
+    Examples
+    --------
+    >>> from hmmlearn.hmm import CategoricalHMM
+    >>> CategoricalHMM(n_components=2)  #doctest: +ELLIPSIS
+    CategoricalHMM(algorithm='viterbi',...
     """
 
     def __init__(self, n_components=1, startprob_prior=1.0,
@@ -424,7 +620,7 @@ class MultinomialHMM(BaseHMM):
         self.emissionprob_prior = emissionprob_prior
 
     score_samples, score, decode, predict, predict_proba, sample, fit = map(
-        _multinomialhmm_fix_docstring_shape, [
+        _categoricalhmm_fix_docstring_shape, [
             BaseHMM.score_samples,
             BaseHMM.score,
             BaseHMM.decode,
@@ -444,7 +640,7 @@ class MultinomialHMM(BaseHMM):
         }
 
     def _init(self, X):
-        self._check_and_set_multinomial_n_features(X)
+        self._check_and_set_categorical_n_features(X)
         super()._init(X)
         self.random_state = check_random_state(self.random_state)
 
@@ -494,9 +690,9 @@ class MultinomialHMM(BaseHMM):
                 self.emissionprob_prior - 1 + stats['obs'], 0)
             normalize(self.emissionprob_, axis=1)
 
-    def _check_and_set_multinomial_n_features(self, X):
+    def _check_and_set_categorical_n_features(self, X):
         """
-        Check if ``X`` is a sample from a multinomial distribution, i.e. an
+        Check if ``X`` is a sample from a categorical distribution, i.e. an
         array of non-negative integers.
         """
         if not np.issubdtype(X.dtype, np.integer):
