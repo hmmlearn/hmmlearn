@@ -25,7 +25,7 @@ def log_multivariate_normal_density(X, means, covars, covariance_type='diag'):
         * (n_components, n_features, n_features)  if "full",
         * (n_features, n_features)                if "tied".
 
-    covariance_type : {"sperical", "diag", "full", "tied"}, optional
+    covariance_type : {"spherical", "diag", "full", "tied"}, optional
         The type of the covariance parameters.  Defaults to 'diag'.
 
     Returns
