@@ -4,6 +4,7 @@ import pytest
 from scipy import special
 
 from hmmlearn.base import BaseHMM, ConvergenceMonitor
+from hmmlearn import _hmmc
 
 
 class TestMonitor:
@@ -76,7 +77,8 @@ class TestBaseAgainstWikipedia:
 
     def test_do_forward_scaling_pass(self):
         log_prob, fwdlattice, scaling_factors = \
-            self.hmm._do_forward_scaling_pass(self.frameprob)
+            _hmmc.forward_scaling(self.hmm.startprob_, self.hmm.transmat_,
+            self.frameprob)
         ref_log_prob = -3.3725
         assert round(log_prob, 4) == ref_log_prob
         reffwdlattice = np.exp([[0.4500, 0.1000],
@@ -88,7 +90,8 @@ class TestBaseAgainstWikipedia:
 
     def test_do_forward_pass(self):
         log_prob, fwdlattice = \
-            self.hmm._do_forward_log_pass(self.log_frameprob)
+            _hmmc.forward_log(self.hmm.startprob_, self.hmm.transmat_,
+            self.log_frameprob)
         ref_log_prob = -3.3725
         assert round(log_prob, 4) == ref_log_prob
         reffwdlattice = np.array([[0.4500, 0.1000],
@@ -100,9 +103,10 @@ class TestBaseAgainstWikipedia:
 
     def test_do_backward_scaling_pass(self):
         log_prob, fwdlattice, scaling_factors = \
-            self.hmm._do_forward_scaling_pass(self.frameprob)
-        bwdlattice = self.hmm._do_backward_scaling_pass(
-            self.frameprob, scaling_factors)
+            _hmmc.forward_scaling(self.hmm.startprob_, self.hmm.transmat_,
+            self.frameprob)
+        bwdlattice = _hmmc.backward_scaling(self.hmm.startprob_,
+            self.hmm.transmat_, self.frameprob, scaling_factors)
         refbwdlattice = np.array([[0.0661, 0.0455],
                                   [0.0906, 0.1503],
                                   [0.4593, 0.2437],
@@ -114,7 +118,8 @@ class TestBaseAgainstWikipedia:
         assert_allclose(bwdlattice_scaled, refbwdlattice, 4)
 
     def test_do_backward_log_pass(self):
-        bwdlattice = self.hmm._do_backward_log_pass(self.log_frameprob)
+        bwdlattice = _hmmc.backward_log(self.hmm.startprob_,
+            self.hmm.transmat_, self.log_frameprob)
         refbwdlattice = np.array([[0.0661, 0.0455],
                                   [0.0906, 0.1503],
                                   [0.4593, 0.2437],
@@ -124,7 +129,8 @@ class TestBaseAgainstWikipedia:
 
     def test_do_viterbi_pass(self):
         log_prob, state_sequence = \
-            self.hmm._do_viterbi_pass(self.log_frameprob)
+            _hmmc.viterbi(self.hmm.startprob_, self.hmm.transmat_,
+            self.log_frameprob)
         refstate_sequence = [0, 0, 1, 0, 0]
         assert_allclose(state_sequence, refstate_sequence)
         ref_log_prob = -4.4590
