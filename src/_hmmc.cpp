@@ -1,8 +1,7 @@
 #include <pybind11/pybind11.h>
 #include <pybind11/numpy.h>
-#include <limits>
-#include <iostream>
 #include <cfenv>
+#include <limits>
 
 namespace py = pybind11;
 using ssize_t = Py_ssize_t;
@@ -28,43 +27,20 @@ double logsumexp(double const* v, ssize_t n)
   return std::log(acc) + max;
 }
 
-py::array_t<double> log_mask_zero_1d(py::array_t<double> probs_){
-  auto probs = probs_.unchecked<1>();
-  auto nc = probs.shape(0);
-  auto log_probs_ = py::array_t<double>{{nc}};
-  auto log_probs = log_probs_.mutable_unchecked<1>();
-
-  for(auto i = 0; i < nc; ++i){
-     log_probs(i) = std::log(probs(i));
+py::array_t<double> log(
+  py::array_t<double, py::array::c_style | py::array::forcecast> x_)
+{
+  auto n = x_.size();
+  auto ptr = x_.data();
+  auto log = py::array_t<double>{{n}};
+  auto log_ptr = log.mutable_data();
+  for (auto i = 0; i < n; ++i) {
+    *(log_ptr++) = std::log(*(ptr++));
   }
-  // Retain old behavior of ignoring divide by zero exceptions
-  auto fpstatus = fetestexcept(FE_DIVBYZERO);
-  if (fpstatus != 0){
-      feclearexcept(FE_DIVBYZERO);
+  if (std::fetestexcept(FE_DIVBYZERO)) {
+    std::feclearexcept(FE_DIVBYZERO);  // log(0) = -inf, ignore exception.
   }
-  return log_probs_;
-
-}
-
-py::array_t<double>  log_mask_zero_2d(py::array_t<double> probs_){
-  auto probs = probs_.unchecked<2>();
-  auto ns = probs.shape(0);
-  auto nc = probs.shape(1);
-  auto log_probs_ = py::array_t<double>{{nc, nc}};
-  auto log_probs = log_probs_.mutable_unchecked<2>();
-
-  for(auto i = 0; i < ns; ++i){
-    for(auto j = 0; j < nc; ++j){
-          log_probs(i, j) = std::log(probs(i, j));
-      }
-  }
-  // Retain old behavior of ignoring divide by zero exceptions
-  auto fpstatus = fetestexcept(FE_DIVBYZERO);
-  if (fpstatus != 0){
-      feclearexcept(FE_DIVBYZERO);
-  }
-
-  return log_probs_;
+  return log.reshape(std::vector<ssize_t>(x_.shape(), x_.shape() + x_.ndim()));
 }
 
 std::tuple<double, py::array_t<double>, py::array_t<double>> forward_scaling(
@@ -86,8 +62,8 @@ std::tuple<double, py::array_t<double>, py::array_t<double>> forward_scaling(
   auto fwd = fwdlattice_.mutable_unchecked<2>();
   auto scaling_ = py::array_t<double>{{ns}};
   auto scaling = scaling_.mutable_unchecked<1>();
-  auto nogil = py::gil_scoped_release{};
   auto log_prob = 0.;
+  auto nogil = py::gil_scoped_release{};
   std::fill_n(fwd.mutable_data(0, 0), fwd.size(), 0);
   for (auto i = 0; i < nc; ++i) {
     fwd(0, i) = startprob(i) * frameprob(0, i);
@@ -128,13 +104,12 @@ std::tuple<double, py::array_t<double>> forward_log(
   py::array_t<double> transmat_,
   py::array_t<double> log_frameprob_)
 {
-  auto nc = transmat_.shape(1);
-  auto log_startprob_ = log_mask_zero_1d(startprob_);
+  auto log_startprob_ = log(startprob_);
   auto log_startprob = log_startprob_.unchecked<1>();
-  auto log_transmat_ = log_mask_zero_2d(transmat_);
-  auto log_transmat =  log_transmat_.unchecked<2>();
+  auto log_transmat_ = log(transmat_);
+  auto log_transmat = log_transmat_.unchecked<2>();
   auto log_frameprob = log_frameprob_.unchecked<2>();
-  auto ns = log_frameprob.shape(0);
+  auto ns = log_frameprob.shape(0), nc = log_frameprob.shape(1);
   if (log_startprob.shape(0) != nc
       || log_transmat.shape(0) != nc || log_transmat.shape(1) != nc) {
     throw std::invalid_argument{"shape mismatch"};
@@ -197,13 +172,12 @@ py::array_t<double> backward_log(
   py::array_t<double> transmat_,
   py::array_t<double> log_frameprob_)
 {
-  auto nc = transmat_.shape(1);
-  auto log_startprob_ = log_mask_zero_1d(startprob_);
-  auto log_startprob =  log_startprob_.unchecked<1>();
-  auto log_transmat_ = log_mask_zero_2d(transmat_);
-  auto log_transmat =  log_transmat_.unchecked<2>();
+  auto log_startprob_ = log(startprob_);
+  auto log_startprob = log_startprob_.unchecked<1>();
+  auto log_transmat_ = log(transmat_);
+  auto log_transmat = log_transmat_.unchecked<2>();
   auto log_frameprob = log_frameprob_.unchecked<2>();
-  auto ns = log_frameprob.shape(0);
+  auto ns = log_frameprob.shape(0), nc = log_frameprob.shape(1);
   if (log_startprob.shape(0) != nc
       || log_transmat.shape(0) != nc || log_transmat.shape(1) != nc) {
     throw std::invalid_argument{"shape mismatch"};
@@ -266,15 +240,11 @@ py::array_t<double> compute_log_xi_sum(
   py::array_t<double> log_frameprob_)
 {
   auto fwd = fwdlattice_.unchecked<2>();
-  auto nc = transmat_.shape(1);
-  // Keep these next two lines separate instead of chaining them
-  // together, otherwise the memory used by log_transmat_
-  // gets freed, and reused by log_xi_sum_ below.
-  auto log_transmat_ = log_mask_zero_2d(transmat_);
+  auto log_transmat_ = log(transmat_);
   auto log_transmat = log_transmat_.unchecked<2>();
   auto bwd = bwdlattice_.unchecked<2>();
   auto log_frameprob = log_frameprob_.unchecked<2>();
-  auto ns = log_frameprob.shape(0);
+  auto ns = log_frameprob.shape(0), nc = log_frameprob.shape(1);
   if (fwd.shape(0) != ns || fwd.shape(1) != nc
       || log_transmat.shape(0) != nc || log_transmat.shape(1) != nc
       || bwd.shape(0) != ns || bwd.shape(1) != nc) {
@@ -283,7 +253,6 @@ py::array_t<double> compute_log_xi_sum(
   auto log_prob = logsumexp(&fwd(ns - 1, 0), nc);
   auto log_xi_sum_ = py::array_t<double>{{nc, nc}};
   auto log_xi_sum = log_xi_sum_.mutable_unchecked<2>();
-
   std::fill_n(log_xi_sum.mutable_data(0, 0), log_xi_sum.size(),
               -std::numeric_limits<double>::infinity());
   auto nogil = py::gil_scoped_release{};
@@ -307,13 +276,12 @@ std::tuple<double, py::array_t<ssize_t>> viterbi(
   py::array_t<double> transmat_,
   py::array_t<double> log_frameprob_)
 {
-  auto nc = transmat_.shape(1);
-  auto log_startprob_ = log_mask_zero_1d(startprob_);
-  auto log_startprob  = log_startprob_.unchecked<1>();
-  auto log_transmat_ = log_mask_zero_2d(transmat_);
-  auto log_transmat =  log_transmat_.unchecked<2>();
+  auto log_startprob_ = log(startprob_);
+  auto log_startprob = log_startprob_.unchecked<1>();
+  auto log_transmat_ = log(transmat_);
+  auto log_transmat = log_transmat_.unchecked<2>();
   auto log_frameprob = log_frameprob_.unchecked<2>();
-  auto ns = log_frameprob.shape(0);
+  auto ns = log_frameprob.shape(0), nc = log_frameprob.shape(1);
   if (log_startprob.shape(0) != nc
       || log_transmat.shape(0) != nc || log_transmat.shape(1) != nc) {
     throw std::invalid_argument{"shape mismatch"};

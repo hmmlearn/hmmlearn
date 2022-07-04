@@ -291,8 +291,8 @@ class BaseHMM(BaseEstimator):
                 self.startprob_, self.transmat_, log_frameprob)
             log_prob += log_probij
             if compute_posteriors:
-                bwdlattice = _hmmc.backward_log(self.startprob_,
-                    self.transmat_, log_frameprob)
+                bwdlattice = _hmmc.backward_log(
+                    self.startprob_, self.transmat_, log_frameprob)
                 sub_posteriors.append(
                     self._compute_posteriors_log(fwdlattice, bwdlattice))
         return log_prob, np.concatenate(sub_posteriors)
@@ -302,13 +302,13 @@ class BaseHMM(BaseEstimator):
         sub_posteriors = [np.empty((0, self.n_components))]
         for sub_X in _utils.split_X_lengths(X, lengths):
             frameprob = self._compute_likelihood(sub_X)
-            log_probij, fwdlattice, scaling_factors = \
-                _hmmc.forward_scaling(self.startprob_, self.transmat_,
-                frameprob)
+            log_probij, fwdlattice, scaling_factors = _hmmc.forward_scaling(
+                self.startprob_, self.transmat_, frameprob)
             log_prob += log_probij
             if compute_posteriors:
-                bwdlattice = _hmmc.backward_scaling(self.startprob_,
-                    self.transmat_, frameprob, scaling_factors)
+                bwdlattice = _hmmc.backward_scaling(
+                    self.startprob_, self.transmat_,
+                    frameprob, scaling_factors)
                 sub_posteriors.append(
                     self._compute_posteriors_scaling(fwdlattice, bwdlattice))
 
@@ -316,8 +316,7 @@ class BaseHMM(BaseEstimator):
 
     def _decode_viterbi(self, X):
         log_frameprob = self._compute_log_likelihood(X)
-        return _hmmc.viterbi(self.startprob_, self.transmat_,
-            log_frameprob)
+        return _hmmc.viterbi(self.startprob_, self.transmat_, log_frameprob)
 
     def _decode_map(self, X):
         _, posteriors = self.score_samples(X)
@@ -534,11 +533,10 @@ class BaseHMM(BaseEstimator):
 
     def _fit_scaling(self, X):
         frameprob = self._compute_likelihood(X)
-        log_prob, fwdlattice, scaling_factors = \
-            _hmmc.forward_scaling(self.startprob_, self.transmat_,
-            frameprob)
-        bwdlattice =  _hmmc.backward_scaling(self.startprob_, self.transmat_,
-            frameprob, scaling_factors)
+        log_prob, fwdlattice, scaling_factors = _hmmc.forward_scaling(
+            self.startprob_, self.transmat_, frameprob)
+        bwdlattice =  _hmmc.backward_scaling(
+            self.startprob_, self.transmat_, frameprob, scaling_factors)
         posteriors = self._compute_posteriors_scaling(fwdlattice, bwdlattice)
         return frameprob, log_prob, posteriors, fwdlattice, bwdlattice
 
@@ -546,8 +544,8 @@ class BaseHMM(BaseEstimator):
         log_frameprob = self._compute_log_likelihood(X)
         log_prob, fwdlattice = _hmmc.forward_log(
             self.startprob_, self.transmat_, log_frameprob)
-        bwdlattice = _hmmc.backward_log(self.startprob_,
-            self.transmat_, log_frameprob)
+        bwdlattice = _hmmc.backward_log(
+            self.startprob_, self.transmat_, log_frameprob)
         posteriors = self._compute_posteriors_log(fwdlattice, bwdlattice)
         return log_frameprob, log_prob, posteriors, fwdlattice, bwdlattice
 
