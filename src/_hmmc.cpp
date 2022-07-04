@@ -1,5 +1,6 @@
 #include <pybind11/pybind11.h>
 #include <pybind11/numpy.h>
+#include <cfenv>
 #include <limits>
 
 namespace py = pybind11;
@@ -26,7 +27,23 @@ double logsumexp(double const* v, ssize_t n)
   return std::log(acc) + max;
 }
 
-std::pair<py::array_t<double>, py::array_t<double>> forward_scaling(
+py::array_t<double> log(
+  py::array_t<double, py::array::c_style | py::array::forcecast> x_)
+{
+  auto n = x_.size();
+  auto ptr = x_.data();
+  auto log = py::array_t<double>{{n}};
+  auto log_ptr = log.mutable_data();
+  for (auto i = 0; i < n; ++i) {
+    *(log_ptr++) = std::log(*(ptr++));
+  }
+  if (std::fetestexcept(FE_DIVBYZERO)) {
+    std::feclearexcept(FE_DIVBYZERO);  // log(0) = -inf, ignore exception.
+  }
+  return log.reshape(std::vector<ssize_t>(x_.shape(), x_.shape() + x_.ndim()));
+}
+
+std::tuple<double, py::array_t<double>, py::array_t<double>> forward_scaling(
   py::array_t<double> startprob_,
   py::array_t<double> transmat_,
   py::array_t<double> frameprob_)
@@ -45,6 +62,7 @@ std::pair<py::array_t<double>, py::array_t<double>> forward_scaling(
   auto fwd = fwdlattice_.mutable_unchecked<2>();
   auto scaling_ = py::array_t<double>{{ns}};
   auto scaling = scaling_.mutable_unchecked<1>();
+  auto log_prob = 0.;
   auto nogil = py::gil_scoped_release{};
   std::fill_n(fwd.mutable_data(0, 0), fwd.size(), 0);
   for (auto i = 0; i < nc; ++i) {
@@ -56,6 +74,7 @@ std::pair<py::array_t<double>, py::array_t<double>> forward_scaling(
                            "consider using implementation='log' instead"};
   }
   auto scale = scaling(0) = 1. / sum;
+  log_prob -= std::log(scale);
   for (auto i = 0; i < nc; ++i) {
     fwd(0, i) *= scale;
   }
@@ -72,19 +91,22 @@ std::pair<py::array_t<double>, py::array_t<double>> forward_scaling(
                              "consider using implementation='log' instead"};
     }
     auto scale = scaling(t) = 1. / sum;
+    log_prob -= std::log(scale);
     for (auto j = 0; j < nc; ++j) {
       fwd(t, j) *= scale;
     }
   }
-  return {fwdlattice_, scaling_};
+  return {log_prob, fwdlattice_, scaling_};
 }
 
-py::array_t<double> forward_log(
-  py::array_t<double> log_startprob_,
-  py::array_t<double> log_transmat_,
+std::tuple<double, py::array_t<double>> forward_log(
+  py::array_t<double> startprob_,
+  py::array_t<double> transmat_,
   py::array_t<double> log_frameprob_)
 {
+  auto log_startprob_ = log(startprob_);
   auto log_startprob = log_startprob_.unchecked<1>();
+  auto log_transmat_ = log(transmat_);
   auto log_transmat = log_transmat_.unchecked<2>();
   auto log_frameprob = log_frameprob_.unchecked<2>();
   auto ns = log_frameprob.shape(0), nc = log_frameprob.shape(1);
@@ -107,7 +129,8 @@ py::array_t<double> forward_log(
       fwd(t, j) = logsumexp(buf.data(), nc) + log_frameprob(t, j);
     }
   }
-  return fwdlattice_;
+  auto log_prob = logsumexp(&fwd(ns - 1, 0), nc);
+  return {log_prob, fwdlattice_};
 }
 
 py::array_t<double> backward_scaling(
@@ -145,11 +168,13 @@ py::array_t<double> backward_scaling(
 }
 
 py::array_t<double> backward_log(
-  py::array_t<double> log_startprob_,
-  py::array_t<double> log_transmat_,
+  py::array_t<double> startprob_,
+  py::array_t<double> transmat_,
   py::array_t<double> log_frameprob_)
 {
+  auto log_startprob_ = log(startprob_);
   auto log_startprob = log_startprob_.unchecked<1>();
+  auto log_transmat_ = log(transmat_);
   auto log_transmat = log_transmat_.unchecked<2>();
   auto log_frameprob = log_frameprob_.unchecked<2>();
   auto ns = log_frameprob.shape(0), nc = log_frameprob.shape(1);
@@ -210,11 +235,12 @@ py::array_t<double> compute_scaling_xi_sum(
 
 py::array_t<double> compute_log_xi_sum(
   py::array_t<double> fwdlattice_,
-  py::array_t<double> log_transmat_,
+  py::array_t<double> transmat_,
   py::array_t<double> bwdlattice_,
   py::array_t<double> log_frameprob_)
 {
   auto fwd = fwdlattice_.unchecked<2>();
+  auto log_transmat_ = log(transmat_);
   auto log_transmat = log_transmat_.unchecked<2>();
   auto bwd = bwdlattice_.unchecked<2>();
   auto log_frameprob = log_frameprob_.unchecked<2>();
@@ -245,12 +271,14 @@ py::array_t<double> compute_log_xi_sum(
   return log_xi_sum_;
 }
 
-std::tuple<py::array_t<ssize_t>, double> viterbi(
-  py::array_t<double> log_startprob_,
-  py::array_t<double> log_transmat_,
+std::tuple<double, py::array_t<ssize_t>> viterbi(
+  py::array_t<double> startprob_,
+  py::array_t<double> transmat_,
   py::array_t<double> log_frameprob_)
 {
+  auto log_startprob_ = log(startprob_);
   auto log_startprob = log_startprob_.unchecked<1>();
+  auto log_transmat_ = log(transmat_);
   auto log_transmat = log_transmat_.unchecked<2>();
   auto log_frameprob = log_frameprob_.unchecked<2>();
   auto ns = log_frameprob.shape(0), nc = log_frameprob.shape(1);
@@ -285,7 +313,7 @@ std::tuple<py::array_t<ssize_t>, double> viterbi(
     }
     state_sequence(t) = prev = max.second;
   }
-  return {state_sequence_, log_prob};
+  return {log_prob, state_sequence_};
 }
 
 PYBIND11_MODULE(_hmmc, m) {
