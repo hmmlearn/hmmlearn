@@ -30,7 +30,7 @@ from hmmlearn import hmm
 
 # make our generative model with two components, a fair die and a
 # loaded die
-gen_model = hmm.MultinomialHMM(n_components=2, random_state=99)
+gen_model = hmm.CategoricalHMM(n_components=2, random_state=99)
 
 # the first state is the fair die so let's start there so no one
 # catches on right away
@@ -89,7 +89,7 @@ best_score = best_model = None
 n_fits = 50
 np.random.seed(13)
 for idx in range(n_fits):
-    model = hmm.MultinomialHMM(
+    model = hmm.CategoricalHMM(
         n_components=2, random_state=idx,
         init_params='se')  # don't init transition, set it below
     # we need to initialize with random transition matrix probabilities
