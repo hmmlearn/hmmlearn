@@ -401,11 +401,11 @@ class MultinomialHMM(BaseHMM):
 
         _log.warning(
             "MultinomialHMM has undergone major changes. "
-            "The previous version was implementing CategoricalHMM "
+            "The previous version was implementing a CategoricalHMM "
             "(a special case of MultinomialHMM). "
             "This new implementation follows the standard definition for "
-            "a Multinomial distribution, e.g. as in "
-            "https://en.wikipedia.org/wiki/Multinomial_distribution"
+            "a Multinomial distribution (e.g. as in "
+            "https://en.wikipedia.org/wiki/Multinomial_distribution). "
             "See these issues for details:\n"
             "https://github.com/hmmlearn/hmmlearn/issues/335\n"
             "https://github.com/hmmlearn/hmmlearn/issues/340")

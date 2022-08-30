@@ -1,26 +1,32 @@
 """
 A simple example demonstrating Multinomial HMM
-Based on an example here: https://github.com/hmmlearn/hmmlearn/issues/70
-... which was implementing a Categorical HMM
+----------------------------------------------
 
-Multinomial HMM is a generalization of Categorical HMM, key differences being:
-    - a Categorical (aka generalized Bernoulli/multinoulli) distribution models
-    an outcome of a die with `n_features` possible values, i.e. it is a
-    generaliztion of the Bernoulli distribution where there are `n_features`
-    categories instead of the binary success/failure outcome;
-    a Categorical HMM has the emission probabilities for each component
-    parametrized by Categorical distributions
-    - a Multinomial distribution models the outcome of `n_trials` independent
-    rolls of die, each with `n_features` possible values; i.e.
-      - when n_trials = 1 and n_features = 1, Multinomial is the
-        Bernoulli distribution
-      - when n_trials > 1 and n_features = 2, Multinomial is the
-        Binomial distribution
-      - when n_trials = 1 and n_features > 2, Multinomial is the
-        Categorical distribution
-Multinomial HMM has the emission probabilities for each component parameterized
-by the Multinomial distribution.
-    - More details: https://en.wikipedia.org/wiki/Multinomial_distribution
+The Multinomial HMM is a generalization of the Categorical HMM, with some key
+differences:
+
+- a Categorical__ (or generalized Bernoulli/multinoulli) distribution models an
+  outcome of a die with `n_features` possible values, i.e. it is a
+  generalization of the Bernoulli distribution where there are ``n_features``
+  categories instead of the binary success/failure outcome; a Categorical HMM
+  has the emission probabilities for each component parametrized by Categorical
+  distributions.
+
+- a Multinomial__ distribution models the outcome of ``n_trials`` independent
+  rolls of die, each with ``n_features`` possible values; i.e.
+
+  - when ``n_trials = 1`` and ``n_features = 1``, it is a Bernoulli
+    distribution,
+  - when ``n_trials > 1`` and ``n_features = 2``, it is a Binomial
+    distribution,
+  - when ``n_trials = 1`` and ``n_features > 2``, it is a Categorical
+    distribution.
+
+The emission probabilities for each component of a Multinomial HMM are
+parameterized by Multinomial distributions.
+
+__ https://en.wikipedia.org/wiki/Categorical_distribution
+__ https://en.wikipedia.org/wiki/Multinomial_distribution
 """
 
 

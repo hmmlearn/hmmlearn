@@ -122,7 +122,7 @@ parameter at a specific value, remove the corresponding character from
 
 .. topic:: Examples:
 
- * :ref:`sphx_glr_auto_examples_plot_hmm_sampling_and_decoding.py`
+ * :doc:`/auto_examples/plot_hmm_sampling_and_decoding`
 
 Training HMM parameters and inferring the hidden states
 -------------------------------------------------------
@@ -152,7 +152,7 @@ GaussianHMM(...
 
 .. topic:: Examples:
 
- * :ref:`sphx_glr_auto_examples_casino_example.py`
+ * :doc:`/auto_examples/plot_casino`
 
 Monitoring convergence
 ----------------------
