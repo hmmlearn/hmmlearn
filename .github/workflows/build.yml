@@ -48,8 +48,10 @@ jobs:
           ABI="$(python -c 'import sys; print(sys.abiflags)')" &&
           docker run --interactive --volume="$(pwd)":/io:Z --workdir=/io \
             quay.io/pypa/manylinux2010_x86_64 bash <<EOF
-        /opt/python/cp"$PV"-cp"$PV$ABI"/bin/python setup.py bdist_wheel --verbose &&
-          auditwheel --verbose repair --wheel-dir=/io/dist /io/dist/*.whl
+        CFLAGS='-static-libgcc -static-libstdc++' \
+          LDFLAGS='-static-libgcc -static-libstdc++' \
+          /opt/python/cp"$PV"-cp"$PV$ABI"/bin/python setup.py bdist_wheel --verbose &&
+          AUDITWHEEL_PLAT= auditwheel --verbose repair --wheel-dir=/io/dist /io/dist/*.whl
         EOF
           ;;
         *)
