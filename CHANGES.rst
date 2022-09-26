@@ -3,8 +3,10 @@ hmmlearn Changelog
 
 Here you can see the full list of changes between each hmmlearn release.
 
-Next
-----
+Version 0.2.8
+-------------
+
+Released on September 26th, 2022.
 
 - The ``PoissonHMM`` class was added with an example use case.
 - For ``MultinomialHMM``, parameters after ``transmat_prior`` are now

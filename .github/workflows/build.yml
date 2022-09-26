@@ -50,6 +50,7 @@ jobs:
             quay.io/pypa/manylinux2010_x86_64 bash <<EOF
         CFLAGS='-static-libgcc -static-libstdc++' \
           LDFLAGS='-static-libgcc -static-libstdc++' \
+          SETUPTOOLS_SCM_PRETEND_VERSION=0.2.8 \
           /opt/python/cp"$PV"-cp"$PV$ABI"/bin/python setup.py bdist_wheel --verbose &&
           AUDITWHEEL_PLAT= auditwheel --verbose repair --wheel-dir=/io/dist /io/dist/*.whl
         EOF
@@ -93,7 +94,8 @@ jobs:
           pip install -ve . && \
           pip list && \
           python -mpytest --cov --cov-branch --cov-report=xml && \
-          python setup.py bdist_wheel --verbose && \
+          SETUPTOOLS_SCM_PRETEND_VERSION=0.2.8 \
+            python setup.py bdist_wheel --verbose && \
           auditwheel --verbose repair --wheel-dir=dist dist/*.whl && \
           deactivate'
     - uses: actions/upload-artifact@v2
