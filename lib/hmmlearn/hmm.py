@@ -423,16 +423,12 @@ class MultinomialHMM(BaseHMM):
         Check if ``X`` is a sample from a multinomial distribution, i.e. an
         array of non-negative integers, summing up to n_trials.
         """
-        n_samples, n_features = X.shape
-        self.n_features = n_features
-
+        _check_and_set_n_features(self, X)
         if not np.issubdtype(X.dtype, np.integer) or X.min() < 0:
             raise ValueError("Symbol counts should be nonnegative integers")
-
         sample_n_trials = X.sum(axis=1)[0]
         if self.n_trials is None:
             self.n_trials = sample_n_trials
-
         if not (X.sum(axis=1) == self.n_trials).all():
             raise ValueError("Total count for each sample should add up to "
                              "the number of trials")
@@ -455,6 +451,8 @@ class MultinomialHMM(BaseHMM):
                 "emissionprob_ must have shape (n_components, n_features)")
         else:
             self.n_features = n_features
+        if self.n_trials is None:
+            raise ValueError("n_trials must be set")
 
     def _compute_likelihood(self, X):
         probs = []
@@ -632,6 +630,23 @@ class CategoricalHMM(BaseHMM):
             "e": nc * (nf - 1),
         }
 
+    def _check_and_set_categorical_n_features(self, X):
+        """
+        Check if ``X`` is a sample from a categorical distribution, i.e. an
+        array of non-negative integers.
+        """
+        if not np.issubdtype(X.dtype, np.integer):
+            raise ValueError("Symbols should be integers")
+        if X.min() < 0:
+            raise ValueError("Symbols should be nonnegative")
+        if hasattr(self, "n_features"):
+            if self.n_features - 1 < X.max():
+                raise ValueError(
+                    f"Largest symbol is {X.max()} but the model only emits "
+                    f"symbols up to {self.n_features - 1}")
+        else:
+            self.n_features = X.max() + 1
+
     def _init(self, X):
         self._check_and_set_categorical_n_features(X)
         super()._init(X)
@@ -678,23 +693,6 @@ class CategoricalHMM(BaseHMM):
             self.emissionprob_ = np.maximum(
                 self.emissionprob_prior - 1 + stats['obs'], 0)
             normalize(self.emissionprob_, axis=1)
-
-    def _check_and_set_categorical_n_features(self, X):
-        """
-        Check if ``X`` is a sample from a categorical distribution, i.e. an
-        array of non-negative integers.
-        """
-        if not np.issubdtype(X.dtype, np.integer):
-            raise ValueError("Symbols should be integers")
-        if X.min() < 0:
-            raise ValueError("Symbols should be nonnegative")
-        if hasattr(self, "n_features"):
-            if self.n_features - 1 < X.max():
-                raise ValueError(
-                    f"Largest symbol is {X.max()} but the model only emits "
-                    f"symbols up to {self.n_features - 1}")
-        else:
-            self.n_features = X.max() + 1
 
 
 class GMMHMM(BaseHMM):

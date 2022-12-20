@@ -63,6 +63,9 @@ class TestMultinomialHMM:
         assert len(X) == len(state_sequence) == n_samples
         assert len(np.unique(X)) == self.n_trials + 1
         assert (X.sum(axis=1) == self.n_trials).all()
+        h.n_trials = None
+        with pytest.raises(ValueError):
+            h.sample(n_samples)
 
     @pytest.mark.parametrize("implementation", ["scaling", "log"])
     def test_fit(self, implementation, params='ste', n_iter=5):
