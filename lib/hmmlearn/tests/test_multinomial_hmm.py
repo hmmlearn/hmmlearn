@@ -8,10 +8,9 @@ from . import assert_log_likelihood_increasing, normalized
 
 
 class TestMultinomialHMM:
-    def setup(self):
-        self.n_components = 2
-        self.n_features = 4
-        self.n_trials = 5
+    n_components = 2
+    n_features = 4
+    n_trials = 5
 
     def new_hmm(self, impl):
         h = hmm.MultinomialHMM(

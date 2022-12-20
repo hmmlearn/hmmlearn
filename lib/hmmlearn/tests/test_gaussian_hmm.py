@@ -14,11 +14,9 @@ class GaussianHMMTestMixin:
         self.prng = prng = np.random.RandomState(10)
         self.n_components = n_components = 3
         self.n_features = n_features = 3
-        self.startprob = prng.rand(n_components)
-        self.startprob = self.startprob / self.startprob.sum()
-        self.transmat = prng.rand(n_components, n_components)
-        self.transmat /= np.tile(self.transmat.sum(axis=1)[:, np.newaxis],
-                                 (1, n_components))
+        self.startprob = normalized(prng.rand(n_components))
+        self.transmat = normalized(
+            prng.rand(n_components, n_components), axis=1)
         self.means = prng.randint(-20, 20, (n_components, n_features))
         self.covars = make_covar_matrix(
             self.covariance_type, n_components, n_features, random_state=prng)

@@ -60,9 +60,8 @@ class TestCategoricalAgainstWikipedia:
 
 
 class TestCategoricalHMM:
-    def setup(self):
-        self.n_components = 2
-        self.n_features = 3
+    n_components = 2
+    n_features = 3
 
     def new_hmm(self, impl):
         h = hmm.CategoricalHMM(self.n_components, implementation=impl)

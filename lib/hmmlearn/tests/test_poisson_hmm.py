@@ -8,7 +8,6 @@ from . import assert_log_likelihood_increasing, normalized
 
 
 class TestPoissonHMM:
-
     n_components = 2
     n_features = 3
 

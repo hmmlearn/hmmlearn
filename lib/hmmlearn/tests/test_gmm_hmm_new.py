@@ -63,13 +63,10 @@ def prep_params(n_comps, n_mix, n_features, covar_type,
 
 
 class GMMHMMTestMixin:
-    def setup(self):
-        self.implementations = ["log", "scaling"]
-        self.n_components = 3
-        self.n_mix = 2
-        self.n_features = 2
-
-        self.low, self.high = 10, 15
+    n_components = 3
+    n_mix = 2
+    n_features = 2
+    low, high = 10, 15
 
     def new_hmm(self, implementation):
         prng = np.random.RandomState(14)
