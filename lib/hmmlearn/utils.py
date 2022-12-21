@@ -1,5 +1,3 @@
-import warnings
-
 import numpy as np
 from scipy import special
 
@@ -55,43 +53,6 @@ def log_normalize(a, axis=None):
         with np.errstate(under="ignore"):
             a_lse = special.logsumexp(a, axis, keepdims=True)
         a -= a_lse
-
-
-def iter_from_X_lengths(X, lengths):
-    warnings.warn(
-        "iter_from_X_lengths is deprecated and will be removed in the future.",
-        DeprecationWarning, stacklevel=2)
-    if lengths is None:
-        yield 0, len(X)
-    else:
-        n_samples = X.shape[0]
-        end = np.cumsum(lengths).astype(np.int32)
-        start = end - lengths
-        if end[-1] > n_samples:
-            raise ValueError(
-                f"more than {n_samples} samples in lengths array {lengths}")
-        for i in range(len(lengths)):
-            yield start[i], end[i]
-
-
-def log_mask_zero(a):
-    """
-    Compute the log of input probabilities masking divide by zero in log.
-
-    Notes
-    -----
-    During the M-step of EM-algorithm, very small intermediate start
-    or transition probabilities could be normalized to zero, causing a
-    *RuntimeWarning: divide by zero encountered in log*.
-
-    This function masks this unharmful warning.
-    """
-    warnings.warn(
-        "log_mask_zero is deprecated and will be removed in the future.",
-        DeprecationWarning, stacklevel=2)
-    a = np.asarray(a)
-    with np.errstate(divide="ignore"):
-        return np.log(a)
 
 
 def fill_covars(covars, covariance_type='full', n_components=1, n_features=1):

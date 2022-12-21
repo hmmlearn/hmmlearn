@@ -3,6 +3,13 @@ hmmlearn Changelog
 
 Here you can see the full list of changes between each hmmlearn release.
 
+next
+----
+
+- Removed the deprecated ``iter_from_X_lengths`` and ``log_mask_zero``;
+  ``lengths`` arrays that do not sum up to the entire array length are no
+  longer supported.
+
 Version 0.2.8
 -------------
 
