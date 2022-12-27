@@ -84,7 +84,7 @@ ax.set_xlabel('State')
 # there will be high earthquake danger in the near future.
 
 fig, ax = plt.subplots()
-ax.imshow(model.transmat_, aspect='auto', cmap='spring')
+ax.matshow(model.transmat_, aspect='auto', cmap='spring')
 ax.set_title('Transition Matrix')
 ax.set_xlabel('State To')
 ax.set_ylabel('State From')

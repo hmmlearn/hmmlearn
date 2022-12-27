@@ -70,16 +70,9 @@ observations = [["tail", "mouse", "mouse", "food", "mouse"],
 # Convert "sentences" to numbers:
 vocab2id = dict(zip(vocabulary, range(len(vocabulary))))
 def sentence2counts(sentence):
-    ans = []
-    for word, idx in vocab2id.items():
-        count = sentence.count(word)
-        ans.append(count)
-    return ans
+    return [sentence.count(word) for word in vocab2id]
 
-X = []
-for sentence in observations:
-    row = sentence2counts(sentence)
-    X.append(row)
+X = [sentence2counts(sentence) for sentence in observations]
 
 data = np.array(X, dtype=int)
 
