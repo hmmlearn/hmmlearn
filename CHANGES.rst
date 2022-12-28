@@ -9,6 +9,7 @@ next
 - Removed the deprecated ``iter_from_X_lengths`` and ``log_mask_zero``;
   ``lengths`` arrays that do not sum up to the entire array length are no
   longer supported.
+- Support variable ``n_trials`` in ``MultinomialHMM``, except for sampling.
 
 Version 0.2.8
 -------------

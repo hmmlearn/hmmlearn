@@ -65,6 +65,9 @@ class TestMultinomialHMM:
         h.n_trials = None
         with pytest.raises(ValueError):
             h.sample(n_samples)
+        h.n_trials = [1, 2, 3]
+        with pytest.raises(ValueError):
+            h.sample(n_samples)
 
     @pytest.mark.parametrize("implementation", ["scaling", "log"])
     def test_fit(self, implementation, params='ste', n_iter=5):
@@ -82,6 +85,9 @@ class TestMultinomialHMM:
         h.emissionprob_ = normalized(
             np.random.random((self.n_components, self.n_features)),
             axis=1)
+        # Also mess up trial counts.
+        h.n_trials = None
+        X[::2] *= 2
 
         assert_log_likelihood_increasing(h, X, lengths, n_iter)
 
@@ -110,13 +116,13 @@ class TestMultinomialHMM:
             n_components=2, n_trials=None, implementation=implementation)
         h._check_and_set_multinomial_n_features_n_trials(
             np.array([[0, 2, 3, 0], [1, 0, 2, 2]]))
-        assert h.n_trials == 5
+        assert (h.n_trials == 5).all()
         with pytest.raises(ValueError):  # wrong dimensions
             h._check_and_set_multinomial_n_features_n_trials(
-                    np.array([[0, 0, 2, 1, 3, 1, 1]]))
+                np.array([[0, 0, 2, 1, 3, 1, 1]]))
         with pytest.raises(ValueError):  # not added up to n_trials
             h._check_and_set_multinomial_n_features_n_trials(
-                    np.array([[0, 0, 1, 1], [3, 1, 1, 0]]))
+                np.array([[0, 0, 1, 1], [3, 1, 1, 0]]))
         with pytest.raises(ValueError):  # non-integral
             h._check_and_set_multinomial_n_features_n_trials(
                 np.array([[0., 2., 0., 3.], [0.0, 2.5, 2.5, 0.0]]))

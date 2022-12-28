@@ -311,7 +311,7 @@ class GaussianHMM(BaseHMM):
 
 class MultinomialHMM(BaseHMM):
     """
-    Hidden Markov Model with multinomial emissions
+    Hidden Markov Model with multinomial emissions.
 
     Attributes
     ----------
@@ -345,11 +345,11 @@ class MultinomialHMM(BaseHMM):
         Parameters
         ----------
         n_components : int
-            Number of states
+            Number of states.
 
-        n_trials : int
-            Number of trials
-            for now assume all samples have the same n_trials
+        n_trials : int or array of int
+            Number of trials (when sampling, all samples must have the same
+            :attr:`n_trials`).
 
         startprob_prior : array, shape (n_components, ), optional
             Parameters of the Dirichlet prior distribution for
@@ -426,10 +426,9 @@ class MultinomialHMM(BaseHMM):
         _check_and_set_n_features(self, X)
         if not np.issubdtype(X.dtype, np.integer) or X.min() < 0:
             raise ValueError("Symbol counts should be nonnegative integers")
-        sample_n_trials = X.sum(axis=1)[0]
         if self.n_trials is None:
-            self.n_trials = sample_n_trials
-        if not (X.sum(axis=1) == self.n_trials).all():
+            self.n_trials = X.sum(axis=1)
+        elif not (X.sum(axis=1) == self.n_trials).all():
             raise ValueError("Total count for each sample should add up to "
                              "the number of trials")
 
@@ -455,26 +454,28 @@ class MultinomialHMM(BaseHMM):
             raise ValueError("n_trials must be set")
 
     def _compute_likelihood(self, X):
-        probs = []
-        for component in range(self.n_components):
-            score = multinomial.pmf(
-                X, n=self.n_trials, p=self.emissionprob_[component, :])
-            probs.append(score)
-        return np.vstack(probs).T
+        probs = np.empty((len(X), self.n_components))
+        n_trials = X.sum(axis=1)
+        for c in range(self.n_components):
+            probs[:, c] = multinomial.pmf(
+                X, n=n_trials, p=self.emissionprob_[c, :])
+        return probs
 
     def _compute_log_likelihood(self, X):
-        logprobs = []
-        for component in range(self.n_components):
-            score = multinomial.logpmf(
-                X, n=self.n_trials, p=self.emissionprob_[component, :])
-            logprobs.append(score)
-        return np.vstack(logprobs).T
+        logprobs = np.empty((len(X), self.n_components))
+        n_trials = X.sum(axis=1)
+        for c in range(self.n_components):
+            logprobs[:, c] = multinomial.logpmf(
+                X, n=n_trials, p=self.emissionprob_[c, :])
+        return logprobs
 
     def _generate_sample_from_state(self, state, random_state):
-        sample = multinomial.rvs(
-            n=self.n_trials, p=self.emissionprob_[state, :],
-            size=1, random_state=self.random_state)
-        return sample.squeeze(0)  # shape (1, nf) -> (nf,)
+        try:
+            n_trials, = np.unique(self.n_trials)
+        except ValueError:
+            raise ValueError("For sampling, a single n_trials must be given")
+        return multinomial.rvs(n=n_trials, p=self.emissionprob_[state, :],
+                               random_state=random_state)
 
     def _initialize_sufficient_statistics(self):
         stats = super()._initialize_sufficient_statistics()
@@ -1076,15 +1077,12 @@ class GMMHMM(BaseHMM):
         ) + log_cur_weights
 
     def _compute_log_likelihood(self, X):
-        n_samples, _ = X.shape
-        res = np.zeros((n_samples, self.n_components))
-
+        logprobs = np.empty((len(X), self.n_components))
         for i in range(self.n_components):
             log_denses = self._compute_log_weighted_gaussian_densities(X, i)
             with np.errstate(under="ignore"):
-                res[:, i] = special.logsumexp(log_denses, axis=1)
-
-        return res
+                logprobs[:, i] = special.logsumexp(log_denses, axis=1)
+        return logprobs
 
     def _initialize_sufficient_statistics(self):
         stats = super()._initialize_sufficient_statistics()
@@ -1359,13 +1357,17 @@ class PoissonHMM(BaseHMM):
     def _generate_sample_from_state(self, state, random_state):
         return random_state.poisson(self.lambdas_[state])
 
-    def _compute_log_likelihood(self, X):
-        return np.array([np.sum(poisson.logpmf(X, lambdas), axis=1)
-                         for lambdas in self.lambdas_]).T
-
     def _compute_likelihood(self, X):
-        return np.array([np.prod(poisson.pmf(X, lambdas), axis=1)
-                         for lambdas in self.lambdas_]).T
+        probs = np.empty((len(X), self.n_components))
+        for c in range(self.n_components):
+            probs[:, c] = poisson.pmf(X, self.lambdas_[c]).prod(axis=1)
+        return probs
+
+    def _compute_log_likelihood(self, X):
+        logprobs = np.empty((len(X), self.n_components))
+        for c in range(self.n_components):
+            logprobs[:, c] = poisson.logpmf(X, self.lambdas_[c]).sum(axis=1)
+        return logprobs
 
     def _initialize_sufficient_statistics(self):
         stats = super()._initialize_sufficient_statistics()
