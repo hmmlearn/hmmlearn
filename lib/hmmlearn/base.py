@@ -576,6 +576,16 @@ class BaseHMM(BaseEstimator):
             return True
         return False
 
+    def _check_and_set_n_features(self, X):
+        _, n_features = X.shape
+        if hasattr(self, "n_features"):
+            if self.n_features != n_features:
+                raise ValueError(
+                    f"Unexpected number of dimensions, got {n_features} but "
+                    f"expected {self.n_features}")
+        else:
+            self.n_features = n_features
+
     def _get_n_fit_scalars_per_param(self):
         """
         Return a mapping of fittable parameter names (as in ``self.params``)
@@ -595,6 +605,7 @@ class BaseHMM(BaseEstimator):
         X : array-like, shape (n_samples, n_features)
             Feature matrix of individual samples.
         """
+        self._check_and_set_n_features(X)
         init = 1. / self.n_components
         random_state = check_random_state(self.random_state)
         if self._needs_init("s", "startprob_"):
