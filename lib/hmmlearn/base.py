@@ -4,7 +4,7 @@ import sys
 from collections import deque
 
 import numpy as np
-from scipy import linalg, special
+from scipy import linalg
 from sklearn.base import BaseEstimator
 from sklearn.utils import check_array, check_random_state
 
@@ -535,7 +535,7 @@ class BaseHMM(BaseEstimator):
         frameprob = self._compute_likelihood(X)
         log_prob, fwdlattice, scaling_factors = _hmmc.forward_scaling(
             self.startprob_, self.transmat_, frameprob)
-        bwdlattice =  _hmmc.backward_scaling(
+        bwdlattice = _hmmc.backward_scaling(
             self.startprob_, self.transmat_, frameprob, scaling_factors)
         posteriors = self._compute_posteriors_scaling(fwdlattice, bwdlattice)
         return frameprob, log_prob, posteriors, fwdlattice, bwdlattice

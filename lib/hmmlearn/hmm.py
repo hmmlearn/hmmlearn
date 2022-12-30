@@ -1142,7 +1142,7 @@ class GMMHMM(BaseHMM):
             if self.covariance_type == 'full':
                 centered_dots = outer_f(centered)
                 c_n = np.einsum('ijk,ijklm->jklm', post_comp_mix,
-                                     centered_dots)
+                                centered_dots)
             elif self.covariance_type == 'diag':
                 centered2 = np.square(centered, out=centered)  # reuse
                 c_n = np.einsum('ijk,ijkl->jkl', post_comp_mix, centered2)

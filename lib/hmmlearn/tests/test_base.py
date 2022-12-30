@@ -240,5 +240,5 @@ def test_stationary_distribution():
     h.transmat_ = transmat
     stationary = h.get_stationary_distribution()
     assert stationary.dtype == float
-    assert np.dot(h.get_stationary_distribution().T, h.transmat_) \
-        == pytest.approx(stationary)
+    assert (np.dot(h.get_stationary_distribution().T, h.transmat_)
+            == pytest.approx(stationary))
