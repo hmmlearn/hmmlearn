@@ -1,8 +1,12 @@
 import numpy as np
+
+import pytest
+
 from sklearn.datasets import make_spd_matrix
 from sklearn.utils import check_random_state
 
 from hmmlearn.utils import normalize
+from hmmlearn.base import DECODER_ALGORITHMS
 
 # Make NumPy complain about underflows/overflows etc.
 np.seterr(all="warn")
@@ -51,3 +55,33 @@ def assert_log_likelihood_increasing(h, X, lengths, n_iter):
                                f"diff={diff}\n" \
                                f"diff.max() < value={diff.min() < value}\n" \
                                f"np.finfo(float).eps={value}\n"
+
+
+def compare_variational_and_em_models(variational, em, sequences, lengths):
+    em_score = em.score(sequences, lengths)
+    vi_score = variational.score(sequences, lengths)
+    em_scores = em.predict(sequences, lengths)
+    vi_scores = variational.predict(sequences, lengths)
+    assert em_score == pytest.approx(vi_score), (em_score, vi_score)
+    assert np.all(em_scores == vi_scores)
+
+    for decode_algo in DECODER_ALGORITHMS:
+        em_logprob, em_path = em.decode(sequences, lengths,
+                                        algorithm=decode_algo)
+        vi_logprob, vi_path = variational.decode(sequences, lengths,
+                                                 algorithm=decode_algo)
+        assert em_logprob == pytest.approx(vi_logprob), decode_algo
+        assert np.all(em_path == vi_path), decode_algo
+
+    em_predict = em.predict(sequences, lengths)
+    vi_predict = variational.predict(sequences, lengths)
+    assert np.all(em_predict == vi_predict)
+    em_logprob, em_posteriors = em.score_samples(sequences, lengths)
+    vi_logprob, vi_posteriors = variational.score_samples(sequences, lengths)
+    assert em_logprob == pytest.approx(vi_logprob)
+    assert np.all(em_posteriors == pytest.approx(vi_posteriors))
+
+    em_obs, em_states = em.sample(100, random_state=42)
+    vi_obs, vi_states = variational.sample(100, random_state=42)
+    assert np.all(em_obs == vi_obs)
+    assert np.all(em_states == vi_states)

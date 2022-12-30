@@ -73,6 +73,6 @@ class TestPoissonHMM:
         # use init_function to initialize paramerters
         h = hmm.PoissonHMM(self.n_components, params=params,
                            init_params=params)
-        h._init(X)
+        h._init(X, lengths)
 
         assert_log_likelihood_increasing(h, X, lengths, n_iter)

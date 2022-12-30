@@ -26,7 +26,6 @@ COVARIANCE_TYPES = frozenset(("spherical", "diag", "full", "tied"))
 
 
 _CATEGORICALHMM_DOC_SUFFIX = """
-
 Notes
 -----
 Unlike other HMM classes, `CategoricalHMM` ``X`` arrays have shape
@@ -49,7 +48,7 @@ def _categoricalhmm_fix_docstring_shape(func):
     return wrapper
 
 
-class CategoricalHMM(_emissions.BaseCategoricalHMM):
+class CategoricalHMM(_emissions.BaseCategoricalHMM, BaseHMM):
     """
     Hidden Markov Model with categorical (discrete) emissions.
 
@@ -151,8 +150,9 @@ class CategoricalHMM(_emissions.BaseCategoricalHMM):
             BaseHMM.fit,
         ])
 
-    def _init(self, X):
-        super()._init(X)
+    def _init(self, X, lengths=None):
+        super()._init(X, lengths)
+
         self.random_state = check_random_state(self.random_state)
 
         if self._needs_init('e', 'emissionprob_'):
@@ -179,7 +179,7 @@ class CategoricalHMM(_emissions.BaseCategoricalHMM):
             normalize(self.emissionprob_, axis=1)
 
 
-class GaussianHMM(_emissions.BaseGaussianHMM):
+class GaussianHMM(_emissions.BaseGaussianHMM, BaseHMM):
     """
     Hidden Markov Model with Gaussian emissions.
 
@@ -295,7 +295,7 @@ class GaussianHMM(_emissions.BaseGaussianHMM):
             logarithms ("log"), or using scaling ("scaling").  The default is
             to use logarithms for backwards compatability.
         """
-        BaseHMM.__init__(self, n_components,
+        super().__init__(n_components,
                          startprob_prior=startprob_prior,
                          transmat_prior=transmat_prior, algorithm=algorithm,
                          random_state=random_state, n_iter=n_iter,
@@ -322,8 +322,8 @@ class GaussianHMM(_emissions.BaseGaussianHMM):
                                 self.n_components)
         self._covars_ = covars
 
-    def _init(self, X):
-        super()._init(X)
+    def _init(self, X, lengths=None):
+        super()._init(X, lengths)
 
         if self._needs_init("m", "means_"):
             kmeans = cluster.KMeans(n_clusters=self.n_components,
@@ -541,8 +541,8 @@ class GMMHMM(_emissions.BaseGMMHMM):
         self.covars_prior = covars_prior
         self.covars_weight = covars_weight
 
-    def _init(self, X):
-        super()._init(X)
+    def _init(self, X, lengths=None):
+        super()._init(X, lengths=None)
         nc = self.n_components
         nf = self.n_features
         nm = self.n_mix
@@ -918,8 +918,8 @@ class MultinomialHMM(_emissions.BaseMultinomialHMM):
             "https://github.com/hmmlearn/hmmlearn/issues/335\n"
             "https://github.com/hmmlearn/hmmlearn/issues/340")
 
-    def _init(self, X):
-        super()._init(X)
+    def _init(self, X, lengths=None):
+        super()._init(X, lengths=None)
         self.random_state = check_random_state(self.random_state)
         if 'e' in self.init_params:
             self.emissionprob_ = self.random_state \
@@ -1031,8 +1031,8 @@ class PoissonHMM(_emissions.BasePoissonHMM):
         self.lambdas_prior = lambdas_prior
         self.lambdas_weight = lambdas_weight
 
-    def _init(self, X):
-        super()._init(X)
+    def _init(self, X, lengths=None):
+        super()._init(X, lengths)
         self.random_state = check_random_state(self.random_state)
 
         mean_X = X.mean()

@@ -133,14 +133,14 @@ class TestCategoricalHMM:
         # use init_function to initialize paramerters
         h = hmm.CategoricalHMM(self.n_components, params=params,
                                init_params=params)
-        h._init(X)
+        h._init(X, lengths)
 
         assert_log_likelihood_increasing(h, X, lengths, n_iter)
 
     @pytest.mark.parametrize("implementation", ["scaling", "log"])
     def test__check_and_set_categorical_n_features(self, implementation):
         h = self.new_hmm(implementation)
-        h._check_and_set_n_features(np.array([[0, 0, 2, 1, 3, 1, 1]]))
+        h._check_and_set_n_features(np.array([[0, 0, 2, 1, 3, 1, 1]]).T)
         h._check_and_set_n_features(np.array([[0, 0, 1, 3, 1]], np.uint8))
         with pytest.raises(ValueError):  # non-integral
             h._check_and_set_n_features(np.array([[0., 2., 1., 3.]]))

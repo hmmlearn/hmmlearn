@@ -3,12 +3,12 @@ from scipy import special
 from scipy.stats import multinomial, poisson
 from sklearn.utils import check_random_state
 
-from .base import BaseHMM
+from .base import BaseHMM, _AbstractHMM
 from .stats import log_multivariate_normal_density
 from .utils import fill_covars, log_normalize
 
 
-class BaseCategoricalHMM(BaseHMM):
+class BaseCategoricalHMM(_AbstractHMM):
 
     def _check_and_set_n_features(self, X):
         """
@@ -61,7 +61,7 @@ class BaseCategoricalHMM(BaseHMM):
         return [(cdf > random_state.rand()).argmax()]
 
 
-class BaseGaussianHMM(BaseHMM):
+class BaseGaussianHMM(_AbstractHMM):
 
     def _get_n_fit_scalars_per_param(self):
         nc = self.n_components
