@@ -109,7 +109,7 @@ class GMMHMMTestMixin:
         n_samples = 1000
         h = self.new_hmm(implementation)
         X, _states = h.sample(n_samples)
-        h._init(X)
+        h._init(X, [n_samples])
         h._check()  # should not raise any errors
 
     @pytest.mark.parametrize("implementation", ["scaling", "log"])
@@ -154,7 +154,7 @@ class GMMHMMTestMixin:
 
         # this should not raise
         # "ValueError: array must not contain infs or NaNs"
-        h._init(X)
+        h._init(X, [1000])
         h.fit(X)
 
     @pytest.mark.xfail

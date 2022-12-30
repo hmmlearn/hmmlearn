@@ -90,6 +90,7 @@ class TestBaseAgainstWikipedia:
     def test_do_forward_pass(self):
         log_prob, fwdlattice = _hmmc.forward_log(
             self.hmm.startprob_, self.hmm.transmat_, self.log_frameprob)
+
         ref_log_prob = -3.3725
         assert round(log_prob, 4) == ref_log_prob
         reffwdlattice = np.array([[0.4500, 0.1000],

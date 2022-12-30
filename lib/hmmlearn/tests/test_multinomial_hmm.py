@@ -105,7 +105,7 @@ class TestMultinomialHMM:
         h = hmm.MultinomialHMM(
             n_components=self.n_components, n_trials=self.n_trials,
             params=params, init_params=params)
-        h._init(X)
+        h._init(X, lengths)
 
         assert_log_likelihood_increasing(h, X, lengths, n_iter)
 

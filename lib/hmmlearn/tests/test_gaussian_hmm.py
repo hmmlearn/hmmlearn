@@ -47,7 +47,7 @@ class GaussianHMMTestMixin:
         n_samples = len(gaussidx)
         X = (self.prng.randn(n_samples, self.n_features)
              + h.means_[gaussidx])
-        h._init(X)
+        h._init(X, [n_samples])
         ll, posteriors = h.score_samples(X)
         assert posteriors.shape == (n_samples, self.n_components)
         assert_allclose(posteriors.sum(axis=1), np.ones(n_samples))
@@ -106,7 +106,7 @@ class GaussianHMMTestMixin:
         h.transmat_ = self.transmat
         h.means_ = 20 * self.means
         h.covars_ = np.maximum(self.covars, 0.1)
-        h._init(np.random.randn(5, self.n_components))
+        h._init(np.random.randn(5, self.n_components), 5)
         assert len(caplog.records) == 1
         assert "degenerate solution" in caplog.records[0].getMessage()
 
@@ -267,7 +267,7 @@ class TestGaussianHMMWithDiagonalCovars(GaussianHMMTestMixin):
         h = hmm.GaussianHMM(n_components=1, covariance_type="diag",
                             init_params="c", implementation=implementation)
         X = np.random.normal(size=(1000, 5))
-        h._init(X)
+        h._init(X, 1000)
 
         # np.diag returns a read-only view of the array in NumPy 1.9.X.
         # Make sure this doesn't prevent us from fitting an HMM with
