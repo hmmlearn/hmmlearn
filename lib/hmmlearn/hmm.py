@@ -78,9 +78,9 @@ class CategoricalHMM(_emissions.BaseCategoricalHMM, BaseHMM):
 
     def __init__(self, n_components=1, startprob_prior=1.0,
                  transmat_prior=1.0, *, emissionprob_prior=1.0,
-                 algorithm="viterbi", random_state=None,
-                 n_iter=10, tol=1e-2, verbose=False,
-                 params="ste", init_params="ste",
+                 n_features=None, algorithm="viterbi",
+                 random_state=None, n_iter=10, tol=1e-2,
+                 verbose=False, params="ste", init_params="ste",
                  implementation="log"):
         """
         Parameters
@@ -99,6 +99,10 @@ class CategoricalHMM(_emissions.BaseCategoricalHMM, BaseHMM):
         emissionprob_prior : array, shape (n_components, n_features), optional
             Parameters of the Dirichlet prior distribution for
             :attr:`emissionprob_`.
+
+        n_features: int, optional
+            The number of categorical symbols in the HMM.  Will be inferred
+            from the data if not set.
 
         algorithm : {"viterbi", "map"}, optional
             Decoder algorithm.
@@ -138,6 +142,7 @@ class CategoricalHMM(_emissions.BaseCategoricalHMM, BaseHMM):
                          params=params, init_params=init_params,
                          implementation=implementation)
         self.emissionprob_prior = emissionprob_prior
+        self.n_features = n_features
 
     score_samples, score, decode, predict, predict_proba, sample, fit = map(
         _categoricalhmm_fix_docstring_shape, [
@@ -164,12 +169,13 @@ class CategoricalHMM(_emissions.BaseCategoricalHMM, BaseHMM):
         super()._check()
 
         self.emissionprob_ = np.atleast_2d(self.emissionprob_)
-        n_features = getattr(self, "n_features", self.emissionprob_.shape[1])
-        if self.emissionprob_.shape != (self.n_components, n_features):
+        if self.n_features is None:
+            self.n_features = self.emissionprob_.shape[1]
+        if self.emissionprob_.shape != (self.n_components, self.n_features):
             raise ValueError(
-                "emissionprob_ must have shape (n_components, n_features)")
+                f"emissionprob_ must have shape"
+                f"({self.n_components}, {self.n_features})")
         self._check_sum_1("emissionprob_")
-        self.n_features = n_features
 
     def _do_mstep(self, stats):
         super()._do_mstep(stats)
