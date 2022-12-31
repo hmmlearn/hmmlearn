@@ -59,7 +59,7 @@ class VariationalCategoricalHMM(BaseCategoricalHMM, VariationalBaseHMM):
 
     def __init__(self, n_components=1,
                  startprob_prior=None, transmat_prior=None,
-                 emissionprob_prior=None,
+                 emissionprob_prior=None, n_features=None,
                  algorithm="viterbi", random_state=None,
                  n_iter=100, tol=1e-6, verbose=False,
                  params="ste", init_params="ste",
@@ -81,6 +81,10 @@ class VariationalCategoricalHMM(BaseCategoricalHMM, VariationalBaseHMM):
         emissionprob_prior : array, shape (n_components, n_features), optional
             Parameters of the Dirichlet prior distribution for
             :attr:`emissionprob_`.
+
+        n_features: int, optional
+            The number of categorical symbols in the HMM.  Will be inferred
+            from the data if not set.
 
         algorithm : {"viterbi", "map"}, optional
             Decoder algorithm.
@@ -120,6 +124,7 @@ class VariationalCategoricalHMM(BaseCategoricalHMM, VariationalBaseHMM):
             implementation=implementation
         )
         self.emissionprob_prior = emissionprob_prior
+        self.n_features = n_features
 
     def _init(self, X, lengths):
         """
@@ -176,12 +181,13 @@ class VariationalCategoricalHMM(BaseCategoricalHMM, VariationalBaseHMM):
             raise ValueError(
                 "emissionprob_prior_ and emissionprob_posterior_must"
                 "have shape (n_components, n_features)")
-        n_features = getattr(self, "n_features",
-                             self.emissionprob_posterior_.shape[1])
+        if self.n_features is None:
+            self.n_features = self.emissionprob_posterior_.shape[1]
         if (self.emissionprob_posterior_.shape
-                != (self.n_components, n_features)):
+                != (self.n_components, self.n_features)):
             raise ValueError(
-                "emissionprob_ must have shape (n_components, n_features)")
+                f"emissionprob_ must have shape"
+                f"({self.n_components}, {self.n_features})")
 
     def _compute_subnorm_log_likelihood(self, X):
         return self.emissionprob_log_subnorm_[:, np.concatenate(X)].T

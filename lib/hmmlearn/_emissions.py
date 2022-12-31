@@ -19,7 +19,7 @@ class BaseCategoricalHMM(_AbstractHMM):
             raise ValueError("Symbols should be integers")
         if X.min() < 0:
             raise ValueError("Symbols should be nonnegative")
-        if hasattr(self, "n_features"):
+        if self.n_features is not None:
             if self.n_features - 1 < X.max():
                 raise ValueError(
                     f"Largest symbol is {X.max()} but the model only emits "

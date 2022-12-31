@@ -71,6 +71,25 @@ class TestCategoricalHMM:
         return h
 
     @pytest.mark.parametrize("implementation", ["scaling", "log"])
+    def test_n_features(self, implementation):
+        sequences, _ = self.new_hmm(implementation).sample(500)
+        # set n_features
+        model = hmm.CategoricalHMM(
+            n_components=2, implementation=implementation)
+
+        assert_log_likelihood_increasing(model, sequences, [500], 10)
+        assert model.n_features == 3
+
+        # Respect n_features
+        model = hmm.CategoricalHMM(
+            n_components=2,
+            implementation=implementation,
+            n_features=5)
+
+        assert_log_likelihood_increasing(model, sequences, [500], 10)
+        assert model.n_features == 5
+
+    @pytest.mark.parametrize("implementation", ["scaling", "log"])
     def test_attributes(self, implementation):
         with pytest.raises(ValueError):
             h = self.new_hmm(implementation)

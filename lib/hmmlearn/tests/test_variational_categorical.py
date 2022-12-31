@@ -75,6 +75,18 @@ class TestVariationalCategorical:
     def test_n_features(self, implementation):
 
         sequences, lengths = self.get_from_one_beal(7, 100, None)
+        # Learn n_Features
+        model = vhmm.VariationalCategoricalHMM(
+            4, implementation=implementation)
+        assert_log_likelihood_increasing(model, sequences, lengths, 10)
+        assert model.n_features == 3
+        # Respect n_features
+        model = vhmm.VariationalCategoricalHMM(
+            4, implementation=implementation, n_features=5)
+
+        assert_log_likelihood_increasing(model, sequences, lengths, 10)
+        assert model.n_features == 5
+
         # Too few features
         with pytest.raises(ValueError):
             model = vhmm.VariationalCategoricalHMM(
