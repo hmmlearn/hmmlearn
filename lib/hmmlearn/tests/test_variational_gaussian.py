@@ -4,7 +4,8 @@ from sklearn.utils import check_random_state
 
 from hmmlearn import hmm, vhmm
 from . import (
-    assert_log_likelihood_increasing, compare_variational_and_em_models)
+    assert_log_likelihood_increasing, compare_variational_and_em_models,
+    make_covar_matrix, normalized)
 
 
 def get_mcgrory_titterington():
@@ -48,6 +49,28 @@ def get_sequences(length, N, model, rs=None):
 
 
 class _TestGaussian:
+
+    @pytest.mark.parametrize("implementation", ["scaling", "log"])
+    def test_random_fit(self, implementation, params='stmc', n_features=3,
+                        n_components=3, **kwargs):
+        h = hmm.GaussianHMM(n_components, self.covariance_type,
+                            implementation=implementation, init_params="")
+        rs = check_random_state(None)
+        h.startprob_ = normalized(rs.rand(n_components))
+        h.transmat_ = normalized(
+            rs.rand(n_components, n_components), axis=1)
+        h.means_ = rs.randint(-20, 20, (n_components, n_features))
+        h.covars_ = make_covar_matrix(
+            self.covariance_type, n_components, n_features, random_state=rs)
+
+        lengths = [200] * 20
+        X, _state_sequence = h.sample(sum(lengths), random_state=rs)
+        # Now learn a model
+        model = vhmm.VariationalGaussianHMM(
+            n_components, n_iter=1000, tol=1e-9, random_state=rs,
+            covariance_type=self.covariance_type,
+            implementation=implementation)
+        assert_log_likelihood_increasing(model, X, lengths, n_iter=100)
 
     @pytest.mark.parametrize("implementation", ["scaling", "log"])
     def test_fit_mcgrory_titterington1d(self, implementation):
@@ -100,16 +123,25 @@ class _TestGaussian:
         compare_variational_and_em_models(model, em_hmm, sequences, lengths)
 
     @pytest.mark.parametrize("implementation", ["scaling", "log"])
-    def test_incorrect_init(self, implementation):
+    def test_common_initialization(self, implementation):
         sequences, lengths = get_sequences(50, 10,
                                            model=get_mcgrory_titterington())
 
-        with pytest.raises(NotImplementedError):
+        with pytest.raises(ValueError):
             model = vhmm.VariationalGaussianHMM(
                 4, n_iter=500, tol=1e-9,
                 covariance_type="incorrect",
                 implementation=implementation)
             assert_log_likelihood_increasing(model, sequences, lengths, 10)
+
+        with pytest.raises(ValueError):
+            model = vhmm.VariationalGaussianHMM(
+                4, n_iter=500, tol=1e-9,
+                covariance_type="incorrect",
+                init_params="",
+                implementation=implementation)
+            model.startprob_= np.asarray([.25, .25, .25, .25])
+            model.score(sequences, lengths)
 
         # Manually setup means - should converge
         model = vhmm.VariationalGaussianHMM(
@@ -174,86 +206,57 @@ class TestFull(_TestGaussian):
     covariance_type = "full"
     test_fit_mcgrory_titterington1d_mean = 1.41058519
 
+    def new_for_init(self, implementation):
+        model = vhmm.VariationalGaussianHMM(
+            4, n_iter=500, tol=1e-9, init_params="stm",
+            covariance_type=self.covariance_type,
+            implementation=implementation)
+        model.dof_prior_ = [1, 1, 1, 1]
+        model.dof_posterior_ = [1, 1, 1, 1]
+        model.scale_prior_ = [[[2.]], [[2.]], [[2.]], [[2]]]
+        model.scale_posterior_ = [[[2.]], [[2.]], [[2.]], [[2.]]]
+        return model
+
     @pytest.mark.parametrize("implementation", ["scaling", "log"])
-    def test_incorrect_init_covariance(self, implementation):
+    def test_initialization(self, implementation):
         random_state = check_random_state(234234)
         sequences, lengths = get_sequences(
             50, 10, model=get_mcgrory_titterington())
 
         # dof's have wrong shape
         with pytest.raises(ValueError):
-            model = vhmm.VariationalGaussianHMM(
-                4, n_iter=500, tol=1e-9, init_params="stc",
-                covariance_type="full",
-                implementation=implementation)
+            model = self.new_for_init(implementation)
             model.dof_prior_ = [1, 1, 1]
-            model.dof_posterior_ = [1, 1, 1, 1]
-            model.scale_prior_ = [[[2.]], [[2.]], [[2.]], [[2]]]
-            model.scale_posterior_ = [[[2.]], [[2.]], [[2.]], [[2.]]]
             assert_log_likelihood_increasing(model, sequences, lengths, 10)
 
-        # Dof posterior is used to setup the W's
         with pytest.raises(ValueError):
-            model = vhmm.VariationalGaussianHMM(
-                4, n_iter=500, tol=1e-9, init_params="stc",
-                covariance_type="full",
-                implementation=implementation)
-            model.dof_prior_ = [1, 1, 1, 1]
+            model = self.new_for_init(implementation)
             model.dof_posterior_ = [1, 1, 1]
-            model.scale_prior_ = [[[2.]], [[2.]], [[2.]], [[2]]]
-            model.scale_posterior_ = [[[2.]], [[2.]], [[2.]], [[2.]]]
             assert_log_likelihood_increasing(model, sequences, lengths, 10)
 
-        # Skip the initialization of the Ws, and fail during _check()
-        with pytest.raises(ValueError):
-            model = vhmm.VariationalGaussianHMM(
-                4, n_iter=500, tol=1e-9, init_params="stc",
-                covariance_type="full",
-                implementation=implementation)
-            model.dof_prior_ = [1, 1, 1, 1]
-            model.dof_posterior_ = [1, 1, 1]
-            model.scale_prior_ = [[[2.]], [[2.]], [[2.]], [[2]]]
-            model.scale_posterior_ = [[[2.]], [[2.]], [[2.]], [[2.]]]
-            assert_log_likelihood_increasing(model, sequences, lengths, 10)
         # scales's have wrong shape
         with pytest.raises(ValueError):
-            model = vhmm.VariationalGaussianHMM(
-                4, n_iter=500, tol=1e-9, init_params="stmbd",
-                covariance_type="full",
-                implementation=implementation)
-            model.dof_prior_ = [1, 1, 1, 1]
-            model.dof_posterior_ = [1, 1, 1, 1]
-            model.scale_prior_ = [[[2.]], [[2.]], [[2.]]]  # This is wrong
-            model.scale_posterior_ = [[[2.]], [[2.]], [[2.]], [[2.]]]
+            model = self.new_for_init(implementation)
+            model.scale_prior_ = [[[2.]], [[2.]], [[2.]]]
             assert_log_likelihood_increasing(model, sequences, lengths, 10)
 
         with pytest.raises(ValueError):
-            model = vhmm.VariationalGaussianHMM(
-                4, n_iter=500, tol=1e-9, init_params="stm",
-                covariance_type="full",
-                implementation=implementation)
-            model.dof_prior_ = [1, 1, 1, 1]
-            model.dof_posterior_ = [1, 1, 1, 1]
-            model.scale_prior_ = [[[2.]], [[2.]], [[2.]], [[2]]]
-            model.scale_posterior_ = [[[2.]], [[2.]], [[2.]]]  # this is wrong
+            model = self.new_for_init(implementation)
+            model.scale_posterior_ = [[2.]], [[2.]], [[2.]]  # this is wrong
             assert_log_likelihood_increasing(model, sequences, lengths, 10)
 
         # Manually setup covariance
-        with pytest.raises(NotImplementedError):
+        with pytest.raises(ValueError):
             model = vhmm.VariationalGaussianHMM(
                 4, n_iter=500, tol=1e-9, init_params="stm",
                 covariance_type="incorrect",
                 implementation=implementation)
-            model.dof_prior_ = [1., 1., 1., 1.,]
-            model.dof_posterior_ = [1., 1., 1., 1.,]
-            model.scale_prior_ = [[[2.]], [[2.]], [[2.]], [[2.]]],
-            model.scale_posterior_ = [[[2.]], [[2.]], [[2.]], [[2.]]],
             assert_log_likelihood_increasing(model, sequences, lengths, 10)
 
-        # Set priors via params
+        # Set priors correctly via params
         model = vhmm.VariationalGaussianHMM(
             4, n_iter=500, tol=1e-9, random_state=random_state,
-            covariance_type="full",
+            covariance_type=self.covariance_type,
             implementation=implementation,
             means_prior=[[0.], [0.], [0.], [0.]],
             beta_prior=[2., 2., 2., 2.],
@@ -265,33 +268,272 @@ class TestFull(_TestGaussian):
         assert np.all(model.dof_prior_ == 2.)
         assert np.all(model.scale_prior_ == 2.)
 
-
-# As other covariance types are implemented, refactor this.
-class NotImplementedYet:
-
-    covariance_type = None
-
-    @pytest.mark.parametrize("implementation", ["scaling", "log"])
-    def test_fit_mcgrory_titterington(self, implementation):
-        random_state = check_random_state(234234)
-        sequences, lengths = get_sequences(500, 1,
-                                           model=get_mcgrory_titterington())
+        # Manually set everything
         model = vhmm.VariationalGaussianHMM(
-            5, n_iter=1000, tol=1e-9, random_state=random_state,
+            4, n_iter=500, tol=1e-9, random_state=random_state,
             covariance_type=self.covariance_type,
-            implementation=implementation)
-        with pytest.raises(NotImplementedError):
-            model.fit(sequences, lengths)
+            implementation=implementation,
+            init_params="",
+        )
+        model.means_prior_ = [[0.], [0.], [0.], [0.]]
+        model.means_posterior_ = [[2], [1], [3], [4]]
+        model.beta_prior_ = [2., 2., 2., 2.]
+        model.beta_posterior_ = [1, 1, 1, 1]
+        model.dof_prior_ = [2., 2., 2., 2.]
+        model.dof_posterior_ = [1, 1, 1, 1]
+        modelscale_prior_ = [[[2.]], [[2.]], [[2.]], [[2.]]]
+        model.scale_posterior_ = [[[2.]], [[2.]], [[2.]], [[2.]]]
+        assert_log_likelihood_increasing(model, sequences, lengths, 10)
 
 
 class TestTied(_TestGaussian):
     test_fit_mcgrory_titterington1d_mean = 1.4774254
     covariance_type = "tied"
 
+    def new_for_init(self, implementation):
+        model = vhmm.VariationalGaussianHMM(
+                4, n_iter=500, tol=1e-9, init_params="stm",
+                covariance_type=self.covariance_type,
+                implementation=implementation)
+        model.dof_prior_ = 1
+        model.dof_posterior_ = 1
+        model.scale_prior_ = [[2]]
+        model.scale_posterior_ = [[2]]
+        return model
 
-class TestSpherical(NotImplementedYet):
+    @pytest.mark.parametrize("implementation", ["scaling", "log"])
+    def test_initialization(self, implementation):
+        random_state = check_random_state(234234)
+        sequences, lengths = get_sequences(
+            50, 10, model=get_mcgrory_titterington())
+
+        # dof's have wrong shape
+        with pytest.raises(ValueError):
+            model = self.new_for_init(implementation)
+            model.dof_prior_ = [1]
+            assert_log_likelihood_increasing(model, sequences, lengths, 10)
+
+        with pytest.raises(ValueError):
+            model = self.new_for_init(implementation)
+            model.dof_posterior_ = [1]
+            assert_log_likelihood_increasing(model, sequences, lengths, 10)
+
+        # scales's have wrong shape
+        with pytest.raises(ValueError):
+            model = self.new_for_init(implementation)
+            model.scale_prior_ = [[[2]]]
+            assert_log_likelihood_increasing(model, sequences, lengths, 10)
+
+        with pytest.raises(ValueError):
+            model = self.new_for_init(implementation)
+            model.scale_posterior_ = [[[2.]], [[2.]], [[2.]]]  # this is wrong
+            assert_log_likelihood_increasing(model, sequences, lengths, 10)
+
+        # Manually setup covariance
+        with pytest.raises(ValueError):
+            model = vhmm.VariationalGaussianHMM(
+                4, n_iter=500, tol=1e-9, init_params="stm",
+                covariance_type="incorrect",
+                implementation=implementation)
+            assert_log_likelihood_increasing(model, sequences, lengths, 10)
+
+        # Set priors correctly via params
+        model = vhmm.VariationalGaussianHMM(
+            4, n_iter=500, tol=1e-9, random_state=random_state,
+            covariance_type=self.covariance_type,
+            implementation=implementation,
+            means_prior=[[0.], [0.], [0.], [0.]],
+            beta_prior=[2., 2., 2., 2.],
+            dof_prior=2,
+            scale_prior=[[2]],
+        )
+        assert_log_likelihood_increasing(model, sequences, lengths, 10)
+        assert np.all(model.means_prior_ == 0)
+        assert np.all(model.beta_prior_ == 2.)
+        assert np.all(model.dof_prior_ == 2.)
+        assert np.all(model.scale_prior_ == 2.)
+
+        # Manually set everything
+        model = vhmm.VariationalGaussianHMM(
+            4, n_iter=500, tol=1e-9, random_state=random_state,
+            covariance_type=self.covariance_type,
+            implementation=implementation,
+            init_params="",
+        )
+        model.means_prior_ = [[0.], [0.], [0.], [0.]]
+        model.means_posterior_ = [[2], [1], [3], [4]]
+        model.beta_prior_ = [2., 2., 2., 2.]
+        model.beta_posterior_ = [1, 1, 1, 1]
+        model.dof_prior_ = 2
+        model.dof_posterior_ = 1
+        model.scale_prior_ = [[2]]
+        model.scale_posterior_ = [[2]]
+        assert_log_likelihood_increasing(model, sequences, lengths, 10)
+
+
+class TestSpherical(_TestGaussian):
+    test_fit_mcgrory_titterington1d_mean = 1.40653312
     covariance_type = "spherical"
 
+    def new_for_init(self, implementation):
+        model = vhmm.VariationalGaussianHMM(
+            4, n_iter=500, tol=1e-9, init_params="stm",
+            covariance_type=self.covariance_type,
+            implementation=implementation)
+        model.dof_prior_ = [1, 1, 1, 1]
+        model.dof_posterior_ = [1, 1, 1, 1]
+        model.scale_prior_ = [2, 2, 2, 2]
+        model.scale_posterior_ = [2, 2, 2, 2]
+        return model
 
-class TestDiagonal(NotImplementedYet):
+    @pytest.mark.parametrize("implementation", ["scaling", "log"])
+    def test_initialization(self, implementation):
+        random_state = check_random_state(234234)
+        sequences, lengths = get_sequences(
+            50, 10, model=get_mcgrory_titterington())
+
+        # dof's have wrong shape
+        with pytest.raises(ValueError):
+            model = self.new_for_init(implementation)
+            model.dof_prior_ = [1, 1, 1]
+            assert_log_likelihood_increasing(model, sequences, lengths, 10)
+
+        with pytest.raises(ValueError):
+            model = self.new_for_init(implementation)
+            model.dof_posterior_ = [1, 1, 1]
+            assert_log_likelihood_increasing(model, sequences, lengths, 10)
+
+        # scales's have wrong shape
+        with pytest.raises(ValueError):
+            model = self.new_for_init(implementation)
+            model.scale_prior_ = [2, 2, 2]
+            assert_log_likelihood_increasing(model, sequences, lengths, 10)
+
+        with pytest.raises(ValueError):
+            model = self.new_for_init(implementation)
+            model.scale_posterior_ = [2, 2, 2]  # this is wrong
+            assert_log_likelihood_increasing(model, sequences, lengths, 10)
+
+        # Manually setup covariance
+        with pytest.raises(ValueError):
+            model = vhmm.VariationalGaussianHMM(
+                4, n_iter=500, tol=1e-9, init_params="stm",
+                covariance_type="incorrect",
+                implementation=implementation)
+            assert_log_likelihood_increasing(model, sequences, lengths, 10)
+
+        # Set priors correctly via params
+        model = vhmm.VariationalGaussianHMM(
+            4, n_iter=500, tol=1e-9, random_state=random_state,
+            covariance_type=self.covariance_type,
+            implementation=implementation,
+            means_prior=[[0.], [0.], [0.], [0.]],
+            beta_prior=[2., 2., 2., 2.],
+            dof_prior=[2., 2., 2., 2.],
+            scale_prior=[2, 2, 2, 2],
+        )
+        assert_log_likelihood_increasing(model, sequences, lengths, 10)
+        assert np.all(model.means_prior_ == 0)
+        assert np.all(model.beta_prior_ == 2.)
+        assert np.all(model.dof_prior_ == 2.)
+        assert np.all(model.scale_prior_ == 2.)
+
+        # Manually set everything
+        model = vhmm.VariationalGaussianHMM(
+            4, n_iter=500, tol=1e-9, random_state=random_state,
+            covariance_type=self.covariance_type,
+            implementation=implementation,
+            init_params="",
+        )
+        model.means_prior_ = [[0.], [0.], [0.], [0.]]
+        model.means_posterior_ = [[2], [1], [3], [4]]
+        model.beta_prior_ = [2., 2., 2., 2.]
+        model.beta_posterior_ = [1, 1, 1, 1]
+        model.dof_prior_ = [2., 2., 2., 2.]
+        model.dof_posterior_ = [1, 1, 1, 1]
+        model.scale_prior_ = [2, 2, 2, 2]
+        model.scale_posterior_ = [2, 2, 2, 2]
+        assert_log_likelihood_increasing(model, sequences, lengths, 10)
+
+
+class TestDiagonal(_TestGaussian):
+    test_fit_mcgrory_titterington1d_mean = 1.40653312
     covariance_type = "diag"
+
+    def new_for_init(self, implementation):
+        model = vhmm.VariationalGaussianHMM(
+            4, n_iter=500, tol=1e-9, init_params="stm",
+            covariance_type=self.covariance_type,
+            implementation=implementation)
+        model.dof_prior_ = [1, 1, 1, 1]
+        model.dof_posterior_ = [1, 1, 1, 1]
+        model.scale_prior_ = [[2], [2], [2], [2]]
+        model.scale_posterior_ = [[2], [2], [2], [2]]
+        return model
+
+    @pytest.mark.parametrize("implementation", ["scaling", "log"])
+    def test_initialization(self, implementation):
+        random_state = check_random_state(234234)
+        sequences, lengths = get_sequences(
+            50, 10, model=get_mcgrory_titterington())
+
+        # dof's have wrong shape
+        with pytest.raises(ValueError):
+            model = self.new_for_init(implementation)
+            model.dof_prior_ = [1, 1, 1]
+            assert_log_likelihood_increasing(model, sequences, lengths, 10)
+
+        with pytest.raises(ValueError):
+            model = self.new_for_init(implementation)
+            model.dof_posterior_ = [1, 1, 1]
+            assert_log_likelihood_increasing(model, sequences, lengths, 10)
+
+        # scales's have wrong shape
+        with pytest.raises(ValueError):
+            model = self.new_for_init(implementation)
+            model.scale_prior_ = [[2], [2], [2]]
+            assert_log_likelihood_increasing(model, sequences, lengths, 10)
+
+        with pytest.raises(ValueError):
+            model = vhmm.VariationalGaussianHMM(
+                4, n_iter=500, tol=1e-9, init_params="stm",
+                covariance_type=self.covariance_type,
+                implementation=implementation)
+            model.dof_prior_ = [1, 1, 1, 1]
+            model.dof_posterior_ = [1, 1, 1, 1]
+            model.scale_prior_ = [[2], [2], [2], [2]]
+            model.scale_posterior_ = [[2, 2, 2]]  # this is wrong
+            assert_log_likelihood_increasing(model, sequences, lengths, 10)
+
+        # Set priors correctly via params
+        model = vhmm.VariationalGaussianHMM(
+            4, n_iter=500, tol=1e-9, random_state=random_state,
+            covariance_type=self.covariance_type,
+            implementation=implementation,
+            means_prior=[[0.], [0.], [0.], [0.]],
+            beta_prior=[2., 2., 2., 2.],
+            dof_prior=[2., 2., 2., 2.],
+            scale_prior=[[2], [2], [2], [2]]
+        )
+        assert_log_likelihood_increasing(model, sequences, lengths, 10)
+        assert np.all(model.means_prior_ == 0)
+        assert np.all(model.beta_prior_ == 2.)
+        assert np.all(model.dof_prior_ == 2.)
+        assert np.all(model.scale_prior_ == 2.)
+
+        # Manually set everything
+        model = vhmm.VariationalGaussianHMM(
+            4, n_iter=500, tol=1e-9, random_state=random_state,
+            covariance_type=self.covariance_type,
+            implementation=implementation,
+            init_params="",
+        )
+        model.means_prior_ = [[0.], [0.], [0.], [0.]]
+        model.means_posterior_ = [[2], [1], [3], [4]]
+        model.beta_prior_ = [2., 2., 2., 2.]
+        model.beta_posterior_ = [1, 1, 1, 1]
+        model.dof_prior_ = [2., 2., 2., 2.]
+        model.dof_posterior_ = [1, 1, 1, 1]
+        model.scale_prior_ = [[2], [2], [2], [2]]
+        model.scale_posterior_ =[[2], [2], [2], [2]]
+        assert_log_likelihood_increasing(model, sequences, lengths, 10)

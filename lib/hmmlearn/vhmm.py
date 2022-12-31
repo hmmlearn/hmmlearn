@@ -1,4 +1,5 @@
 import logging
+import numbers
 
 import numpy as np
 from scipy import special
@@ -224,7 +225,7 @@ class VariationalGaussianHMM(BaseGaussianHMM, VariationalBaseHMM):
 
     References:
         * https://arxiv.org/abs/1605.08618
-        * http://citeseerx.ist.psu.edu/viewdoc/summary?doi=10.1.1.61.3078
+        * https://core.ac.uk/reader/10883750
         * https://theses.gla.ac.uk/6941/7/2005McGroryPhD.pdf
 
     Attributes
@@ -421,6 +422,13 @@ class VariationalGaussianHMM(BaseGaussianHMM, VariationalBaseHMM):
         return fill_covars(self._covars_, self.covariance_type,
                            self.n_components, self.n_features)
 
+    @covars_.setter
+    def covars_(self, covars):
+        covars = np.array(covars, copy=True)
+        _utils._validate_covars(covars, self.covariance_type,
+                                self.n_components)
+        self._covars_ = covars
+
     @property
     def means_(self):
         """
@@ -475,7 +483,7 @@ class VariationalGaussianHMM(BaseGaussianHMM, VariationalBaseHMM):
                 or self._needs_init("c", "dof_posterior_")
                 or self._needs_init("c", "scale_prior_")
                 or self._needs_init("c", "scale_posterior_")):
-            if self.covariance_type == "full":
+            if self.covariance_type in ("full", "diag", "spherical"):
                 if self.dof_prior is None:
                     self.dof_prior_ = np.full(
                         (self.n_components,), self.n_features)
@@ -488,25 +496,13 @@ class VariationalGaussianHMM(BaseGaussianHMM, VariationalBaseHMM):
                     self.dof_prior_ = self.n_features
                 else:
                     self.dof_prior_ = self.dof_prior
-
                 self.dof_posterior_ = cluster_counts.sum()
-            elif self.covariance_type == "diag":
-                raise NotImplementedError(
-                    f"{self.covariance_type} is not implemented yet"
-                )
-            elif self.covariance_type == "spherical":
-                raise NotImplementedError(
-                    f"{self.covariance_type} is not implemented yet"
-                )
-            else:
-                raise ValueError(
-                    f"Unknown covariance_type: {self.covariance_type}")
 
             # Covariance posterior comes from the estimate of the data
             # We store and update both W_k and scale_posterior_,
             # as they each are used in the EM-like algorithm
             cv = np.cov(X.T) + 1E-3 * np.eye(X.shape[1])
-            self._covars_ = \
+            self.covars_ = \
                 _utils.distribute_covar_matrix_to_match_covariance_type(
                     cv, self.covariance_type, self.n_components).copy()
 
@@ -530,24 +526,26 @@ class VariationalGaussianHMM(BaseGaussianHMM, VariationalBaseHMM):
                 self.scale_posterior_ = self._covars_ * self.dof_posterior_
 
             elif self.covariance_type == "diag":
-                raise NotImplementedError(
-                    f"{self.covariance_type} is not implemented yet"
-                )
+                if self.scale_prior is None:
+                    self.scale_prior_ = np.full(
+                        (self.n_components, self.n_features), 1e-3)
+                else:
+                    self.scale_prior_ = self.scale_prior
+                self.scale_posterior_ = np.einsum(
+                    "ij,i->ij",self._covars_, self.dof_posterior_)
+
             elif self.covariance_type == "spherical":
-                raise NotImplementedError(
-                    f"{self.covariance_type} is not implemented yet"
-                )
-            else:
-                raise ValueError(
-                    f"Unknown covariance_type: {self.covariance_type}")
+                if self.scale_prior is None:
+                    self.scale_prior_ = np.full((self.n_components, ), 1e-3)
+                else:
+                    self.scale_prior_ = self.scale_prior
+                self.scale_posterior_ = (self._covars_.mean(axis=1)
+                                         * self.dof_posterior_)
 
     def _get_n_fit_scalars_per_param(self):
-        # Remove once we have other covariance types
-        # Want to trow NotImplementedError, not KeyError
-        if self.covariance_type not in ("full", "tied"):
-            raise NotImplementedError(
-                f"{self.covariance_type} is not implemented yet"
-            )
+        if self.covariance_type not in COVARIANCE_TYPES:
+            raise ValueError(
+                f"{self.covariance_type} is invalid")
         nc = self.n_components
         nf = self.n_features
         return {
@@ -557,6 +555,8 @@ class VariationalGaussianHMM(BaseGaussianHMM, VariationalBaseHMM):
             "c": {
                 "full": nc + nc * nf * (nf + 1) // 2,
                 "tied": 1 + nf * (nf + 1) // 2,
+                "diag": nc + nc * nf,
+                "spherical": nc + nc,
 
             }[self.covariance_type],
         }
@@ -571,6 +571,10 @@ class VariationalGaussianHMM(BaseGaussianHMM, VariationalBaseHMM):
             If any of the parameters are invalid, e.g. if :attr:`startprob_`
             don't sum to 1.
         """
+
+        if self.covariance_type not in COVARIANCE_TYPES:
+            raise ValueError(
+                f"{self.covariance_type} is invalid")
 
         means_shape = (self.n_components, self.n_features)
 
@@ -593,9 +597,9 @@ class VariationalGaussianHMM(BaseGaussianHMM, VariationalBaseHMM):
             raise ValueError(
                 "beta_posterior_ must have shape (n_components,)")
 
-        self.dof_prior_ = np.asarray(self.dof_prior_, dtype=float)
-        self.dof_posterior_ = np.asarray(self.dof_posterior_, dtype=float)
-        if self.covariance_type == "full":
+        if self.covariance_type in ("full", "diag", "spherical"):
+            self.dof_prior_ = np.asarray(self.dof_prior_, dtype=float)
+            self.dof_posterior_ = np.asarray(self.dof_posterior_, dtype=float)
             if self.dof_prior_.shape != (self.n_components,):
                 raise ValueError(
                     "dof_prior_ have shape (n_components,)")
@@ -605,25 +609,23 @@ class VariationalGaussianHMM(BaseGaussianHMM, VariationalBaseHMM):
                     "dof_posterior_ must have shape (n_components,)")
 
         elif self.covariance_type == "tied":
-            pass
-        else:
-            raise NotImplementedError(
-                f"{self.covariance_type} is not implemented yet")
+            if not isinstance(self.dof_prior_, numbers.Number):
+                raise ValueError("dof_prior_ should be numeric")
+            if not isinstance(self.dof_posterior_, numbers.Number):
+                raise ValueError("dof_posterior_ should be numeric")
 
         self.scale_prior_ = np.asarray(self.scale_prior_, dtype=float)
         self.scale_posterior_ = np.asarray(self.scale_posterior_, dtype=float)
 
-        if self.covariance_type not in COVARIANCE_TYPES:
-            raise ValueError('covariance_type must be one of {}'
-                             .format(COVARIANCE_TYPES))
         expected = None
         if self.covariance_type == "full":
             expected = (self.n_components, self.n_features, self.n_features)
         elif self.covariance_type == "tied":
             expected = (self.n_features, self.n_features)
-        else:
-            raise NotImplementedError(
-                f"{self.covariance_type} is not implemented yet")
+        elif self.covariance_type == "diag":
+            expected = (self.n_components, self.n_features)
+        elif self.covariance_type == "spherical":
+            expected = (self.n_components, )
         # Now check the W's
         if self.scale_prior_.shape != expected:
             raise ValueError(f"scale_prior_ must have shape {expected}, "
@@ -634,17 +636,24 @@ class VariationalGaussianHMM(BaseGaussianHMM, VariationalBaseHMM):
                              f"found {self.scale_posterior_.shape}")
 
     def _compute_subnorm_log_likelihood(self, X):
-        # Refer to the Gruhl/Sick paper
+        # Refer to the Gruhl/Sick paper for the notation
+        # In general, things are neater if we pretend the covariance is
+        # full / tied.  Or, we could treat each case separately, and reduce
+        # the number of operations. That's left for the future :-)
         term1 = np.zeros_like(self.dof_posterior_, dtype=float)
         for d in range(1, self.n_features+1):
             term1 += special.digamma(.5 * self.dof_posterior_ + 1 - d)
-        W_k = np.linalg.inv(self.scale_posterior_)
+        scale_posterior_ = self.scale_posterior_
+        if self.covariance_type in ("diag", "spherical"):
+            scale_posterior_ = fill_covars(self.scale_posterior_,
+                    self.covariance_type, self.n_components, self.n_features)
+        W_k = np.linalg.inv(scale_posterior_)
         term1 += self.n_features * np.log(2)
         term1 += np.log(np.linalg.det(W_k))
         term1 /= 2
 
-        # A constant, typically excluded in the literature
-        # self.n_features * log(2 * M_PI ) / 2
+        # We ignore the constant that is typically excluded in the literature
+        # term2 = self.n_features * log(2 * M_PI ) / 2
         term2 = 0
         term3 = self.n_features / self.beta_posterior_
 
@@ -654,15 +663,12 @@ class VariationalGaussianHMM(BaseGaussianHMM, VariationalBaseHMM):
         # i is the length of the sequence X
         # j, k are the n_features
         # output shape is length * number of components
-        if self.covariance_type == "full":
+        if self.covariance_type in ("full", "diag", "spherical"):
             dots = np.einsum("cij,cjk,cik,c->ic",
                              delta, W_k, delta, self.dof_posterior_)
         elif self.covariance_type == "tied":
             dots = np.einsum("cij,jk,cik,->ic",
                              delta, W_k, delta, self.dof_posterior_)
-        else:
-            raise NotImplementedError(
-                f"{self.covariance_type} is not implemented yet")
         last_term = .5 * (dots + term3)
         lll = term1 - term2 - last_term
         return lll
@@ -719,9 +725,42 @@ class VariationalGaussianHMM(BaseGaussianHMM, VariationalBaseHMM):
                                 self.means_posterior_,
                                 self.means_posterior_))
                 self._covars_ = self.scale_posterior_ / self.dof_posterior_
-            else:
-                raise NotImplementedError(
-                    f"{self.covariance_type} is not implemented yet")
+            elif self.covariance_type == "diag":
+                # Update DOF
+                self.dof_posterior_ = self.dof_prior_ + stats['post']
+                # Update scale
+                self.scale_posterior_ = (
+                    self.scale_prior_
+                    + stats['obs**2']
+                    + np.einsum("c,ci,ci->ci",
+                                self.beta_prior_,
+                                self.means_prior_,
+                                self.means_prior_)
+                    - np.einsum("c,ci,ci->ci",
+                                self.beta_posterior_,
+                                self.means_posterior_,
+                                self.means_posterior_))
+                self._covars_ = (self.scale_posterior_
+                                 / self.dof_posterior_[:, None])
+            elif self.covariance_type == "spherical":
+                # Update DOF
+                self.dof_posterior_ = self.dof_prior_ + stats['post']
+                # Update scale
+                term2 = (stats['obs**2']
+                         + np.einsum("c,ci,ci->ci",
+                                     self.beta_prior_,
+                                     self.means_prior_,
+                                     self.means_prior_)
+                         - np.einsum("c,ci,ci->ci",
+                                     self.beta_posterior_,
+                                     self.means_posterior_,
+                                     self.means_posterior_))
+                self.scale_posterior_ = (
+                    self.scale_prior_
+                    + term2.mean(axis=1))
+                self.scale_posterior_ = self.scale_posterior_
+                self._covars_ = (self.scale_posterior_
+                                 / self.dof_posterior_)
 
     def _compute_lower_bound(self, log_prob):
 
@@ -732,10 +771,18 @@ class VariationalGaussianHMM(BaseGaussianHMM, VariationalBaseHMM):
         # The compute the contributions of the emissions
         emissions_lower_bound = 0
 
-        # Make the right shape for computing precision
-        W_k = np.linalg.inv(self.scale_posterior_)
-        W_k = fill_covars(W_k, self.covariance_type,
-                          self.n_components, self.n_features)
+        # For ease of implementation, pretend everything is shaped like
+        # full covariance.
+        scale_posterior_ = self.scale_posterior_
+        scale_prior_ = self.scale_prior_
+        if self.covariance_type != "full":
+            scale_posterior_ = fill_covars(self.scale_posterior_,
+                    self.covariance_type, self.n_components, self.n_features)
+            scale_prior_ = fill_covars(self.scale_posterior_,
+                    self.covariance_type, self.n_components, self.n_features)
+
+        W_k = np.linalg.inv(scale_posterior_)
+
         if self.covariance_type != "tied":
             dof = self.dof_posterior_
         else:
@@ -753,10 +800,10 @@ class VariationalGaussianHMM(BaseGaussianHMM, VariationalBaseHMM):
             emissions_lower_bound -= kln
             # KL for the wishart distributions
             klw = 0.
-            if self.covariance_type == "full":
+            if self.covariance_type in ("full", "diag", "spherical"):
                 klw = _kl.kl_wishart_distribution(
-                    self.dof_posterior_[i], self.scale_posterior_[i],
-                    self.dof_prior_[i], self.scale_prior_[i])
+                    self.dof_posterior_[i], scale_posterior_[i],
+                    self.dof_prior_[i], scale_prior_[i])
             elif self.covariance_type == "tied":
                 # Just compute it for the first component
                 if i == 0:
@@ -765,10 +812,6 @@ class VariationalGaussianHMM(BaseGaussianHMM, VariationalBaseHMM):
                        self.dof_prior_, self.scale_prior_)
                 else:
                     klw = 0
-            else:
-                raise NotImplementedError(
-                    f"{self.covariance_type} is not implemented yet"
-                )
 
             emissions_lower_bound -= klw
         return lower_bound + emissions_lower_bound
