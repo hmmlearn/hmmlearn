@@ -648,12 +648,11 @@ class VariationalGaussianHMM(BaseGaussianHMM, VariationalBaseHMM):
             scale_posterior_ = fill_covars(self.scale_posterior_,
                     self.covariance_type, self.n_components, self.n_features)
         W_k = np.linalg.inv(scale_posterior_)
-        term1 += self.n_features * np.log(2)
-        term1 += np.log(np.linalg.det(W_k))
+        term1 += self.n_features * np.log(2) + _utils.logdet(W_k)
         term1 /= 2
 
         # We ignore the constant that is typically excluded in the literature
-        # term2 = self.n_features * log(2 * M_PI ) / 2
+        # term2 = self.n_features * log(2 * M_PI) / 2
         term2 = 0
         term3 = self.n_features / self.beta_posterior_
 

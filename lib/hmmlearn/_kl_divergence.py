@@ -7,6 +7,8 @@ All implementations are based upon the following:
 import numpy as np
 from scipy.special import gammaln, digamma
 
+from . import _utils
+
 
 def kl_dirichlet(q, p):
     """
@@ -54,10 +56,10 @@ def kl_multivariate_normal_distribution(mean_q, covar_q, mean_p, covar_p):
     D = mean_q.shape[0]
 
     # These correspond to the four terms in the ~wpenny paper documented above
-    return (0.5 * np.log(np.linalg.det(covar_p) / np.linalg.det(covar_q))
-            + 0.5 * np.trace(precision_p @ covar_q)
-            + 0.5 * mean_diff @ precision_p @ mean_diff
-            - D/2)
+    return .5 * (_utils.logdet(covar_p) - _utils.logdet(covar_q)
+                 + np.trace(precision_p @ covar_q)
+                 + mean_diff @ precision_p @ mean_diff
+                 - D)
 
 
 def kl_gamma_distribution(b_q, c_q, b_p, c_p):
@@ -104,12 +106,12 @@ def _E(dof, scale):
     r"""
     $L(a, B) = \int \mathcal{Wishart}(\Gamma; a, B) \log |\Gamma| d\Gamma$
     """
-    return (-np.log(np.linalg.det(scale / 2))
+    return (-_utils.logdet(scale / 2)
             + digamma((dof - np.arange(scale.shape[0])) / 2).sum())
 
 
 def _logZ(dof, scale):
     D = scale.shape[0]
     return ((D * (D - 1) / 4) * np.log(np.pi)
-            - dof / 2 * np.log(np.linalg.det(scale / 2))
+            - dof / 2 * _utils.logdet(scale / 2)
             + gammaln((dof - np.arange(scale.shape[0])) / 2).sum())
