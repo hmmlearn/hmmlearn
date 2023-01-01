@@ -6,7 +6,8 @@ from collections import deque
 import numpy as np
 from scipy import linalg, special
 from sklearn.base import BaseEstimator
-from sklearn.utils import check_array, check_random_state
+from sklearn.utils.validation import (
+    check_array, check_is_fitted, check_random_state)
 
 from . import _hmmc, _kl_divergence as _kl, _utils
 from .utils import normalize, log_normalize
@@ -231,7 +232,7 @@ class _AbstractHMM(BaseEstimator):
         *compute_posteriors* is True (otherwise, an empty array is returned
         for the latter).
         """
-        _utils.check_is_fitted(self, "startprob_")
+        check_is_fitted(self, "startprob_")
         self._check()
 
         X = check_array(X)
@@ -318,7 +319,7 @@ class _AbstractHMM(BaseEstimator):
             posteriors.
         score : Compute the log probability under the model.
         """
-        _utils.check_is_fitted(self, "startprob_")
+        check_is_fitted(self, "startprob_")
         self._check()
 
         algorithm = algorithm or self.algorithm
@@ -410,7 +411,7 @@ class _AbstractHMM(BaseEstimator):
             _, Z = model.sample(n_samples=10)
             X, Z = model.sample(n_samples=10, currstate=Z[-1])
         """
-        _utils.check_is_fitted(self, "startprob_")
+        check_is_fitted(self, "startprob_")
         self._check()
 
         if random_state is None:
@@ -841,7 +842,7 @@ class BaseHMM(_AbstractHMM):
         # The stationary distribution is proportional to the left-eigenvector
         # associated with the largest eigenvalue (i.e., 1) of the transition
         # matrix.
-        _utils.check_is_fitted(self, "transmat_")
+        check_is_fitted(self, "transmat_")
         eigvals, eigvecs = linalg.eig(self.transmat_.T)
         eigvec = np.real_if_close(eigvecs[:, np.argmax(eigvals)])
         return eigvec / eigvec.sum()

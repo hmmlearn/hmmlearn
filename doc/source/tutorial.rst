@@ -93,7 +93,7 @@ will raise an exception:
 >>> X, Z = model.sample(100)
 Traceback (most recent call last):
     ...
-sklearn.exceptions.NotFittedError: This GaussianHMM instance is not fitted yet. Call 'fit' with appropriate arguments before using this method.
+sklearn.exceptions.NotFittedError: This GaussianHMM instance is not fitted yet. Call 'fit' with appropriate arguments before using this estimator.
 
 Fixing parameters
 -----------------
