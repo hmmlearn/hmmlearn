@@ -55,8 +55,8 @@ def kl_multivariate_normal_distribution(mean_q, covar_q, mean_p, covar_p):
 
     # These correspond to the four terms in the ~wpenny paper documented above
     return (0.5 * np.log(np.linalg.det(covar_p) / np.linalg.det(covar_q))
-            + 0.5 * np.trace(np.dot(precision_p, covar_q))
-            + 0.5 * np.dot(np.dot(mean_diff, precision_p), mean_diff)
+            + 0.5 * np.trace(precision_p @ covar_q)
+            + 0.5 * mean_diff @ precision_p @ mean_diff
             - D/2)
 
 
@@ -94,7 +94,7 @@ def kl_wishart_distribution(dof_q, scale_q, dof_p, scale_p):
     D = scale_p.shape[0]
     return ((dof_q - dof_p)/2 * _E(dof_q, scale_q)
             - D * dof_q / 2
-            + dof_q / 2 * np.trace(np.dot(scale_p, np.linalg.inv(scale_q)))
+            + dof_q / 2 * np.trace(scale_p @ np.linalg.inv(scale_q))
             # Division of logarithm turned into subtraction here
             + _logZ(dof_p, scale_p)
             - _logZ(dof_q, scale_q))

@@ -102,11 +102,11 @@ class BaseGaussianHMM(_AbstractHMM):
 
         if self._needs_sufficient_statistics_for_mean():
             stats['post'] += posteriors.sum(axis=0)
-            stats['obs'] += np.dot(posteriors.T, X)
+            stats['obs'] += posteriors.T @ X
 
         if self._needs_sufficient_statistics_for_covars():
             if self.covariance_type in ('spherical', 'diag'):
-                stats['obs**2'] += np.dot(posteriors.T, X ** 2)
+                stats['obs**2'] += posteriors.T @ X**2
             elif self.covariance_type in ('tied', 'full'):
                 # posteriors: (nt, nc); obs: (nt, nf); obs: (nt, nf)
                 # -> (nc, nf, nf)
@@ -310,7 +310,7 @@ class BaseMultinomialHMM(BaseHMM):
         super()._accumulate_sufficient_statistics(
             stats, X, framelogprob, posteriors, fwdlattice, bwdlattice)
         if 'e' in self.params:
-            stats['obs'] += np.dot(posteriors.T, X)
+            stats['obs'] += posteriors.T @ X
 
     def _generate_sample_from_state(self, state, random_state):
         try:
@@ -356,7 +356,7 @@ class BasePoissonHMM(BaseHMM):
             stats, obs, lattice, posteriors, fwdlattice, bwdlattice)
         if 'l' in self.params:
             stats['post'] += posteriors.sum(axis=0)
-            stats['obs'] += np.dot(posteriors.T, obs)
+            stats['obs'] += posteriors.T @ obs
 
     def _generate_sample_from_state(self, state, random_state):
         return random_state.poisson(self.lambdas_[state])

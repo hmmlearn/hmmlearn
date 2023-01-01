@@ -47,17 +47,16 @@ def prep_params(n_comps, n_mix, n_features, covar_type,
         covs = np.zeros((n_comps, n_features, n_features))
         for i in range(n_comps):
             low = random_state.uniform(-2, 2, (n_features, n_features))
-            covs[i] = np.dot(low.T, low)
+            covs[i] = low.T @ low
     elif covar_type == "full":
         covs = np.zeros((n_comps, n_mix, n_features, n_features))
         for i in range(n_comps):
             for j in range(n_mix):
                 low = random_state.uniform(-2, 2,
                                            size=(n_features, n_features))
-                covs[i, j] = np.dot(low.T, low)
+                covs[i, j] = low.T @ low
 
-    weights = normalized(random_state.uniform(size=(n_comps, n_mix)),
-                         axis=1)
+    weights = normalized(random_state.uniform(size=(n_comps, n_mix)), axis=1)
 
     return covs, means, startprob, transmat, weights
 
