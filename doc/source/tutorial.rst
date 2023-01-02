@@ -49,9 +49,13 @@ Available models
 .. autosummary::
    :nosignatures:
 
+   hmm.CategoricalHMM
    hmm.GaussianHMM
    hmm.GMMHMM
    hmm.MultinomialHMM
+   hmm.PoissonHMM
+   vhmm.VariationalCategoricalHMM
+   vhmm.VariationalGaussianHMM
 
 :ref:`Read on <customizing>` for details on how to implement a HMM with a
 custom emission probability.
