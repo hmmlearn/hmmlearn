@@ -1,13 +1,16 @@
 """
-This example demonstrates learning an HMM using VI and EM over a set of
-Gaussian sequences.  We train models with a variety of number of states
+Learning an HMM using VI and EM over a set of Gaussian sequences
+----------------------------------------------------------------
+
+We train models with a variety of number of states
 (N) for each algorithm, and then examine which model is "best", by printing
-the loglikelihood or variationl lower bound for each N.  We will see that
+the log-likelihood or variational lower bound for each N.  We will see that
 an HMM trained using VI will prefer the correct number of states, while an
 HMM learning with EM will prefer as many states as possible.  Note, for
 models trained with EM, some other criteria such as AIC/BIC, or held out
 test data, could be used to select the correct number of hidden states.
 """
+
 import collections
 import numpy as np
 import matplotlib.pyplot as plt
