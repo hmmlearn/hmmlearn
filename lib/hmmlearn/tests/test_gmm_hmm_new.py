@@ -1,6 +1,7 @@
 import numpy as np
 from numpy.testing import assert_allclose, assert_array_less
 import pytest
+from sklearn.utils import check_random_state
 
 from ..hmm import GMMHMM
 from .test_gmm_hmm import create_random_gmm
@@ -175,6 +176,30 @@ class GMMHMMTestMixin:
 
         h = self.new_hmm(implementation)
         h.fit(X)
+
+    @pytest.mark.parametrize("implementation", ["scaling", "log"])
+    def test_criterion(self, implementation):
+        random_state = check_random_state(2013)
+        m1 = self.new_hmm(implementation)
+        # Spread the means out to make this easier
+        m1.means_ *= 10
+
+        X, _ = m1.sample(4000, random_state=random_state)
+        aic = []
+        bic = []
+        ns = [2, 3, 4, 5]
+        for n in ns:
+            h = GMMHMM(n, n_mix=2, covariance_type=self.covariance_type,
+                random_state=random_state, implementation=implementation)
+            h.fit(X)
+            aic.append(h.aic(X))
+            bic.append(h.bic(X))
+
+        assert np.all(aic) > 0
+        assert np.all(bic) > 0
+        # AIC / BIC pick the right model occasionally
+        # assert ns[np.argmin(aic)] == self.n_components
+        # assert ns[np.argmin(bic)] == self.n_components
 
 
 class TestGMMHMMWithSphericalCovars(GMMHMMTestMixin):

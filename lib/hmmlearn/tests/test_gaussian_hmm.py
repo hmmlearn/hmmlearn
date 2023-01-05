@@ -1,6 +1,7 @@
 import numpy as np
 from numpy.testing import assert_allclose
 import pytest
+from sklearn.utils import check_random_state
 
 from .. import hmm
 from . import assert_log_likelihood_increasing, make_covar_matrix, normalized
@@ -87,6 +88,34 @@ class GaussianHMMTestMixin:
         # TODO: change the params and uncomment the check
         h.fit(X, lengths=lengths)
         # assert_log_likelihood_increasing(h, X, lengths, n_iter)
+
+    @pytest.mark.parametrize("implementation", ["scaling", "log"])
+    def test_criterion(self, implementation):
+        random_state = check_random_state(42)
+        m1 = hmm.GaussianHMM(self.n_components, init_params="",
+            covariance_type=self.covariance_type)
+        m1.startprob_ = self.startprob
+        m1.transmat_ = self.transmat
+        m1.means_ = self.means * 10
+        m1.covars_ = self.covars
+
+        X, _ = m1.sample(2000, random_state=random_state)
+
+        aic = []
+        bic = []
+        ns = [2, 3, 4]
+        for n in ns:
+            h = hmm.GaussianHMM(n, self.covariance_type, n_iter=500,
+                random_state=random_state, implementation=implementation)
+            h.fit(X)
+            aic.append(h.aic(X))
+            bic.append(h.bic(X))
+
+        assert np.all(aic) > 0
+        assert np.all(bic) > 0
+        # AIC / BIC pick the right model occasionally
+        # assert ns[np.argmin(aic)] == self.n_components
+        # assert ns[np.argmin(bic)] == self.n_components
 
     @pytest.mark.parametrize("implementation", ["scaling", "log"])
     def test_fit_ignored_init_warns(self, implementation, caplog):
