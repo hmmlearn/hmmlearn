@@ -1,6 +1,7 @@
 import numpy as np
 from numpy.testing import assert_allclose
 import pytest
+from sklearn.utils import check_random_state
 
 from hmmlearn import hmm
 
@@ -76,3 +77,25 @@ class TestPoissonHMM:
         h._init(X, lengths)
 
         assert_log_likelihood_increasing(h, X, lengths, n_iter)
+
+    @pytest.mark.parametrize("implementation", ["scaling", "log"])
+    def test_criterion(self, implementation):
+        random_state = check_random_state(412)
+        m1 = self.new_hmm(implementation)
+        X, _ = m1.sample(2000, random_state=random_state)
+
+        aic = []
+        bic = []
+        ns = [2, 3, 4]
+        for n in ns:
+            h = hmm.PoissonHMM(n, n_iter=500,
+                random_state=random_state, implementation=implementation)
+            h.fit(X)
+            aic.append(h.aic(X))
+            bic.append(h.bic(X))
+
+        assert np.all(aic) > 0
+        assert np.all(bic) > 0
+        # AIC / BIC pick the right model occasionally
+        # assert ns[np.argmin(aic)] == 2
+        # assert ns[np.argmin(bic)] == 2

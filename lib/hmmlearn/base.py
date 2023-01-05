@@ -951,6 +951,53 @@ class BaseHMM(_AbstractHMM):
                 "transmat_ must have shape (n_components, n_components)")
         self._check_sum_1("transmat_")
 
+    def aic(self, X, lengths=None):
+        """
+        Akaike information criterion for the current model on the input X.
+
+        AIC = -2*logLike + 2 * num_free_params
+
+        https://en.wikipedia.org/wiki/Akaike_information_criterion
+
+        Parameters
+        ----------
+        X : array of shape (n_samples, n_dimensions)
+            The input samples.
+        lengths : array-like of integers, shape (n_sequences, )
+            Lengths of the individual sequences in ``X``. The sum of
+            these should be ``n_samples``.
+
+        Returns
+        -------
+        aic : float
+            The lower the better.
+        """
+        n_params = sum(self._get_n_fit_scalars_per_param().values())
+        return -2 * self.score(X, lengths=lengths) + 2 * n_params
+
+    def bic(self, X, lengths=None):
+        """
+        Bayesian information criterion for the current model on the input X.
+
+        BIC = -2*logLike + num_free_params * log(num_of_data)
+
+        https://en.wikipedia.org/wiki/Bayesian_information_criterion
+
+        Parameters
+        ----------
+        X : array of shape (n_samples, n_dimensions)
+            The input samples.
+        lengths : array-like of integers, shape (n_sequences, )
+            Lengths of the individual sequences in ``X``. The sum of
+            these should be ``n_samples``.
+
+        Returns
+        -------
+        bic : float
+            The lower the better.
+        """
+        n_params = sum(self._get_n_fit_scalars_per_param().values())
+        return -2 * self.score(X, lengths=lengths) + n_params * np.log(len(X))
 
 _BaseHMM = BaseHMM  # Backcompat name, will be deprecated in the future.
 
