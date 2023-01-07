@@ -16,8 +16,11 @@ of components for a model.
 """
 import numpy as np
 import matplotlib.pyplot as plt
+from sklearn.utils import check_random_state
 
 from hmmlearn.hmm import GaussianHMM
+
+rs = check_random_state(546)
 # %%
 # Our model to generate sample data from:
 model = GaussianHMM(4, init_params="")
@@ -30,8 +33,8 @@ model.transmat_ = np.array([[0.3, 0.4, 0.2, 0.1],
 model.means_ = np.array([[-2.5], [0], [2.5], [5.]])
 model.covars_ = np.sqrt([[0.25], [0.25], [0.25], [0.25]])
 
-X, _ = model.sample(2000)
-lengths = [200] * 10
+X, _ = model.sample(1000, random_state=rs)
+lengths = [X.shape[0]]
 
 # %%
 # Search over various n_components and examine the
@@ -46,7 +49,7 @@ for n in ns:
     best_ll = None
     best_model = None
     for i in range(10):
-        h = GaussianHMM(n, n_iter=200)
+        h = GaussianHMM(n, n_iter=200, tol=1e-4, random_state=rs)
         h.fit(X)
         score = h.score(X)
         if not best_ll or best_ll < best_ll:
