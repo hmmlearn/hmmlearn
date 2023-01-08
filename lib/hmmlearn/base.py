@@ -1113,19 +1113,17 @@ class VariationalBaseHMM(_AbstractHMM):
             raise ValueError("startprob_prior_ must have length n_components")
         self.startprob_posterior_ = np.asarray(self.startprob_posterior_)
         if len(self.startprob_posterior_) != nc:
-            msg = "startprob_posterior_ must have length n_components"
-            raise ValueError(msg)
+            raise ValueError("startprob_posterior_ must have length "
+                             "n_components")
 
         self.transmat_prior_ = np.asarray(self.transmat_prior_)
         if self.transmat_prior_.shape != (nc, nc):
-            msg = "transmat_prior_ must have shape"
-            "(n_components, n_components)"
-            raise ValueError(msg)
+            raise ValueError("transmat_prior_ must have shape "
+                             "(n_components, n_components)")
         self.transmat_posterior_ = np.asarray(self.transmat_posterior_)
         if self.transmat_posterior_.shape != (nc, nc):
-            msg = "transmat_posterior_ must have shape"
-            "(n_components, n_components)"
-            raise ValueError(msg)
+            raise ValueError("transmat_posterior_ must have shape "
+                             "(n_components, n_components)")
 
     def _compute_subnorm_likelihood(self, X):
         if (self._compute_subnorm_log_likelihood !=  # prevent recursion
