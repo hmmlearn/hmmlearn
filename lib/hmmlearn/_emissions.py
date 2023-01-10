@@ -1,3 +1,6 @@
+import functools
+import inspect
+
 import numpy as np
 from scipy import special
 from scipy.stats import multinomial, poisson
@@ -8,7 +11,43 @@ from .stats import log_multivariate_normal_density
 from .utils import fill_covars, log_normalize
 
 
+_CATEGORICALHMM_DOC_SUFFIX = """
+
+Notes
+-----
+Unlike other HMM classes, `CategoricalHMM` ``X`` arrays have shape
+``(n_samples, 1)`` (instead of ``(n_samples, n_features)``).  Consider using
+`sklearn.preprocessing.LabelEncoder` to transform your input to the right
+format.
+"""
+
+
+def _make_wrapper(func):
+    return functools.wraps(func)(lambda *args, **kwargs: func(*args, **kwargs))
+
+
 class BaseCategoricalHMM(_AbstractHMM):
+
+    def __init_subclass__(cls):
+        for name in [
+                "decode",
+                "fit",
+                "predict",
+                "predict_proba",
+                "sample",
+                "score",
+                "score_samples",
+        ]:
+            meth = getattr(cls, name)
+            doc = inspect.getdoc(meth)
+            if doc is None or _CATEGORICALHMM_DOC_SUFFIX in doc:
+                wrapper = meth
+            else:
+                wrapper = _make_wrapper(meth)
+                wrapper.__doc__ = (
+                    doc.replace("(n_samples, n_features)", "(n_samples, 1)")
+                    + _CATEGORICALHMM_DOC_SUFFIX)
+            setattr(cls, name, wrapper)
 
     def _check_and_set_n_features(self, X):
         """

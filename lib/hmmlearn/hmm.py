@@ -2,8 +2,6 @@
 The :mod:`hmmlearn.hmm` module implements hidden Markov models.
 """
 
-import functools
-import inspect
 import logging
 
 import numpy as np
@@ -23,29 +21,6 @@ __all__ = [
 
 _log = logging.getLogger(__name__)
 COVARIANCE_TYPES = frozenset(("spherical", "diag", "full", "tied"))
-
-
-_CATEGORICALHMM_DOC_SUFFIX = """
-Notes
------
-Unlike other HMM classes, `CategoricalHMM` ``X`` arrays have shape
-``(n_samples, 1)`` (instead of ``(n_samples, n_features)``).  Consider using
-`sklearn.preprocessing.LabelEncoder` to transform your input to the right
-format.
-"""
-
-
-def _categoricalhmm_fix_docstring_shape(func):
-    doc = inspect.getdoc(func)
-    if doc is None:
-        wrapper = func
-    else:
-        wrapper = functools.wraps(func)(
-            lambda *args, **kwargs: func(*args, **kwargs))
-        wrapper.__doc__ = (
-            doc.replace("(n_samples, n_features)", "(n_samples, 1)")
-            + _CATEGORICALHMM_DOC_SUFFIX)
-    return wrapper
 
 
 class CategoricalHMM(_emissions.BaseCategoricalHMM, BaseHMM):
@@ -143,17 +118,6 @@ class CategoricalHMM(_emissions.BaseCategoricalHMM, BaseHMM):
                          implementation=implementation)
         self.emissionprob_prior = emissionprob_prior
         self.n_features = n_features
-
-    score_samples, score, decode, predict, predict_proba, sample, fit = map(
-        _categoricalhmm_fix_docstring_shape, [
-            BaseHMM.score_samples,
-            BaseHMM.score,
-            BaseHMM.decode,
-            BaseHMM.predict,
-            BaseHMM.predict_proba,
-            BaseHMM.sample,
-            BaseHMM.fit,
-        ])
 
     def _init(self, X, lengths=None):
         super()._init(X, lengths)
