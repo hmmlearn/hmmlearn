@@ -7,6 +7,8 @@ next
 ----
 - Introduce learning HMMs with Variational Inference.  Support
   Gaussian and Categorical Emissions.
+- Deprecated support for inputs of shape other than ``(n_samples, 1)`` for
+  categorical HMMs.
 - Removed the deprecated ``iter_from_X_lengths`` and ``log_mask_zero``;
   ``lengths`` arrays that do not sum up to the entire array length are no
   longer supported.

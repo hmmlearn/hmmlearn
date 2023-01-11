@@ -190,7 +190,7 @@ class VariationalCategoricalHMM(BaseCategoricalHMM, VariationalBaseHMM):
                 f"({self.n_components}, {self.n_features})")
 
     def _compute_subnorm_log_likelihood(self, X):
-        return self.emissionprob_log_subnorm_[:, np.concatenate(X)].T
+        return self.emissionprob_log_subnorm_[:, X.squeeze(1)].T
 
     def _do_mstep(self, stats):
         """

@@ -1,5 +1,6 @@
 import functools
 import inspect
+import warnings
 
 import numpy as np
 from scipy import special
@@ -76,7 +77,11 @@ class BaseCategoricalHMM(_AbstractHMM):
         }
 
     def _compute_likelihood(self, X):
-        return self.emissionprob_[:, np.concatenate(X)].T
+        if X.shape[1] != 1:
+            warnings.warn("Inputs of shape other than (n_samples, 1) are "
+                          "deprecated.", DeprecationWarning)
+            X = np.concatenate(X)[:, None]
+        return self.emissionprob_[:, X.squeeze(1)].T
 
     def _initialize_sufficient_statistics(self):
         stats = super()._initialize_sufficient_statistics()
@@ -92,7 +97,11 @@ class BaseCategoricalHMM(_AbstractHMM):
                                                   bwdlattice=bwdlattice)
 
         if 'e' in self.params:
-            np.add.at(stats['obs'].T, np.concatenate(X), posteriors)
+            if X.shape[1] != 1:
+                warnings.warn("Inputs of shape other than (n_samples, 1) are "
+                              "deprecated.", DeprecationWarning)
+                X = np.concatenate(X)[:, None]
+            np.add.at(stats['obs'].T, X.squeeze(1), posteriors)
 
     def _generate_sample_from_state(self, state, random_state=None):
         cdf = np.cumsum(self.emissionprob_[state, :])
