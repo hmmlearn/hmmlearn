@@ -41,7 +41,7 @@ class _TestGaussian:
                         n_components=3, **kwargs):
         h = hmm.GaussianHMM(n_components, self.covariance_type,
                             implementation=implementation, init_params="")
-        rs = check_random_state(None)
+        rs = check_random_state(1)
         h.startprob_ = normalized(rs.rand(n_components))
         h.transmat_ = normalized(
             rs.rand(n_components, n_components), axis=1)
@@ -55,7 +55,12 @@ class _TestGaussian:
             n_components, n_iter=50, tol=1e-9, random_state=rs,
             covariance_type=self.covariance_type,
             implementation=implementation)
-        assert_log_likelihood_increasing(model, X, lengths, n_iter=50)
+
+        # Depending on the random seed, the model may converge rather quickly,
+        # and throw an assertion in this test, as the function we call
+        # computes each iteration independently by calling fit() `n_iter`
+        # times.
+        assert_log_likelihood_increasing(model, X, lengths, n_iter=10)
 
     @pytest.mark.parametrize("implementation", ["scaling", "log"])
     def test_fit_mcgrory_titterington1d(self, implementation):
