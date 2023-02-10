@@ -461,7 +461,8 @@ class VariationalGaussianHMM(BaseGaussianHMM, VariationalBaseHMM):
         # Kmeans will be used for initializing both the means
         # and the covariances
         kmeans = cluster.KMeans(n_clusters=self.n_components,
-                                random_state=self.random_state)
+                                random_state=self.random_state,
+                                n_init=10)  # sklearn >=1.2 compat.
         kmeans.fit(X)
         cluster_counts = np.bincount(kmeans.predict(X))
 

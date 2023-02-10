@@ -297,7 +297,8 @@ class GaussianHMM(_emissions.BaseGaussianHMM, BaseHMM):
 
         if self._needs_init("m", "means_"):
             kmeans = cluster.KMeans(n_clusters=self.n_components,
-                                    random_state=self.random_state)
+                                    random_state=self.random_state,
+                                    n_init=1)  # sklearn <1.4 backcompat.
             kmeans.fit(X)
             self.means_ = kmeans.cluster_centers_
         if self._needs_init("c", "covars_"):
@@ -525,14 +526,16 @@ class GMMHMM(_emissions.BaseGMMHMM):
         self._fix_priors_shape()
 
         main_kmeans = cluster.KMeans(n_clusters=nc,
-                                     random_state=self.random_state)
+                                     random_state=self.random_state,
+                                     n_init=10)  # sklearn >=1.2 compat.
         cv = None  # covariance matrix
         labels = main_kmeans.fit_predict(X)
         main_centroid = np.mean(main_kmeans.cluster_centers_, axis=0)
         means = []
         for label in range(nc):
             kmeans = cluster.KMeans(n_clusters=nm,
-                                    random_state=self.random_state)
+                                    random_state=self.random_state,
+                                    n_init=10)  # sklearn >=1.2 compat.
             X_cluster = X[np.where(labels == label)]
             if X_cluster.shape[0] >= nm:
                 kmeans.fit(X_cluster)
