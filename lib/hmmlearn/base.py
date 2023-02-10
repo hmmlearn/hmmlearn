@@ -578,7 +578,9 @@ class _AbstractHMM(BaseEstimator):
         """
         if (self._compute_log_likelihood  # prevent recursion
                 != __class__._compute_log_likelihood.__get__(self)):
-            return np.exp(self._compute_log_likelihood(X))
+            # Probabilities equal to zero do occur, and exp(-LARGE) = 0 is OK.
+            with np.errstate(under="ignore"):
+                return np.exp(self._compute_log_likelihood(X))
         else:
             raise NotImplementedError("Must be overridden in subclass")
 
