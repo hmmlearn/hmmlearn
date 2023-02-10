@@ -1043,8 +1043,9 @@ class VariationalBaseHMM(_AbstractHMM):
             these should be ``n_samples``.
         """
         self._check_and_set_n_features(X)
-        uniform_prior = 1 / self.n_components
-        # We could consider random initialization here as well
+        nc = self.n_components
+        uniform_prior = 1 / nc
+        random_state = check_random_state(self.random_state)
         if (self._needs_init("s", "startprob_posterior_")
                 or self._needs_init("s", "startprob_prior_")):
             if self.startprob_prior is None:
@@ -1052,8 +1053,9 @@ class VariationalBaseHMM(_AbstractHMM):
             else:
                 startprob_init = self.startprob_prior
 
-            self.startprob_prior_ = np.full(self.n_components, startprob_init)
-            self.startprob_posterior_ = self.startprob_prior_ * len(lengths)
+            self.startprob_prior_ = np.full(nc, startprob_init)
+            self.startprob_posterior_ = random_state.dirichlet(
+                np.full(nc, uniform_prior)) * len(lengths)
 
         if (self._needs_init("t", "transmat_posterior_")
                 or self._needs_init("t", "transmat_prior_")):
@@ -1062,9 +1064,10 @@ class VariationalBaseHMM(_AbstractHMM):
             else:
                 transmat_init = self.transmat_prior
             self.transmat_prior_ = np.full(
-                (self.n_components, self.n_components), transmat_init)
-            self.transmat_posterior_ = (
-                self.transmat_prior_ * sum(lengths) / self.n_components)
+                (nc, nc), transmat_init)
+            self.transmat_posterior_ = random_state.dirichlet(
+                np.full(nc, uniform_prior), size=nc)
+            self.transmat_posterior_ *= sum(lengths) / nc
 
         n_fit_scalars_per_param = self._get_n_fit_scalars_per_param()
         if n_fit_scalars_per_param is not None:

@@ -66,7 +66,9 @@ np.set_printoptions(formatter={'float_kind': "{:.3f}".format})
 rs = check_random_state(2022)
 sample_length = 500
 num_samples = 1
-num_inits = 1
+# With random initialization, it takes a few tries to find the
+# best solution
+num_inits = 5
 num_states = np.arange(1, 7)
 verbose = False
 

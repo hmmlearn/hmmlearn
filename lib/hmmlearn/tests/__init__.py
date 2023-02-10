@@ -85,3 +85,12 @@ def compare_variational_and_em_models(variational, em, sequences, lengths):
     vi_obs, vi_states = variational.sample(100, random_state=42)
     assert np.all(em_obs == vi_obs)
     assert np.all(em_states == vi_states)
+
+
+def vi_uniform_startprob_and_transmat(model, lengths):
+    nc = model.n_components
+    model.startprob_prior_ = np.full(nc, 1/nc)
+    model.startprob_posterior_ = np.full(nc, 1/nc) * len(lengths)
+    model.transmat_prior_ = np.full((nc, nc), 1/nc)
+    model.transmat_posterior_ = np.full((nc, nc), 1/nc)*sum(lengths)
+    return model

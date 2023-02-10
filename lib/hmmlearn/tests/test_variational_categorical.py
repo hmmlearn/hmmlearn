@@ -4,7 +4,8 @@ from sklearn.utils import check_random_state
 
 from hmmlearn import hmm, vhmm
 from . import (
-    assert_log_likelihood_increasing, compare_variational_and_em_models)
+    assert_log_likelihood_increasing, compare_variational_and_em_models,
+    vi_uniform_startprob_and_transmat)
 
 
 class TestVariationalCategorical:
@@ -218,8 +219,9 @@ class TestVariationalCategorical:
         sequences, lengths = self.get_from_one_beal(7, 100, 1984)
         model = vhmm.VariationalCategoricalHMM(
             4, n_iter=500, random_state=1984,
+            init_params="e",
             implementation=implementation)
-
+        vi_uniform_startprob_and_transmat(model, lengths)
         model.fit(sequences, lengths)
 
         # The 1st hidden state will be "unused"
