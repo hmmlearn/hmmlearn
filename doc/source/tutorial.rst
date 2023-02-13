@@ -174,7 +174,6 @@ ConvergenceMonitor(
     history=[...],
     iter=15,
     n_iter=100,
-    strict=False,
     tol=0.01,
     verbose=False,
 )

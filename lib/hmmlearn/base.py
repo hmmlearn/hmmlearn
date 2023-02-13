@@ -55,7 +55,7 @@ class ConvergenceMonitor:
 
     _template = "{iter:>10d} {log_prob:>16.8f} {delta:>+16.8f}"
 
-    def __init__(self, tol, n_iter, verbose, *, strict=False):
+    def __init__(self, tol, n_iter, verbose):
         """
         Parameters
         ----------
@@ -67,14 +67,10 @@ class ConvergenceMonitor:
             Maximum number of iterations to perform.
         verbose : bool
             Whether per-iteration convergence reports are printed.
-        strict : bool
-            Whether to enforce that the values reported are strictly
-            increasing.
         """
         self.tol = tol
         self.n_iter = n_iter
         self.verbose = verbose
-        self.strict = strict
         self.history = deque()
         self.iter = 0
 
@@ -110,9 +106,14 @@ class ConvergenceMonitor:
             message = self._template.format(
                 iter=self.iter + 1, log_prob=log_prob, delta=delta)
             print(message, file=sys.stderr)
-        if self.strict and self.history and log_prob < self.history[-1]:
-            raise ValueError(f"Model is not converging.  Current: {log_prob}"
-                             f" is not greater than {self.history[-1]}.")
+
+        # Allow for some wiggleroom based on precision.
+        precision = np.finfo(float).eps ** (1/2)
+        if self.history and (log_prob - self.history[-1]) < -precision:
+            delta = log_prob - self.history[-1]
+            _log.warning(f"Model is not converging.  Current: {log_prob}"
+                         f" is not greater than {self.history[-1]}."
+                         f" Delta is {delta}")
         self.history.append(log_prob)
         self.iter += 1
 
@@ -1020,15 +1021,8 @@ class VariationalBaseHMM(_AbstractHMM):
 
         self.startprob_prior = startprob_prior
         self.transmat_prior = transmat_prior
-        # For the case of updating all model components
-        # at each iteration, we can be strict with the convergence
-        # monitory - we know that the Lower Bound will improve
-        # at each iteration. (https://arxiv.org/abs/1601.00670)
-        # During testing we  did not see non-strict improvements due to
-        # floating point slop, though that doesn't mean they couldn't
-        # happy in the future.
         self.monitor_ = ConvergenceMonitor(
-            self.tol, self.n_iter, self.verbose, strict=(params == "ste"))
+            self.tol, self.n_iter, self.verbose)
 
     def _init(self, X, lengths=None):
         """
