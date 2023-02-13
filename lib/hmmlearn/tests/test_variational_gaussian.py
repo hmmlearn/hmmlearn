@@ -56,10 +56,6 @@ class _TestGaussian:
             covariance_type=self.covariance_type,
             implementation=implementation)
 
-        # Depending on the random seed, the model may converge rather quickly,
-        # and throw an assertion in this test, as the function we call
-        # computes each iteration independently by calling fit() `n_iter`
-        # times.
         assert_log_likelihood_increasing(model, X, lengths, n_iter=10)
 
     @pytest.mark.parametrize("implementation", ["scaling", "log"])
@@ -344,7 +340,7 @@ class TestTied(_TestGaussian):
 
 
 class TestSpherical(_TestGaussian):
-    test_fit_mcgrory_titterington1d_mean = 1.40653312
+    test_fit_mcgrory_titterington1d_mean = 1.4105851867634462
     covariance_type = "spherical"
 
     def new_for_init(self, implementation):
@@ -429,7 +425,7 @@ class TestSpherical(_TestGaussian):
 
 
 class TestDiagonal(_TestGaussian):
-    test_fit_mcgrory_titterington1d_mean = 1.40653312
+    test_fit_mcgrory_titterington1d_mean = 1.410585186763446
     covariance_type = "diag"
 
     def new_for_init(self, implementation):

@@ -647,21 +647,24 @@ class VariationalGaussianHMM(BaseGaussianHMM, VariationalBaseHMM):
         # In general, things are neater if we pretend the covariance is
         # full / tied.  Or, we could treat each case separately, and reduce
         # the number of operations. That's left for the future :-)
-        term1 = np.zeros_like(self.dof_posterior_, dtype=float)
-        for d in range(1, self.n_features+1):
-            term1 += special.digamma(.5 * self.dof_posterior_ + 1 - d)
+        nf = self.n_features
+
+        term1 = special.digamma(
+            .5 * (self.dof_posterior_ - np.arange(0, nf)[:, None])
+        ).sum(axis=0)
+
         scale_posterior_ = self.scale_posterior_
         if self.covariance_type in ("diag", "spherical"):
             scale_posterior_ = fill_covars(self.scale_posterior_,
                     self.covariance_type, self.n_components, self.n_features)
         W_k = np.linalg.inv(scale_posterior_)
-        term1 += self.n_features * np.log(2) + _utils.logdet(W_k)
-        term1 /= 2
+        term1 += nf * np.log(2) + _utils.logdet(W_k)
+        term1 /= 2.
 
         # We ignore the constant that is typically excluded in the literature
         # term2 = self.n_features * log(2 * M_PI) / 2
         term2 = 0
-        term3 = self.n_features / self.beta_posterior_
+        term3 = nf / self.beta_posterior_
 
         # (X - Means) * W_k * (X-Means)^T * self.dof_posterior_
         delta = (X - self.means_posterior_[:, None])
@@ -784,7 +787,7 @@ class VariationalGaussianHMM(BaseGaussianHMM, VariationalBaseHMM):
         if self.covariance_type != "full":
             scale_posterior_ = fill_covars(self.scale_posterior_,
                     self.covariance_type, self.n_components, self.n_features)
-            scale_prior_ = fill_covars(self.scale_posterior_,
+            scale_prior_ = fill_covars(self.scale_prior_,
                     self.covariance_type, self.n_components, self.n_features)
 
         W_k = np.linalg.inv(scale_posterior_)
