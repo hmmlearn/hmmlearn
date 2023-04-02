@@ -131,7 +131,6 @@ class GMMHMMTestMixin:
         lengths = None
         h = self.new_hmm(implementation)
         X, _state_sequence = h.sample(n_samples)
-
         # Mess up the parameters and see if we can re-learn them.
         covs0, means0, priors0, trans0, weights0 = prep_params(
             self.n_components, self.n_mix, self.n_features,
