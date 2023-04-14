@@ -110,7 +110,7 @@ class VariationalCategoricalHMM(BaseCategoricalHMM, VariationalBaseHMM):
             combination of 's' for startprob, 't' for transmat, and 'e' for
             emissionprob.  Defaults to all parameters.
 
-        implementation: string, optional
+        implementation : string, optional
             Determines if the forward-backward algorithm is implemented with
             logarithms ("log"), or using scaling ("scaling").  The default is
             to use logarithms for backwards compatability.
@@ -403,7 +403,7 @@ class VariationalGaussianHMM(BaseGaussianHMM, VariationalBaseHMM):
             of 's' for startprob, 't' for transmat, 'm' for means, and 'c' for
             covars.  Defaults to all parameters.
 
-        implementation: string, optional
+        implementation : string, optional
             Determines if the forward-backward algorithm is implemented with
             logarithms ("log"), or using scaling ("scaling").  The default is
             to use logarithms for backwards compatability.

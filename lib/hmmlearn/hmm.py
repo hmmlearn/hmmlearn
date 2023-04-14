@@ -103,7 +103,7 @@ class CategoricalHMM(_emissions.BaseCategoricalHMM, BaseHMM):
             combination of 's' for startprob, 't' for transmat, and 'e' for
             emissionprob.  Defaults to all parameters.
 
-        implementation: string, optional
+        implementation : string, optional
             Determines if the forward-backward algorithm is implemented with
             logarithms ("log"), or using scaling ("scaling").  The default is
             to use logarithms for backwards compatability.
@@ -260,7 +260,7 @@ class GaussianHMM(_emissions.BaseGaussianHMM, BaseHMM):
             of 's' for startprob, 't' for transmat, 'm' for means, and 'c' for
             covars.  Defaults to all parameters.
 
-        implementation: string, optional
+        implementation : string, optional
             Determines if the forward-backward algorithm is implemented with
             logarithms ("log"), or using scaling ("scaling").  The default is
             to use logarithms for backwards compatability.
@@ -491,7 +491,7 @@ class GMMHMM(_emissions.BaseGMMHMM):
             for covars, and 'w' for GMM mixing weights.  Defaults to all
             parameters.
 
-        implementation: string, optional
+        implementation : string, optional
             Determines if the forward-backward algorithm is implemented with
             logarithms ("log"), or using scaling ("scaling").  The default is
             to use logarithms for backwards compatability.
@@ -865,7 +865,7 @@ class MultinomialHMM(_emissions.BaseMultinomialHMM):
             combination of 's' for startprob, 't' for transmat, and 'e' for
             emissionprob.  Defaults to all parameters.
 
-        implementation: string, optional
+        implementation : string, optional
             Determines if the forward-backward algorithm is implemented with
             logarithms ("log"), or using scaling ("scaling").  The default is
             to use logarithms for backwards compatability.
@@ -988,7 +988,7 @@ class PoissonHMM(_emissions.BasePoissonHMM):
             combination of 's' for startprob, 't' for transmat, and 'l' for
             lambdas.  Defaults to all parameters.
 
-        implementation: string, optional
+        implementation : string, optional
             Determines if the forward-backward algorithm is implemented with
             logarithms ("log"), or using scaling ("scaling").  The default is
             to use logarithms for backwards compatability.
