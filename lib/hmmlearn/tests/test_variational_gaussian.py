@@ -74,7 +74,7 @@ class _TestGaussian:
         vi_uniform_startprob_and_transmat(model, lengths)
         model.fit(sequences, lengths)
         # Perform one check that we are converging to the right answer
-        assert (model.means_posterior_[-1][0]
+        assert (list(sorted(model.means_posterior_.ravel()))[3]
                 == pytest.approx(self.test_fit_mcgrory_titterington1d_mean)), \
             model.means_posterior_
 
