@@ -122,7 +122,7 @@ class GaussianHMMTestMixin:
         h = hmm.GaussianHMM(self.n_components, self.covariance_type,
                             implementation=implementation)
         h.startprob_ = self.startprob
-        h.fit(np.random.randn(100, self.n_components))
+        h.fit(self.prng.randn(100, self.n_components))
         assert len(caplog.records) == 1, caplog
         assert "will be overwritten" in caplog.records[0].getMessage()
 
@@ -135,7 +135,7 @@ class GaussianHMMTestMixin:
         h.transmat_ = self.transmat
         h.means_ = 20 * self.means
         h.covars_ = np.maximum(self.covars, 0.1)
-        h._init(np.random.randn(5, self.n_components), 5)
+        h._init(self.prng.randn(5, self.n_components), 5)
         assert len(caplog.records) == 1
         assert "degenerate solution" in caplog.records[0].getMessage()
 
@@ -295,7 +295,7 @@ class TestGaussianHMMWithDiagonalCovars(GaussianHMMTestMixin):
     def test_covar_is_writeable(self, implementation):
         h = hmm.GaussianHMM(n_components=1, covariance_type="diag",
                             init_params="c", implementation=implementation)
-        X = np.random.normal(size=(1000, 5))
+        X = self.prng.normal(size=(1000, 5))
         h._init(X, 1000)
 
         # np.diag returns a read-only view of the array in NumPy 1.9.X.
