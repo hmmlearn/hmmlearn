@@ -546,9 +546,11 @@ class _AbstractHMM(BaseEstimator):
         s = getattr(self, name).sum(axis=-1)
         if not np.allclose(s, 1):
             raise ValueError(
-                f"{name} must sum to 1 (got {s:.4f})" if s.ndim == 0 else
-                f"{name} rows must sum to 1 (got {s})" if s.ndim == 1 else
-                "Expected 1D or 2D array")
+                f"{name} must sum to 1 (got {s:.4f})"
+                if s.ndim == 0
+                else f"{name} rows must sum to 1 (got row sums of {s})"
+                    if s.ndim == 1
+                    else "Expected 1D or 2D array")
 
     def _check(self):
         """
@@ -929,9 +931,11 @@ class BaseHMM(_AbstractHMM):
         s = getattr(self, name).sum(axis=-1)
         if not np.allclose(s, 1):
             raise ValueError(
-                f"{name} must sum to 1 (got {s:.4f})" if s.ndim == 0 else
-                f"{name} rows must sum to 1 (got {s})" if s.ndim == 1 else
-                "Expected 1D or 2D array")
+                f"{name} must sum to 1 (got {s:.4f})"
+                if s.ndim == 0
+                else f"{name} rows must sum to 1 (got row sums of {s})"
+                    if s.ndim == 1
+                    else "Expected 1D or 2D array")
 
     def _check(self):
         """
@@ -1001,6 +1005,7 @@ class BaseHMM(_AbstractHMM):
         """
         n_params = sum(self._get_n_fit_scalars_per_param().values())
         return -2 * self.score(X, lengths=lengths) + n_params * np.log(len(X))
+
 
 _BaseHMM = BaseHMM  # Backcompat name, will be deprecated in the future.
 
