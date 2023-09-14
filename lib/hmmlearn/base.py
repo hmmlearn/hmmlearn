@@ -141,6 +141,12 @@ class _AbstractHMM(BaseEstimator):
             Number of states in the model.
         algorithm : {"viterbi", "map"}, optional
             Decoder algorithm.
+
+            - "viterbi": finds the most likely sequence of states, given all
+              emissions.
+            - "map" (also known as smoothing or forward-backward): finds the
+              sequence of the individual most-likely states, given all
+              emissions.
         random_state: RandomState or an int seed, optional
             A random number generator instance.
         n_iter : int, optional
@@ -302,8 +308,14 @@ class _AbstractHMM(BaseEstimator):
         lengths : array-like of integers, shape (n_sequences, ), optional
             Lengths of the individual sequences in ``X``. The sum of
             these should be ``n_samples``.
-        algorithm : string
-            Decoder algorithm. Must be one of "viterbi" or "map".
+        algorithm : {"viterbi", "map"}, optional
+            Decoder algorithm.
+
+            - "viterbi": finds the most likely sequence of states, given all
+              emissions.
+            - "map" (also known as smoothing or forward-backward): finds the
+              sequence of the individual most-likely states, given all
+              emissions.
             If not given, :attr:`decoder` is used.
 
         Returns
@@ -811,6 +823,12 @@ class BaseHMM(_AbstractHMM):
             of the transition probabilities :attr:`transmat_`.
         algorithm : {"viterbi", "map"}, optional
             Decoder algorithm.
+
+            - "viterbi": finds the most likely sequence of states, given all
+              emissions.
+            - "map" (also known as smoothing or forward-backward): finds the
+              sequence of the individual most-likely states, given all
+              emissions.
         random_state: RandomState or an int seed, optional
             A random number generator instance.
         n_iter : int, optional
