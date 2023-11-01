@@ -49,9 +49,13 @@ Available models
 .. autosummary::
    :nosignatures:
 
+   hmm.CategoricalHMM
    hmm.GaussianHMM
    hmm.GMMHMM
    hmm.MultinomialHMM
+   hmm.PoissonHMM
+   vhmm.VariationalCategoricalHMM
+   vhmm.VariationalGaussianHMM
 
 :ref:`Read on <customizing>` for details on how to implement a HMM with a
 custom emission probability.
@@ -93,7 +97,7 @@ will raise an exception:
 >>> X, Z = model.sample(100)
 Traceback (most recent call last):
     ...
-sklearn.exceptions.NotFittedError: This GaussianHMM instance is not fitted yet. Call 'fit' with appropriate arguments before using this method.
+sklearn.exceptions.NotFittedError: This GaussianHMM instance is not fitted yet. Call 'fit' with appropriate arguments before using this estimator.
 
 Fixing parameters
 -----------------

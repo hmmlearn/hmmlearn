@@ -1,6 +1,7 @@
 import numpy as np
 from numpy.testing import assert_allclose, assert_array_less
 import pytest
+from sklearn.utils import check_random_state
 
 from ..hmm import GMMHMM
 from .test_gmm_hmm import create_random_gmm
@@ -47,29 +48,25 @@ def prep_params(n_comps, n_mix, n_features, covar_type,
         covs = np.zeros((n_comps, n_features, n_features))
         for i in range(n_comps):
             low = random_state.uniform(-2, 2, (n_features, n_features))
-            covs[i] = np.dot(low.T, low)
+            covs[i] = low.T @ low
     elif covar_type == "full":
         covs = np.zeros((n_comps, n_mix, n_features, n_features))
         for i in range(n_comps):
             for j in range(n_mix):
                 low = random_state.uniform(-2, 2,
                                            size=(n_features, n_features))
-                covs[i, j] = np.dot(low.T, low)
+                covs[i, j] = low.T @ low
 
-    weights = normalized(random_state.uniform(size=(n_comps, n_mix)),
-                         axis=1)
+    weights = normalized(random_state.uniform(size=(n_comps, n_mix)), axis=1)
 
     return covs, means, startprob, transmat, weights
 
 
 class GMMHMMTestMixin:
-    def setup(self):
-        self.implementations = ["log", "scaling"]
-        self.n_components = 3
-        self.n_mix = 2
-        self.n_features = 2
-
-        self.low, self.high = 10, 15
+    n_components = 3
+    n_mix = 2
+    n_features = 2
+    low, high = 10, 15
 
     def new_hmm(self, implementation):
         prng = np.random.RandomState(14)
@@ -112,7 +109,7 @@ class GMMHMMTestMixin:
         n_samples = 1000
         h = self.new_hmm(implementation)
         X, _states = h.sample(n_samples)
-        h._init(X)
+        h._init(X, [n_samples])
         h._check()  # should not raise any errors
 
     @pytest.mark.parametrize("implementation", ["scaling", "log"])
@@ -157,7 +154,7 @@ class GMMHMMTestMixin:
 
         # this should not raise
         # "ValueError: array must not contain infs or NaNs"
-        h._init(X)
+        h._init(X, [1000])
         h.fit(X)
 
     @pytest.mark.xfail
@@ -179,6 +176,30 @@ class GMMHMMTestMixin:
 
         h = self.new_hmm(implementation)
         h.fit(X)
+
+    @pytest.mark.parametrize("implementation", ["scaling", "log"])
+    def test_criterion(self, implementation):
+        random_state = check_random_state(2013)
+        m1 = self.new_hmm(implementation)
+        # Spread the means out to make this easier
+        m1.means_ *= 10
+
+        X, _ = m1.sample(4000, random_state=random_state)
+        aic = []
+        bic = []
+        ns = [2, 3, 4, 5]
+        for n in ns:
+            h = GMMHMM(n, n_mix=2, covariance_type=self.covariance_type,
+                random_state=random_state, implementation=implementation)
+            h.fit(X)
+            aic.append(h.aic(X))
+            bic.append(h.bic(X))
+
+        assert np.all(aic) > 0
+        assert np.all(bic) > 0
+        # AIC / BIC pick the right model occasionally
+        # assert ns[np.argmin(aic)] == self.n_components
+        # assert ns[np.argmin(bic)] == self.n_components
 
 
 class TestGMMHMMWithSphericalCovars(GMMHMMTestMixin):

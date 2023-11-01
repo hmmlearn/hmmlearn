@@ -63,7 +63,7 @@ std::tuple<double, py::array_t<double>, py::array_t<double>> forward_scaling(
   auto scaling_ = py::array_t<double>{{ns}};
   auto scaling = scaling_.mutable_unchecked<1>();
   auto log_prob = 0.;
-  auto nogil = py::gil_scoped_release{};
+  py::gil_scoped_release nogil;
   std::fill_n(fwd.mutable_data(0, 0), fwd.size(), 0);
   for (auto i = 0; i < nc; ++i) {
     fwd(0, i) = startprob(i) * frameprob(0, i);
@@ -117,7 +117,7 @@ std::tuple<double, py::array_t<double>> forward_log(
   auto buf = std::vector<double>(nc);
   auto fwdlattice_ = py::array_t<double>{{ns, nc}};
   auto fwd = fwdlattice_.mutable_unchecked<2>();
-  auto nogil = py::gil_scoped_release{};
+  py::gil_scoped_release nogil;
   for (auto i = 0; i < nc; ++i) {
     fwd(0, i) = log_startprob(i) + log_frameprob(0, i);
   }
@@ -151,7 +151,7 @@ py::array_t<double> backward_scaling(
   }
   auto bwdlattice_ = py::array_t<double>{{ns, nc}};
   auto bwd = bwdlattice_.mutable_unchecked<2>();
-  auto nogil = py::gil_scoped_release{};
+  py::gil_scoped_release nogil;
   std::fill_n(bwd.mutable_data(0, 0), bwd.size(), 0);
   for (auto i = 0; i < nc; ++i) {
     bwd(ns - 1, i) = scaling(ns - 1);
@@ -185,7 +185,7 @@ py::array_t<double> backward_log(
   auto buf = std::vector<double>(nc);
   auto bwdlattice_ = py::array_t<double>{{ns, nc}};
   auto bwd = bwdlattice_.mutable_unchecked<2>();
-  auto nogil = py::gil_scoped_release{};
+  py::gil_scoped_release nogil;
   for (auto i = 0; i < nc; ++i) {
     bwd(ns - 1, i) = 0;
   }
@@ -219,7 +219,7 @@ py::array_t<double> compute_scaling_xi_sum(
   auto xi_sum_ = py::array_t<double>{{nc, nc}};
   auto xi_sum = xi_sum_.mutable_unchecked<2>();
   std::fill_n(xi_sum.mutable_data(0, 0), xi_sum.size(), 0);
-  auto nogil = py::gil_scoped_release{};
+  py::gil_scoped_release nogil;
   for (auto t = 0; t < ns - 1; ++t) {
     for (auto i = 0; i < nc; ++i) {
       for (auto j = 0; j < nc; ++j) {
@@ -255,7 +255,7 @@ py::array_t<double> compute_log_xi_sum(
   auto log_xi_sum = log_xi_sum_.mutable_unchecked<2>();
   std::fill_n(log_xi_sum.mutable_data(0, 0), log_xi_sum.size(),
               -std::numeric_limits<double>::infinity());
-  auto nogil = py::gil_scoped_release{};
+  py::gil_scoped_release nogil;
   for (auto t = 0; t < ns - 1; ++t) {
     for (auto i = 0; i < nc; ++i) {
       for (auto j = 0; j < nc; ++j) {
@@ -290,7 +290,7 @@ std::tuple<double, py::array_t<ssize_t>> viterbi(
   auto viterbi_lattice_ = py::array_t<double>{{ns, nc}};
   auto state_sequence = state_sequence_.mutable_unchecked<1>();
   auto viterbi_lattice = viterbi_lattice_.mutable_unchecked<2>();
-  auto nogil = py::gil_scoped_release{};
+  py::gil_scoped_release nogil;
   for (auto i = 0; i < nc; ++i) {
     viterbi_lattice(0, i) = log_startprob(i) + log_frameprob(0, i);
   }

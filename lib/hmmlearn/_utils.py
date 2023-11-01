@@ -3,7 +3,15 @@
 import warnings
 
 import numpy as np
-from sklearn.utils.validation import NotFittedError
+
+
+def logdet(a):
+    sign, logdet = np.linalg.slogdet(a)
+    if (sign < 0).any():
+        warnings.warn("invalid value encountered in log", RuntimeWarning)
+        return np.where(sign < 0, np.nan, logdet)
+    else:
+        return logdet
 
 
 def split_X_lengths(X, lengths):
@@ -12,14 +20,9 @@ def split_X_lengths(X, lengths):
     else:
         cs = np.cumsum(lengths)
         n_samples = len(X)
-        if cs[-1] > n_samples:
+        if cs[-1] != n_samples:
             raise ValueError(
-                f"more than {n_samples} samples in lengths array {lengths}")
-        elif cs[-1] != n_samples:
-            warnings.warn(
-                f"less that {n_samples} samples in lengths array {lengths}; "
-                f"support for silently dropping samples is deprecated and "
-                f"will be removed", DeprecationWarning, stacklevel=3)
+                f"lengths array {lengths} doesn't sum to {n_samples} samples")
         return np.split(X, cs)[:-1]
 
 
@@ -79,12 +82,3 @@ def distribute_covar_matrix_to_match_covariance_type(
         raise ValueError("covariance_type must be one of " +
                          "'spherical', 'tied', 'diag', 'full'")
     return cv
-
-
-# Adapted from scikit-learn 0.21.
-def check_is_fitted(estimator, attribute):
-    if not hasattr(estimator, attribute):
-        raise NotFittedError(
-            "This %s instance is not fitted yet. Call 'fit' with "
-            "appropriate arguments before using this method."
-            % type(estimator).__name__)

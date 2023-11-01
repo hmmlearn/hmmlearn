@@ -8,16 +8,16 @@ hmmlearn
    image:: https://img.shields.io/badge/github-hmmlearn%2Fhmmlearn-brightgreen
    :target: https://github.com/hmmlearn/hmmlearn
 .. |PyPI|
-   image:: https://img.shields.io/pypi/v/hmmlearn.svg
+   image:: https://img.shields.io/pypi/v/hmmlearn.svg?color=brightgreen
    :target: https://pypi.python.org/pypi/hmmlearn
 .. |Read the Docs|
    image:: https://readthedocs.org/projects/hmmlearn/badge/?version=latest
    :target: http://hmmlearn.readthedocs.io/en/latest/?badge=latest
 .. |Build|
-   image:: https://img.shields.io/github/workflow/status/hmmlearn/hmmlearn/build
+   image:: https://img.shields.io/github/actions/workflow/status/hmmlearn/hmmlearn/build.yml?branch=main
    :target: https://github.com/hmmlearn/hmmlearn/actions
 .. |CodeCov|
-   image:: https://codecov.io/gh/hmmlearn/hmmlearn/master.svg
+   image:: https://img.shields.io/codecov/c/github/hmmlearn/hmmlearn
    :target: https://codecov.io/gh/hmmlearn/hmmlearn
 
 hmmlearn is a set of algorithms for **unsupervised** learning and inference

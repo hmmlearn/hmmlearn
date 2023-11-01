@@ -25,12 +25,9 @@ class GMMHMMTestMixin:
         self.n_components = 3
         self.n_mix = 2
         self.n_features = 2
-        self.startprob = self.prng.rand(self.n_components)
-        self.startprob = self.startprob / self.startprob.sum()
+        self.startprob = normalized(self.prng.rand(self.n_components))
         self.transmat = normalized(
-            self.prng.rand(self.n_components, self.n_components),
-            axis=1)
-
+            self.prng.rand(self.n_components, self.n_components), axis=1)
         self.gmms = []
         for state in range(self.n_components):
             self.gmms.append(create_random_gmm(

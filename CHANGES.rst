@@ -3,6 +3,21 @@ hmmlearn Changelog
 
 Here you can see the full list of changes between each hmmlearn release.
 
+Version 0.3.0
+-------------
+
+Released on April 18th, 2023.
+
+- Introduce learning HMMs with Variational Inference.  Support
+  Gaussian and Categorical Emissions.  This feature is provisional and subject
+  to further changes.
+- Deprecated support for inputs of shape other than ``(n_samples, 1)`` for
+  categorical HMMs.
+- Removed the deprecated ``iter_from_X_lengths`` and ``log_mask_zero``;
+  ``lengths`` arrays that do not sum up to the entire array length are no
+  longer supported.
+- Support variable ``n_trials`` in ``MultinomialHMM``, except for sampling.
+
 Version 0.2.8
 -------------
 

@@ -65,7 +65,7 @@ setup(
     },
     install_requires=[
         "numpy>=1.10",  # np.broadcast_to.
-        "scikit-learn>=0.16",  # sklearn.utils.check_array.
+        "scikit-learn>=0.16,!=0.22.0",  # check_array, check_is_fitted.
         "scipy>=0.19",  # scipy.special.logsumexp.
     ],
     extras_require={

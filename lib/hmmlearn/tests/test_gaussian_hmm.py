@@ -1,6 +1,7 @@
 import numpy as np
 from numpy.testing import assert_allclose
 import pytest
+from sklearn.utils import check_random_state
 
 from .. import hmm
 from . import assert_log_likelihood_increasing, make_covar_matrix, normalized
@@ -14,11 +15,9 @@ class GaussianHMMTestMixin:
         self.prng = prng = np.random.RandomState(10)
         self.n_components = n_components = 3
         self.n_features = n_features = 3
-        self.startprob = prng.rand(n_components)
-        self.startprob = self.startprob / self.startprob.sum()
-        self.transmat = prng.rand(n_components, n_components)
-        self.transmat /= np.tile(self.transmat.sum(axis=1)[:, np.newaxis],
-                                 (1, n_components))
+        self.startprob = normalized(prng.rand(n_components))
+        self.transmat = normalized(
+            prng.rand(n_components, n_components), axis=1)
         self.means = prng.randint(-20, 20, (n_components, n_features))
         self.covars = make_covar_matrix(
             self.covariance_type, n_components, n_features, random_state=prng)
@@ -49,7 +48,7 @@ class GaussianHMMTestMixin:
         n_samples = len(gaussidx)
         X = (self.prng.randn(n_samples, self.n_features)
              + h.means_[gaussidx])
-        h._init(X)
+        h._init(X, [n_samples])
         ll, posteriors = h.score_samples(X)
         assert posteriors.shape == (n_samples, self.n_components)
         assert_allclose(posteriors.sum(axis=1), np.ones(n_samples))
@@ -91,11 +90,39 @@ class GaussianHMMTestMixin:
         # assert_log_likelihood_increasing(h, X, lengths, n_iter)
 
     @pytest.mark.parametrize("implementation", ["scaling", "log"])
+    def test_criterion(self, implementation):
+        random_state = check_random_state(42)
+        m1 = hmm.GaussianHMM(self.n_components, init_params="",
+            covariance_type=self.covariance_type)
+        m1.startprob_ = self.startprob
+        m1.transmat_ = self.transmat
+        m1.means_ = self.means * 10
+        m1.covars_ = self.covars
+
+        X, _ = m1.sample(2000, random_state=random_state)
+
+        aic = []
+        bic = []
+        ns = [2, 3, 4]
+        for n in ns:
+            h = hmm.GaussianHMM(n, self.covariance_type, n_iter=500,
+                random_state=random_state, implementation=implementation)
+            h.fit(X)
+            aic.append(h.aic(X))
+            bic.append(h.bic(X))
+
+        assert np.all(aic) > 0
+        assert np.all(bic) > 0
+        # AIC / BIC pick the right model occasionally
+        # assert ns[np.argmin(aic)] == self.n_components
+        # assert ns[np.argmin(bic)] == self.n_components
+
+    @pytest.mark.parametrize("implementation", ["scaling", "log"])
     def test_fit_ignored_init_warns(self, implementation, caplog):
         h = hmm.GaussianHMM(self.n_components, self.covariance_type,
                             implementation=implementation)
         h.startprob_ = self.startprob
-        h.fit(np.random.randn(100, self.n_components))
+        h.fit(self.prng.randn(100, self.n_components))
         assert len(caplog.records) == 1, caplog
         assert "will be overwritten" in caplog.records[0].getMessage()
 
@@ -108,7 +135,7 @@ class GaussianHMMTestMixin:
         h.transmat_ = self.transmat
         h.means_ = 20 * self.means
         h.covars_ = np.maximum(self.covars, 0.1)
-        h._init(np.random.randn(5, self.n_components))
+        h._init(self.prng.randn(5, self.n_components), 5)
         assert len(caplog.records) == 1
         assert "degenerate solution" in caplog.records[0].getMessage()
 
@@ -268,8 +295,8 @@ class TestGaussianHMMWithDiagonalCovars(GaussianHMMTestMixin):
     def test_covar_is_writeable(self, implementation):
         h = hmm.GaussianHMM(n_components=1, covariance_type="diag",
                             init_params="c", implementation=implementation)
-        X = np.random.normal(size=(1000, 5))
-        h._init(X)
+        X = self.prng.normal(size=(1000, 5))
+        h._init(X, 1000)
 
         # np.diag returns a read-only view of the array in NumPy 1.9.X.
         # Make sure this doesn't prevent us from fitting an HMM with

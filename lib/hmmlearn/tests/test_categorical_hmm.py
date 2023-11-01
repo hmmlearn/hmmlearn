@@ -60,9 +60,8 @@ class TestCategoricalAgainstWikipedia:
 
 
 class TestCategoricalHMM:
-    def setup(self):
-        self.n_components = 2
-        self.n_features = 3
+    n_components = 2
+    n_features = 3
 
     def new_hmm(self, impl):
         h = hmm.CategoricalHMM(self.n_components, implementation=impl)
@@ -70,6 +69,25 @@ class TestCategoricalHMM:
         h.transmat_ = np.array([[0.7, 0.3], [0.4, 0.6]])
         h.emissionprob_ = np.array([[0.1, 0.4, 0.5], [0.6, 0.3, 0.1]])
         return h
+
+    @pytest.mark.parametrize("implementation", ["scaling", "log"])
+    def test_n_features(self, implementation):
+        sequences, _ = self.new_hmm(implementation).sample(500)
+        # set n_features
+        model = hmm.CategoricalHMM(
+            n_components=2, implementation=implementation)
+
+        assert_log_likelihood_increasing(model, sequences, [500], 10)
+        assert model.n_features == 3
+
+        # Respect n_features
+        model = hmm.CategoricalHMM(
+            n_components=2,
+            implementation=implementation,
+            n_features=5)
+
+        assert_log_likelihood_increasing(model, sequences, [500], 10)
+        assert model.n_features == 5
 
     @pytest.mark.parametrize("implementation", ["scaling", "log"])
     def test_attributes(self, implementation):
@@ -134,20 +152,16 @@ class TestCategoricalHMM:
         # use init_function to initialize paramerters
         h = hmm.CategoricalHMM(self.n_components, params=params,
                                init_params=params)
-        h._init(X)
+        h._init(X, lengths)
 
         assert_log_likelihood_increasing(h, X, lengths, n_iter)
 
     @pytest.mark.parametrize("implementation", ["scaling", "log"])
     def test__check_and_set_categorical_n_features(self, implementation):
         h = self.new_hmm(implementation)
-        h._check_and_set_categorical_n_features(
-            np.array([[0, 0, 2, 1, 3, 1, 1]]))
-        h._check_and_set_categorical_n_features(
-            np.array([[0, 0, 1, 3, 1]], np.uint8))
+        h._check_and_set_n_features(np.array([[0, 0, 2, 1, 3, 1, 1]]).T)
+        h._check_and_set_n_features(np.array([[0, 0, 1, 3, 1]], np.uint8))
         with pytest.raises(ValueError):  # non-integral
-            h._check_and_set_categorical_n_features(
-                np.array([[0., 2., 1., 3.]]))
+            h._check_and_set_n_features(np.array([[0., 2., 1., 3.]]))
         with pytest.raises(ValueError):  # negative integers
-            h._check_and_set_categorical_n_features(
-                np.array([[0, -2, 1, 3, 1, 1]]))
+            h._check_and_set_n_features(np.array([[0, -2, 1, 3, 1, 1]]))

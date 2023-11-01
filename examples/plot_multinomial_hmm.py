@@ -15,7 +15,7 @@ differences:
 - a Multinomial__ distribution models the outcome of ``n_trials`` independent
   rolls of die, each with ``n_features`` possible values; i.e.
 
-  - when ``n_trials = 1`` and ``n_features = 1``, it is a Bernoulli
+  - when ``n_trials = 1`` and ``n_features = 2``, it is a Bernoulli
     distribution,
   - when ``n_trials > 1`` and ``n_features = 2``, it is a Binomial
     distribution,

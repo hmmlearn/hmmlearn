@@ -103,8 +103,7 @@ bins = sorted(np.unique(earthquakes))
 
 fig, ax = plt.subplots()
 ax.hist(earthquakes, bins=bins, density=True)
-ax.plot(bins, np.dot(poisson.pmf(bins, model.lambdas_).T,
-                     prop_per_state[:, None]))
+ax.plot(bins, poisson.pmf(bins, model.lambdas_).T @ prop_per_state)
 ax.set_title('Histogram of Earthquakes with Fitted Poisson States')
 ax.set_xlabel('Number of Earthquakes')
 ax.set_ylabel('Proportion')
