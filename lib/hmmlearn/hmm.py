@@ -82,6 +82,12 @@ class CategoricalHMM(_emissions.BaseCategoricalHMM, BaseHMM):
         algorithm : {"viterbi", "map"}, optional
             Decoder algorithm.
 
+            - "viterbi": finds the most likely sequence of states, given all
+              emissions.
+            - "map" (also known as smoothing or forward-backward): finds the
+              sequence of the individual most-likely states, given all
+              emissions.
+
         random_state: RandomState or an int seed, optional
             A random number generator instance.
 
@@ -238,6 +244,12 @@ class GaussianHMM(_emissions.BaseGaussianHMM, BaseHMM):
 
         algorithm : {"viterbi", "map"}, optional
             Decoder algorithm.
+
+            - "viterbi": finds the most likely sequence of states, given all
+              emissions.
+            - "map" (also known as smoothing or forward-backward): finds the
+              sequence of the individual most-likely states, given all
+              emissions.
 
         random_state: RandomState or an int seed, optional
             A random number generator instance.
@@ -468,6 +480,12 @@ class GMMHMM(_emissions.BaseGMMHMM):
 
         algorithm : {"viterbi", "map"}, optional
             Decoder algorithm.
+
+            - "viterbi": finds the most likely sequence of states, given all
+              emissions.
+            - "map" (also known as smoothing or forward-backward): finds the
+              sequence of the individual most-likely states, given all
+              emissions.
 
         random_state: RandomState or an int seed, optional
             A random number generator instance.
@@ -844,6 +862,12 @@ class MultinomialHMM(_emissions.BaseMultinomialHMM):
         algorithm : {"viterbi", "map"}, optional
             Decoder algorithm.
 
+            - "viterbi": finds the most likely sequence of states, given all
+              emissions.
+            - "map" (also known as smoothing or forward-backward): finds the
+              sequence of the individual most-likely states, given all
+              emissions.
+
         random_state: RandomState or an int seed, optional
             A random number generator instance.
 
@@ -966,6 +990,12 @@ class PoissonHMM(_emissions.BasePoissonHMM):
 
         algorithm : {"viterbi", "map"}, optional
             Decoder algorithm.
+
+            - "viterbi": finds the most likely sequence of states, given all
+              emissions.
+            - "map" (also known as smoothing or forward-backward): finds the
+              sequence of the individual most-likely states, given all
+              emissions.
 
         random_state: RandomState or an int seed, optional
             A random number generator instance.
