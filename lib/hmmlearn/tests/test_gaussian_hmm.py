@@ -225,15 +225,20 @@ class GaussianHMMTestMixin:
         assert_log_likelihood_increasing(h_learn, X, lengths, n_iter)
 
         # Make sure we've converged to the right parameters.
+        # In general, to account for state switching,
+        # compare sorted values.
         # a) means
-        assert_allclose(sorted(h.means_.tolist()),
-                        sorted(h_learn.means_.tolist()),
+        assert_allclose(sorted(h.means_.ravel().tolist()),
+                        sorted(h_learn.means_.ravel().tolist()),
                         0.01)
         # b) covars are hard to estimate precisely from a relatively small
         #    sample, thus the large threshold
+
+        # account for how we store the covars_compressed
+        orig = np.broadcast_to(h._covars_, h_learn._covars_.shape)
         assert_allclose(
-            *np.broadcast_arrays(sorted(h._covars_.tolist()),
-                                 sorted(h_learn._covars_.tolist())),
+            sorted(orig.ravel().tolist()),
+            sorted(h_learn._covars_.ravel().tolist()),
             10)
 
 
