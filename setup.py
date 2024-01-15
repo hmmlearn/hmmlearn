@@ -52,7 +52,7 @@ setup(
     package_dir={"": "lib"},
     ext_modules=[Extension("", [])],
     package_data={},
-    python_requires=">=3.6",
+    python_requires=">=3.8",
     setup_requires=[
         "pybind11>=2.6",
         "setuptools_scm>=3.3",  # fallback_version.
