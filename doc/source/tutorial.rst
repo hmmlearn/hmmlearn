@@ -172,7 +172,7 @@ You can use the :attr:`~.BaseHMM.monitor_` attribute to diagnose convergence:
 >>> remodel.monitor_
 ConvergenceMonitor(
     history=[...],
-    iter=15,
+    iter=...,
     n_iter=100,
     tol=0.01,
     verbose=False,
