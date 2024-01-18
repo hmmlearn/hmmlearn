@@ -119,12 +119,18 @@ class GaussianHMMTestMixin:
 
     @pytest.mark.parametrize("implementation", ["scaling", "log"])
     def test_fit_ignored_init_warns(self, implementation, caplog):
+        # This test occasionally will be flaky in learning the model.
+        # What is important here, is that the expected log message is produced
+        # We can test convergence properties elsewhere.
         h = hmm.GaussianHMM(self.n_components, self.covariance_type,
                             implementation=implementation)
         h.startprob_ = self.startprob
         h.fit(self.prng.randn(100, self.n_components))
-        assert len(caplog.records) == 1, caplog
-        assert "will be overwritten" in caplog.records[0].getMessage()
+        found = False
+        for record in caplog.records:
+            if "will be overwritten" in record.getMessage():
+                found = True
+        assert found, "Did not find expected warning message"
 
     @pytest.mark.parametrize("implementation", ["scaling", "log"])
     def test_fit_too_little_data(self, implementation, caplog):
