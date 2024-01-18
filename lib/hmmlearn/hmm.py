@@ -310,7 +310,7 @@ class GaussianHMM(_emissions.BaseGaussianHMM, BaseHMM):
         if self._needs_init("m", "means_"):
             kmeans = cluster.KMeans(n_clusters=self.n_components,
                                     random_state=self.random_state,
-                                    n_init=1)  # sklearn <1.4 backcompat.
+                                    n_init=10)  # sklearn <1.4 backcompat.
             kmeans.fit(X)
             self.means_ = kmeans.cluster_centers_
         if self._needs_init("c", "covars_"):
