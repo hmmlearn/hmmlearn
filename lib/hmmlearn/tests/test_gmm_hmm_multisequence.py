@@ -225,7 +225,7 @@ def setup_em(covariance_type, implementation, init_params, verbose):
     model = hmm.GMMHMM(
         n_components=2,
         n_mix=2,
-        n_iter=100,
+        n_iter=110,
         covariance_type=covariance_type,
         verbose=verbose,
         init_params=init_params,
@@ -250,7 +250,7 @@ def setup_vi(covariance_type, implementation, init_params, verbose, lengths):
     model = vhmm.VariationalGMMHMM(
         n_components=2,
         n_mix=2,
-        n_iter=100,
+        n_iter=110,
         covariance_type=covariance_type,
         verbose=verbose,
         init_params=init_params,
