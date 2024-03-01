@@ -69,7 +69,7 @@ setup(
         "scipy>=0.19",  # scipy.special.logsumexp.
     ],
     extras_require={
-        "tests": ["pytest"],
+        "tests": ["pytest<=8.0.0"],
         "docs": [
             "matplotlib",
             "pydata_sphinx_theme",
