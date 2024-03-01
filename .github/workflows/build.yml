@@ -26,6 +26,7 @@ jobs:
       if: runner.os == 'Linux'
     - uses: pypa/cibuildwheel@v2.16.2
       env:
+        CIBW_ENVIRONMENT: SETUPTOOLS_SCM_PRETEND_VERSION=0.3.1
         CIBW_BUILD: ${{ matrix.cibw-build }}
         CIBW_SKIP: '*-musllinux_*'
         CIBW_TEST_SKIP: '*-macosx_universal2:arm64'
