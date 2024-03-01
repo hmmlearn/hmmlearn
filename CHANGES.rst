@@ -3,6 +3,13 @@ hmmlearn Changelog
 
 Here you can see the full list of changes between each hmmlearn release.
 
+Version 0.3.2
+-------------
+
+Released on March 1st, 2023
+
+- update CI/CD Pipelines that were troublesome
+
 Version 0.3.1
 -------------
 
