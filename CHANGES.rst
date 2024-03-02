@@ -6,14 +6,14 @@ Here you can see the full list of changes between each hmmlearn release.
 Version 0.3.2
 -------------
 
-Released on March 1st, 2023
+Released on March 1st, 2024.
 
 - update CI/CD Pipelines that were troublesome
 
 Version 0.3.1
 -------------
 
-Released on March 1st, 2023.
+Released on March 1st, 2024.
 
 - Support Python 3.8-3.12
 - Improve stability of test suite.  Ensure the documentation examples are covered.
