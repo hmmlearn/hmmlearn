@@ -4,7 +4,7 @@ import numpy as np
 from numpy.testing import assert_allclose
 import pytest
 
-from hmmlearn import hmm
+from hmmlearn import hmm, vhmm
 from hmmlearn.base import ConvergenceMonitor
 
 
@@ -221,11 +221,67 @@ def make_permutations(items):
     return [list(p) for p in itertools.permutations(sequence_indices)]
 
 
+def setup_em(covariance_type, implementation, init_params, verbose):
+    model = hmm.GMMHMM(
+        n_components=2,
+        n_mix=2,
+        n_iter=110,
+        covariance_type=covariance_type,
+        verbose=verbose,
+        init_params=init_params,
+        random_state=1234,
+        implementation=implementation
+    )
+
+    # don't use random parameters for testing
+    init = 1. / model.n_components
+    model.startprob_ = np.full(model.n_components, init)
+    model.transmat_ = \
+        np.full((model.n_components, model.n_components), init)
+
+    model.monitor_ = StrictMonitor(
+        model.monitor_.tol,
+        model.monitor_.n_iter,
+        model.monitor_.verbose,
+    )
+    return model
+
+def setup_vi(covariance_type, implementation, init_params, verbose, lengths):
+    model = vhmm.VariationalGMMHMM(
+        n_components=2,
+        n_mix=2,
+        n_iter=110,
+        covariance_type=covariance_type,
+        verbose=verbose,
+        init_params=init_params,
+        random_state=1234,
+        implementation=implementation
+    )
+    # don't use random parameters for testing
+    prior_init = 1. / model.n_components
+    model.startprob_prior_ = np.full(model.n_components, prior_init)
+    model.transmat_prior_= \
+        np.full((model.n_components, model.n_components), prior_init)
+    model.startprob_posterior_ = np.full(
+        model.n_components,  len(lengths) * prior_init)
+    model.transmat_prior_= \
+        np.full((
+            model.n_components, model.n_components), sum(lengths) * prior_init
+        )
+    model.monitor_ = StrictMonitor(
+        model.monitor_.tol,
+        model.monitor_.n_iter,
+        model.monitor_.verbose,
+    )
+    return model
+
+@pytest.mark.parametrize("hmm_type",
+                         ["em", "vi"])
 @pytest.mark.parametrize("covariance_type",
                          ["diag", "spherical", "tied", "full"])
 @pytest.mark.parametrize("implementation", ["scaling", "log"])
 def test_gmmhmm_multi_sequence_fit_invariant_to_sequence_ordering(
-    covariance_type, implementation, init_params='mcw', verbose=False
+    hmm_type, covariance_type, implementation, init_params='mcw', verbose=False
 ):
     """
     Sanity check GMM-HMM fit behaviour when run on multiple sequences
@@ -253,34 +309,20 @@ def test_gmmhmm_multi_sequence_fit_invariant_to_sequence_ordering(
         sequences = sequence_data[p]
         X = np.concatenate(sequences)
         lengths = [len(seq) for seq in sequences]
-
-        model = hmm.GMMHMM(
-            n_components=2,
-            n_mix=2,
-            n_iter=100,
-            covariance_type=covariance_type,
-            verbose=verbose,
-            init_params=init_params,
-            random_state=1234,
-            implementation=implementation
-        )
-
-        # don't use random parameters for testing
-        init = 1. / model.n_components
-        model.startprob_ = np.full(model.n_components, init)
-        model.transmat_ = \
-            np.full((model.n_components, model.n_components), init)
-
-        model.monitor_ = StrictMonitor(
-            model.monitor_.tol,
-            model.monitor_.n_iter,
-            model.monitor_.verbose,
-        )
+        if hmm_type == "em":
+            model = setup_em(covariance_type, implementation, init_params,
+                verbose)
+            # Choice of rtol value is ad-hoc, no theoretical motivation.
+            rtol = 5e-3
+        else:
+            model = setup_vi(covariance_type, implementation, init_params,
+                verbose, lengths)
+            # In General, the EM solution can use a smaller rtol, while the VI
+            # solution needs a bit larger
+            rtol = 5e-2
 
         model.fit(X, lengths)
-
         assert model.monitor_.converged
         scores.append(model.score(X, lengths))
 
-    # Choice of rtol value is ad-hoc, no theoretical motivation.
-    assert_allclose(scores, np.mean(scores), rtol=5e-03)
+    assert_allclose(scores, np.mean(scores), rtol=rtol)
