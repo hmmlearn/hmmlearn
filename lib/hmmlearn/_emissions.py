@@ -134,10 +134,11 @@ class BaseGaussianHMM(_AbstractHMM):
         stats = super()._initialize_sufficient_statistics()
         stats['post'] = np.zeros(self.n_components)
         stats['obs'] = np.zeros((self.n_components, self.n_features))
-        stats['obs**2'] = np.zeros((self.n_components, self.n_features))
         if self.covariance_type in ('tied', 'full'):
             stats['obs*obs.T'] = np.zeros((self.n_components, self.n_features,
                                            self.n_features))
+        elif self.covariance_type in ('diag', 'spherical'):
+            stats['obs**2'] = np.zeros((self.n_components, self.n_features))
         return stats
 
     def _accumulate_sufficient_statistics(
@@ -181,7 +182,7 @@ class BaseGaussianHMM(_AbstractHMM):
         )
 
 
-class BaseGMMHMM(BaseHMM):
+class BaseGMMHMM(_AbstractHMM):
 
     def _get_n_fit_scalars_per_param(self):
         nc = self.n_components
@@ -222,11 +223,9 @@ class BaseGMMHMM(BaseHMM):
     def _initialize_sufficient_statistics(self):
         stats = super()._initialize_sufficient_statistics()
         stats['post_mix_sum'] = np.zeros((self.n_components, self.n_mix))
-        stats['post_sum'] = np.zeros(self.n_components)
-
         if 'm' in self.params:
-            lambdas, mus = self.means_weight, self.means_prior
-            stats['m_n'] = lambdas[:, :, None] * mus
+            stats['m_n'] = np.zeros(
+                (self.n_components, self.n_mix, self.n_features))
         if 'c' in self.params:
             stats['c_n'] = np.zeros_like(self.covars_)
 
@@ -254,7 +253,7 @@ class BaseGMMHMM(BaseHMM):
 
         post_mix = np.zeros((n_samples, self.n_components, self.n_mix))
         for p in range(self.n_components):
-            log_denses = self._compute_log_weighted_gaussian_densities(X, p)
+            log_denses = self._log_density_for_sufficient_statistics(X, p)
             log_normalize(log_denses, axis=-1)
             with np.errstate(under="ignore"):
                 post_mix[:, p, :] = np.exp(log_denses)
@@ -263,33 +262,23 @@ class BaseGMMHMM(BaseHMM):
             post_comp_mix = post_comp[:, :, None] * post_mix
 
         stats['post_mix_sum'] += post_comp_mix.sum(axis=0)
-        stats['post_sum'] += post_comp.sum(axis=0)
-
         if 'm' in self.params:  # means stats
             stats['m_n'] += np.einsum('ijk,il->jkl', post_comp_mix, X)
 
         if 'c' in self.params:  # covariance stats
-            centered = X[:, None, None, :] - self.means_
+            if self.covariance_type == "full":
+                stats['c_n'] += np.einsum(
+                    'ijk,il,im->jklm', post_comp_mix, X, X)
+            elif self.covariance_type == "tied":
+                stats['c_n'] += np.einsum(
+                    'ijk,il,im->jlm', post_comp_mix, X, X)
+            elif self.covariance_type == "diag":
+                stats['c_n'] += np.einsum(
+                    'ijk,il->jkl', post_comp_mix, X**2)
+            elif self.covariance_type == "spherical":
+                stats['c_n'] += np.einsum(
+                    'ijk,il->jk', post_comp_mix, X**2)
 
-            def outer_f(x):  # Outer product over features.
-                return x[..., :, None] * x[..., None, :]
-
-            if self.covariance_type == 'full':
-                centered_dots = outer_f(centered)
-                c_n = np.einsum('ijk,ijklm->jklm', post_comp_mix,
-                                centered_dots)
-            elif self.covariance_type == 'diag':
-                centered2 = np.square(centered, out=centered)  # reuse
-                c_n = np.einsum('ijk,ijkl->jkl', post_comp_mix, centered2)
-            elif self.covariance_type == 'spherical':
-                # Faster than (x**2).sum(-1).
-                centered_norm2 = np.einsum('...i,...i', centered, centered)
-                c_n = np.einsum('ijk,ijk->jk', post_comp_mix, centered_norm2)
-            elif self.covariance_type == 'tied':
-                centered_dots = outer_f(centered)
-                c_n = np.einsum('ijk,ijklm->jlm', post_comp_mix, centered_dots)
-
-            stats['c_n'] += c_n
 
     def _generate_sample_from_state(self, state, random_state):
         cur_weights = self.weights_[state]
