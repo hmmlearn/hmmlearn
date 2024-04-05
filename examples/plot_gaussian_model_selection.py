@@ -52,7 +52,7 @@ for n in ns:
         h = GaussianHMM(n, n_iter=200, tol=1e-4, random_state=rs)
         h.fit(X)
         score = h.score(X)
-        if not best_ll or best_ll < best_ll:
+        if not best_ll or best_ll < score:
             best_ll = score
             best_model = h
     aic.append(best_model.aic(X))
