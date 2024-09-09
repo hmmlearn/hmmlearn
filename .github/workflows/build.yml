@@ -7,7 +7,7 @@ jobs:
   style:
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v3
+    - uses: actions/checkout@v4
     - name: Style
       run: |
         shopt -s globstar &&
@@ -17,25 +17,34 @@ jobs:
     strategy:
       matrix:
         os: [ubuntu-latest, macos-latest, windows-latest]
-        cibw-build: ['cp38-*', 'cp39-*', 'cp310-*', 'cp311-*', 'cp312-*']
+        pytag: [cp38, cp39, cp310, cp311, cp312, cp313]
       fail-fast: false
     runs-on: ${{ matrix.os }}
     steps:
-    - uses: actions/checkout@v3
-    - uses: docker/setup-qemu-action@v2
+    - uses: actions/checkout@v4
+    - uses: docker/setup-qemu-action@v3
       if: runner.os == 'Linux'
-    - uses: pypa/cibuildwheel@v2.16.5
+    - uses: pypa/cibuildwheel@v2.20.0
       env:
-        CIBW_BUILD: ${{ matrix.cibw-build }}
+        CIBW_BUILD: '${{ matrix.pytag }}-*'
         CIBW_SKIP: '*-musllinux_*'
-        CIBW_TEST_SKIP: '*-macosx_universal2:arm64'
+        # Cannot build sklearn on Windows+Py3.13; temporarily skip tests.
+        CIBW_TEST_SKIP: '*-macosx_universal2:arm64 cp313-win_amd64'
         CIBW_ARCHS_LINUX: 'x86_64 aarch64'
         CIBW_ARCHS_MACOS: 'x86_64 universal2'
         CIBW_ARCHS_WINDOWS: 'AMD64'
         CIBW_TEST_REQUIRES: pytest
         CIBW_TEST_COMMAND: python -I -mpytest --pyargs hmmlearn.tests {project}/doc
-    - uses: actions/upload-artifact@v3
+    - uses: actions/upload-artifact@v4
       with:
-        name: wheels
+        name: wheel-${{ matrix.os }}-${{ matrix.pytag }}
         path: wheelhouse/*.whl
       if: ${{ always() }}
+
+  merge-wheels:
+    runs-on: ubuntu-latest
+    needs: build
+    steps:
+    - uses: actions/upload-artifact/merge@v4
+      with:
+        name: wheels
