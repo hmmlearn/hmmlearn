@@ -1,0 +1,74 @@
+# Copyright (C) 2007-2009 Cournapeau David <cournape@gmail.com>
+#               2010 Fabian Pedregosa <fabian.pedregosa@inria.fr>
+#               2014 Gael Varoquaux
+#               2014-2016 Sergei Lebedev <superbobry@gmail.com>
+#               2018-2023 Antony Lee
+#               2023- Matthew Danielson
+
+[build-system]
+requires = [
+    "setuptools>=62",
+    "setuptools_scm[toml]>=6.2",
+    "pybind11>=2.6.0",
+]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "hmmlearn"
+description = "Hidden Markov Models in Python with scikit-learn like API"
+readme = "README.rst"
+authors = [
+    {name = "David Cournapeau"},  # 2007-2009
+    {name = "Fabian Pedregosa"},  # 2010
+    {name = "Gael Varoquaux"},  # 2014
+    {name = "Sergei Lebedev"},  # 2014-2016
+    {name = "Antony Lee"},  # 2018-2023
+    {name = "Matthew Danielson"},  # 2023
+]
+urls = {Repository = "https://github.com/hmmlearn/hmmlearn"}
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "License :: OSI Approved :: BSD License",
+    "Intended Audience :: Developers",
+    "Intended Audience :: Science/Research",
+    "Topic :: Software Development",
+    "Topic :: Scientific/Engineering",
+    "Programming Language :: Python",
+    "Programming Language :: Python :: 3",
+]
+requires-python = ">=3.8"
+dependencies = [
+    "numpy>=1.10",  # np.broadcast_to.
+    "scikit-learn>=0.16,!=0.22.0",  # check_array, check_is_fitted.
+    "scipy>=0.19",  # scipy.special.logsumexp.
+]
+dynamic = ["version"]
+
+[project.optional-dependencies]
+tests = [
+    "pytest",
+]
+docs = [
+    "matplotlib",
+    "pydata_sphinx_theme",
+    "sphinx>=2.0",
+    "sphinx-gallery",
+]
+
+[tool.setuptools_scm]
+version_scheme = "post-release"
+local_scheme = "node-and-date"
+fallback_version = "0+unknown"
+
+[tool.coverage.run]
+branch = true
+source_pkgs = ["hmmlearn"]
+
+[tool.pytest.ini_options]
+addopts = "--doctest-glob=src/**/*.py --doctest-glob=*.rst"
+filterwarnings = [
+    "error",
+    "ignore::DeprecationWarning",
+    "error::DeprecationWarning:hmmlearn",
+    "ignore:underflow",
+]
