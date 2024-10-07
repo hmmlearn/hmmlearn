@@ -2,7 +2,7 @@ import logging
 import string
 import sys
 from collections import deque
-
+from tqdm import tqdm
 import numpy as np
 from scipy import linalg, special
 from sklearn.base import BaseEstimator
@@ -450,7 +450,7 @@ class _AbstractHMM(BaseEstimator):
 
         return np.atleast_2d(X), np.array(state_sequence, dtype=int)
 
-    def fit(self, X, lengths=None):
+    def fit(self, X, lengths=None, progress=False):
         """
         Estimate model parameters.
 
@@ -467,6 +467,9 @@ class _AbstractHMM(BaseEstimator):
             Lengths of the individual sequences in ``X``. The sum of
             these should be ``n_samples``.
 
+        progress : bool, default=False
+            If True, display a progress bar for iterations.
+
         Returns
         -------
         self : object
@@ -481,7 +484,13 @@ class _AbstractHMM(BaseEstimator):
         self._check()
         self.monitor_._reset()
 
-        for iter in range(self.n_iter):
+        # 根据 progress 参数来决定是否使用 tqdm
+        if progress:
+            iter_range = tqdm(range(self.n_iter), desc="Fitting Model", leave=True)
+        else:
+            iter_range = range(self.n_iter)
+
+        for iter in iter_range:
             stats, curr_logprob = self._do_estep(X, lengths)
 
             # Compute lower bound before updating model parameters
@@ -496,7 +505,7 @@ class _AbstractHMM(BaseEstimator):
 
             if (self.transmat_.sum(axis=1) == 0).any():
                 _log.warning("Some rows of transmat_ have zero sum because no "
-                             "transition from the state was ever observed.")
+                            "transition from the state was ever observed.")
         return self
 
     def _fit_scaling(self, X):
