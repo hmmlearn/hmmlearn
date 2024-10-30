@@ -3,6 +3,13 @@ hmmlearn Changelog
 
 Here you can see the full list of changes between each hmmlearn release.
 
+Version 0.3.3
+~~~~~~~~~~~~~
+
+Released on October 31, 2024.
+
+- Provide wheels compatible with numpy 2.
+
 Version 0.3.2
 -------------
 
