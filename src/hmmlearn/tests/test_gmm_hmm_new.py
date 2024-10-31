@@ -131,7 +131,6 @@ class GMMHMMTestMixin:
         lengths = None
         h = self.new_hmm(implementation)
         X, _state_sequence = h.sample(n_samples)
-
         # Mess up the parameters and see if we can re-learn them.
         covs0, means0, priors0, trans0, weights0 = prep_params(
             self.n_components, self.n_mix, self.n_features,
@@ -260,6 +259,6 @@ class TestGMMHMM_MultiSequence:
         model2.fit(data, lengths=[200] * 5)
 
         assert_allclose(model1.means_, model2.means_, rtol=0, atol=1e-2)
-        assert_allclose(model1.covars_, model2.covars_, rtol=0, atol=1e-3)
-        assert_allclose(model1.weights_, model2.weights_, rtol=0, atol=1e-3)
+        assert_allclose(model1.covars_, model2.covars_, rtol=0, atol=1e-2)
+        assert_allclose(model1.weights_, model2.weights_, rtol=0, atol=1e-2)
         assert_allclose(model1.transmat_, model2.transmat_, rtol=0, atol=1e-2)

@@ -1,5 +1,7 @@
 import numpy as np
-from scipy import linalg
+from scipy import linalg, special
+from ._utils import logdet
+from .utils import fill_covars
 
 
 def log_multivariate_normal_density(X, means, covars, covariance_type='diag'):
@@ -96,3 +98,81 @@ def _log_multivariate_normal_density_full(X, means, covars, min_covar=1.e-7):
                                + cv_log_det))
 
     return np.transpose(log_prob)
+
+
+def _variational_log_multivariate_normal_density(X, means, beta, scale, dof,
+                                                 covariance_type):
+    """
+    Compute the log probability under a multivariate Gaussian distribution.
+
+    Parameters
+    ----------
+    X : array_like, shape (n_samples, n_features)
+        List of n_features-dimensional data points. Each row corresponds to a
+        single data point.
+
+    means : array_like, shape (n_components, n_features)
+        List of n_features-dimensional mean vectors for n_components Gaussians.
+        Each row corresponds to a single mean vector.
+
+    beta: array_like, shape (n_components, )
+        List of n_components estimate on the scale of the variance over
+        the means.
+
+    scale : array_like
+        List of n_components covariance parameters for each Gaussian. The shape
+        depends on `covariance_type`:
+
+        * (n_components, )                        if "spherical",
+        * (n_components, n_features)              if "diag",
+        * (n_components, n_features, n_features)  if "full",
+        * (n_features, n_features)                if "tied".
+
+    dof: array_like, shape (n_components, )
+        List of n_components estimate on the scale of the variance over
+        the means.
+
+    covariance_type : {"spherical", "diag", "full", "tied"}, optional
+        The type of the covariance parameters.  Defaults to 'diag'.
+
+    Returns
+    -------
+    lpr : array_like, shape (n_samples, n_components)
+        Array containing the log probabilities of each data point in
+        X under each of the n_components multivariate Gaussian distributions.
+    """
+    # Refer to the Gruhl/Sick paper for the notation
+    # In general, things are neater if we pretend the covariance is
+    # full / tied.  Or, we could treat each case separately, and reduce
+    # the number of operations. That's left for the future :-)
+    nc, nf = means.shape
+    term1 = special.digamma(
+        .5 * (dof - np.arange(0, nf)[:, None])
+    ).sum(axis=0)
+    if covariance_type in ("diag", "spherical"):
+        scale = fill_covars(scale, covariance_type, nc, nf)
+
+    W_k = np.linalg.inv(scale)
+
+    term1 += nf * np.log(2) + logdet(W_k)
+    term1 /= 2
+
+    # We ignore the constant that is typically excluded in the literature
+    term2 = 0
+    term3 = nf / beta
+
+    # (X - Means) * W_k * (X-Means)^T * dof
+    # shape becomes (nc, n_samples,
+    delta = (X - means[:, None])
+    # m is the dimension of the mixture
+    # i is the length of the sequence X
+    # j, k are the n_features
+    if covariance_type in ("full", "diag", "spherical"):
+       dots = np.einsum("mij,mjk,mik,m->im",
+                             delta, W_k, delta, dof)
+    else:
+       dots = np.einsum("mij,jk,mik,->im",
+                             delta, W_k, delta, dof)
+    last_term = .5 * (dots + term3)
+
+    return term1 - term2 - last_term
