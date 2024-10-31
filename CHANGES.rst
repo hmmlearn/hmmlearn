@@ -49,7 +49,7 @@ Released on September 26th, 2022.
 - The ``PoissonHMM`` class was added with an example use case.
 - For ``MultinomialHMM``, parameters after ``transmat_prior`` are now
   keyword-only.
-- ``startmat_`` and ``transmat_`` will both be initialized with random
+- ``startprob_`` and ``transmat_`` will both be initialized with random
   variables drawn from a Dirichlet distribution, to maintain the old
   behavior, these must be initialized as ``1 / n_components``.
 - The old ``MultinomialHMM`` class was renamed to ``CategoricalHMM`` (as that's
