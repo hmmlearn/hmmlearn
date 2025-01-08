@@ -89,17 +89,28 @@ best_score = best_model = None
 n_fits = 50
 np.random.seed(13)
 for idx in range(n_fits):
+    # Initialize the start state distribution only, i.e. startprob_.
+    # The transition matrix, as well as the emission distribution, is better
+    # to be set with relevant prior knowledges
+    # instead of using the default even-likelihood.
     model = hmm.CategoricalHMM(
         n_components=2, random_state=idx,
-        init_params='se')  # don't init transition, set it below
-    # we need to initialize with random transition matrix probabilities
-    # because the default is an even likelihood transition
-    # we know transitions are rare (otherwise the casino would get caught!)
+        init_params='s')
+
+    # We know transitions are rare (otherwise the casino would get caught!)
     # so let's have an Dirichlet random prior with an alpha value of
     # (0.1, 0.9) to enforce our assumption transitions happen roughly 10%
-    # of the time
+    # of the time.
     model.transmat_ = np.array([np.random.dirichlet([0.9, 0.1]),
                                 np.random.dirichlet([0.1, 0.9])])
+
+    # We suspect by obervance the existance of un loaded die which emits more
+    # SIXs than others. As a result, we put more weight on the probability of
+    # a loaded die giving the number SIX, i.e. 4/9 compared to 1/9.
+    model.emissionprob_ = np.array(
+            [np.random.dirichlet([1/6, 1/6, 1/6, 1/6, 1/6, 1/6]),
+             np.random.dirichlet([1/9, 1/9, 1/9, 1/9, 1/9, 4/9])]
+    )
     model.fit(X_train)
     score = model.score(X_validate)
     print(f'Model #{idx}\tScore: {score}')
