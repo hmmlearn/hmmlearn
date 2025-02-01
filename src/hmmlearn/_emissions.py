@@ -148,7 +148,8 @@ class BaseGaussianHMM(_AbstractHMM):
                                                   fwdlattice=fwdlattice,
                                                   bwdlattice=bwdlattice)
 
-        if self._needs_sufficient_statistics_for_mean():
+        if self._needs_sufficient_statistics_for_mean() or \
+           self._needs_sufficient_statistics_for_covars():
             stats['post'] += posteriors.sum(axis=0)
             stats['obs'] += posteriors.T @ X
 
