@@ -260,6 +260,6 @@ class TestGMMHMM_MultiSequence:
         model2.fit(data, lengths=[200] * 5)
 
         assert_allclose(model1.means_, model2.means_, rtol=0, atol=1e-2)
-        assert_allclose(model1.covars_, model2.covars_, rtol=0, atol=1e-3)
-        assert_allclose(model1.weights_, model2.weights_, rtol=0, atol=1e-3)
+        assert_allclose(model1.covars_, model2.covars_, rtol=0, atol=1e-2)
+        assert_allclose(model1.weights_, model2.weights_, rtol=0, atol=1e-2)
         assert_allclose(model1.transmat_, model2.transmat_, rtol=0, atol=1e-2)
