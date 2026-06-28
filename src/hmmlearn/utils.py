@@ -24,7 +24,7 @@ def normalize(a, axis=None):
         a_sum[a_sum == 0] = 1
         shape = list(a.shape)
         shape[axis] = 1
-        a_sum.shape = shape
+        a_sum = a_sum.reshape(shape)
 
     a /= a_sum
 
