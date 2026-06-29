@@ -4,7 +4,7 @@ import warnings
 
 import numpy as np
 from scipy import special
-from scipy.stats import multinomial, poisson
+from scipy.stats import multinomial, nbinom, poisson
 from sklearn.utils import check_random_state
 
 from .base import BaseHMM, _AbstractHMM
@@ -408,3 +408,57 @@ class BasePoissonHMM(BaseHMM):
 
     def _generate_sample_from_state(self, state, random_state):
         return random_state.poisson(self.lambdas_[state])
+
+
+class BaseNegativeBinomialHMM(BaseHMM):
+    """Mixin for NegativeBinomialHMM — not instantiated directly."""
+
+    def _get_n_fit_scalars_per_param(self):
+        nc = self.n_components
+        nf = self.n_features
+        return {
+            "s": nc - 1,
+            "t": nc * (nc - 1),
+            "l": nc * nf,  # lambdas (means)
+            "r": nc * nf,  # dispersions
+        }
+
+    def _compute_likelihood(self, X):
+        probs = np.empty((len(X), self.n_components))
+        for c in range(self.n_components):
+            mu = self.lambdas_[c]
+            r = self.dispersions_[c]
+            p = r / (r + mu)
+            probs[:, c] = nbinom.pmf(X, n=r, p=p).prod(axis=1)
+        return probs
+
+    def _compute_log_likelihood(self, X):
+        logprobs = np.empty((len(X), self.n_components))
+        for c in range(self.n_components):
+            mu = self.lambdas_[c]
+            r = self.dispersions_[c]
+            p = r / (r + mu)
+            logprobs[:, c] = nbinom.logpmf(X, n=r, p=p).sum(axis=1)
+        return logprobs
+
+    def _initialize_sufficient_statistics(self):
+        stats = super()._initialize_sufficient_statistics()
+        stats['post'] = np.zeros(self.n_components)
+        stats['obs'] = np.zeros((self.n_components, self.n_features))
+        stats['obs2'] = np.zeros((self.n_components, self.n_features))
+        return stats
+
+    def _accumulate_sufficient_statistics(self, stats, obs, lattice,
+                                          posteriors, fwdlattice, bwdlattice):
+        super()._accumulate_sufficient_statistics(
+            stats, obs, lattice, posteriors, fwdlattice, bwdlattice)
+        if 'l' in self.params or 'r' in self.params:
+            stats['post'] += posteriors.sum(axis=0)
+            stats['obs'] += posteriors.T @ obs
+            stats['obs2'] += posteriors.T @ (obs ** 2)
+
+    def _generate_sample_from_state(self, state, random_state):
+        mu = self.lambdas_[state]
+        r = self.dispersions_[state]
+        p = r / (r + mu)
+        return random_state.negative_binomial(r, p)
