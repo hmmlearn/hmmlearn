@@ -16,6 +16,7 @@ from .utils import fill_covars, normalize
 
 __all__ = [
     "GMMHMM", "GaussianHMM", "CategoricalHMM", "MultinomialHMM", "PoissonHMM",
+    "NegativeBinomialHMM",
 ]
 
 
@@ -1073,3 +1074,168 @@ class PoissonHMM(_emissions.BasePoissonHMM):
             # kappas = betas / (betas + n)
             # self.lambdas_ = kappas * (alphas / betas) + (1 - kappas) * y_bar
             self.lambdas_ = (alphas + n * y_bar) / (betas + n)
+
+
+class NegativeBinomialHMM(_emissions.BaseNegativeBinomialHMM):
+    """
+    Hidden Markov Model with Negative Binomial emissions.
+
+    Each state emits count observations drawn from a Negative Binomial
+    distribution with state-specific mean (``lambdas_``) and dispersion
+    (``dispersions_``).  Negative Binomial generalises Poisson by allowing
+    variance to exceed the mean (overdispersion), which is common in
+    RNA-seq read counts, insurance claims, and other real-world count data.
+
+    The distribution is parameterised as NB(r, μ):
+
+    .. math::
+
+        P(X = k \\mid \\mu, r) =
+            \\binom{k + r - 1}{k}
+            \\left(\\frac{r}{r + \\mu}\\right)^r
+            \\left(\\frac{\\mu}{r + \\mu}\\right)^k
+
+    so that :math:`E[X] = \\mu` and :math:`\\operatorname{Var}[X] = \\mu + \\mu^2/r`.
+    As :math:`r \\to \\infty` the distribution converges to Poisson(:math:`\\mu`).
+
+    Parameters
+    ----------
+    n_components : int
+        Number of hidden states.
+
+    startprob_prior : array, shape (n_components,), optional
+        Dirichlet prior for the initial state distribution.
+
+    transmat_prior : array, shape (n_components, n_components), optional
+        Dirichlet prior for each row of the transition matrix.
+
+    algorithm : {"viterbi", "map"}, optional
+        Decoder algorithm.
+
+    random_state : RandomState or int, optional
+        Random number generator or seed.
+
+    n_iter : int, optional
+        Maximum EM iterations.
+
+    tol : float, optional
+        EM convergence threshold on log-likelihood gain.
+
+    verbose : bool, optional
+        Print per-iteration convergence reports.
+
+    params, init_params : str, optional
+        Parameters to update (``params``) and initialise (``init_params``).
+        Any combination of:
+
+        - ``'s'`` – startprob
+        - ``'t'`` – transmat
+        - ``'l'`` – lambdas (means)
+        - ``'r'`` – dispersions
+
+        Default is ``"stlr"`` (all parameters).
+
+    implementation : {"log", "scaling"}, optional
+        Forward-backward implementation.  Default ``"log"``.
+
+    Attributes
+    ----------
+    monitor_ : ConvergenceMonitor
+
+    startprob_ : ndarray, shape (n_components,)
+
+    transmat_ : ndarray, shape (n_components, n_components)
+
+    lambdas_ : ndarray, shape (n_components, n_features)
+        Per-state mean of the Negative Binomial distribution.
+
+    dispersions_ : ndarray, shape (n_components, n_features)
+        Per-state dispersion parameter *r* (larger ⟹ less overdispersed).
+
+    Examples
+    --------
+    >>> import numpy as np
+    >>> from hmmlearn.hmm import NegativeBinomialHMM
+    >>> model = NegativeBinomialHMM(n_components=2, n_iter=20,
+    ...                              random_state=0)
+    >>> model.startprob_ = np.array([0.6, 0.4])
+    >>> model.transmat_ = np.array([[0.7, 0.3], [0.4, 0.6]])
+    >>> model.lambdas_ = np.array([[5.0], [20.0]])
+    >>> model.dispersions_ = np.array([[2.0], [5.0]])
+    >>> X, Z = model.sample(200)
+
+    References
+    ----------
+    .. [1] Zucchini, W., MacDonald, I. L., & Langrock, R. (2016).
+           *Hidden Markov Models for Time Series: An Introduction Using R*
+           (2nd ed.). CRC Press.
+    """
+
+    def __init__(self, n_components=1, startprob_prior=1.0,
+                 transmat_prior=1.0,
+                 algorithm="viterbi", random_state=None,
+                 n_iter=10, tol=1e-2, verbose=False,
+                 params="stlr", init_params="stlr",
+                 implementation="log"):
+        super().__init__(
+            n_components=n_components,
+            startprob_prior=startprob_prior,
+            transmat_prior=transmat_prior,
+            algorithm=algorithm,
+            random_state=random_state,
+            n_iter=n_iter,
+            tol=tol,
+            verbose=verbose,
+            params=params,
+            init_params=init_params,
+            implementation=implementation,
+        )
+
+    def _check(self):
+        super()._check()
+        self.lambdas_ = np.atleast_2d(self.lambdas_)
+        self.dispersions_ = np.atleast_2d(self.dispersions_)
+        n_features = getattr(self, "n_features", self.lambdas_.shape[1])
+        if self.lambdas_.shape != (self.n_components, n_features):
+            raise ValueError(
+                "lambdas_ must have shape (n_components, n_features)")
+        if self.dispersions_.shape != (self.n_components, n_features):
+            raise ValueError(
+                "dispersions_ must have shape (n_components, n_features)")
+        if np.any(self.lambdas_ <= 0):
+            raise ValueError("lambdas_ must be strictly positive")
+        if np.any(self.dispersions_ <= 0):
+            raise ValueError("dispersions_ must be strictly positive")
+
+    def _init(self, X, lengths=None):
+        super()._init(X, lengths)
+        self.random_state = check_random_state(self.random_state)
+        if self._needs_init("l", "lambdas_"):
+            km = cluster.KMeans(n_clusters=self.n_components,
+                                random_state=self.random_state, n_init=10)
+            km.fit(X)
+            self.lambdas_ = np.maximum(
+                km.cluster_centers_, np.finfo(float).eps)
+        self.lambdas_ = np.atleast_2d(self.lambdas_)
+        if self._needs_init("r", "dispersions_"):
+            mu = self.lambdas_.mean(axis=1, keepdims=True)
+            var = np.maximum(X.var(axis=0, keepdims=True), mu + 1e-6)
+            r_init = np.maximum(mu ** 2 / (var - mu), 1.0)
+            self.dispersions_ = np.broadcast_to(
+                r_init, self.lambdas_.shape).copy()
+        self.dispersions_ = np.atleast_2d(self.dispersions_)
+
+    def _do_mstep(self, stats):
+        super()._do_mstep(stats)
+
+        post = stats['post'][:, None]  # (n_components, 1) for broadcasting
+
+        if 'l' in self.params:
+            self.lambdas_ = np.maximum(
+                stats['obs'] / np.maximum(post, 1e-300), 1e-300)
+
+        if 'r' in self.params:
+            mu = stats['obs'] / np.maximum(post, 1e-300)
+            e_x2 = stats['obs2'] / np.maximum(post, 1e-300)
+            var = np.maximum(e_x2 - mu ** 2, mu + 1e-6)
+            self.dispersions_ = np.maximum(mu ** 2 / (var - mu), 1e-6)
