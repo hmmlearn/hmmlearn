@@ -19,7 +19,7 @@ def normalize(a, axis=None):
     Modifies the input **inplace**.
     """
     a_sum = a.sum(axis)
-    if axis and a.ndim > 1:
+    if axis is not None and a.ndim > 1:
         # Make sure we don't divide by zero.
         a_sum[a_sum == 0] = 1
         shape = list(a.shape)
