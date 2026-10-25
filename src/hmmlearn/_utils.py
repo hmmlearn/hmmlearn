@@ -18,11 +18,17 @@ def split_X_lengths(X, lengths):
     if lengths is None:
         return [X]
     else:
-        cs = np.cumsum(lengths)
+        lengths = np.asarray(lengths)
+        if (lengths.ndim != 1 or lengths.size == 0
+                or not np.issubdtype(lengths.dtype, np.integer)
+                or np.any(lengths <= 0)):
+            raise ValueError(
+                "lengths must be a non-empty array of positive integers")
         n_samples = len(X)
-        if cs[-1] != n_samples:
+        if sum(int(length) for length in lengths) != n_samples:
             raise ValueError(
                 f"lengths array {lengths} doesn't sum to {n_samples} samples")
+        cs = np.cumsum(lengths, dtype=np.intp)
         return np.split(X, cs)[:-1]
 
 
