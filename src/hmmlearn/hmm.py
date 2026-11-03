@@ -365,8 +365,9 @@ class GaussianHMM(_emissions.BaseGaussianHMM, BaseHMM):
                 c_d = max(covars_weight - 1, 0) + denom
                 self._covars_ = (covars_prior + c_n) / np.maximum(c_d, 1e-5)
                 if self.covariance_type == 'spherical':
-                    self._covars_ = np.tile(self._covars_.mean(1)[:, None],
-                                            (1, self._covars_.shape[1]))
+                    # One variance per state, shape (n_components,), as
+                    # documented for ``covars_``.
+                    self._covars_ = self._covars_.mean(1)
             elif self.covariance_type in ('tied', 'full'):
                 c_n = np.empty((self.n_components, self.n_features,
                                 self.n_features))
