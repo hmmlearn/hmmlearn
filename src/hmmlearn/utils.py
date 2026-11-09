@@ -63,6 +63,13 @@ def fill_covars(covars, covariance_type='full', n_components=1, n_features=1):
     elif covariance_type == 'tied':
         return np.tile(covars, (n_components, 1, 1))
     elif covariance_type == 'spherical':
+        # A (n_components, n_features) array holds one value per state
+        # repeated over features (the layout produced by initialisation);
+        # reduce it to one variance per state before expanding, otherwise
+        # the result has n_components * n_features matrices.
+        covars = np.asarray(covars)
+        if covars.ndim == 2:
+            covars = covars.mean(axis=1)
         # Regardless of what is passed in, we flatten in
         # and then expand it to the correct shape
         covars = np.ravel(covars)
