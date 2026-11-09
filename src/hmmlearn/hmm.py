@@ -316,7 +316,7 @@ class GaussianHMM(_emissions.BaseGaussianHMM, BaseHMM):
         if self._needs_init("c", "covars_"):
             cv = np.cov(X.T) + self.min_covar * np.eye(X.shape[1])
             if not cv.shape:
-                cv.shape = (1, 1)
+                cv = cv.reshape(1, 1)
             self.covars_ = \
                 _utils.distribute_covar_matrix_to_match_covariance_type(
                     cv, self.covariance_type, self.n_components).copy()
@@ -576,7 +576,7 @@ class GMMHMM(_emissions.BaseGMMHMM):
             if cv is None:
                 cv = compute_cv()
             if not cv.shape:
-                cv.shape = (1, 1)
+                cv = cv.reshape(1, 1)
             if self.covariance_type == 'tied':
                 self.covars_ = np.zeros((nc, nf, nf))
                 self.covars_[:] = cv
