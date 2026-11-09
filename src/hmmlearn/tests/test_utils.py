@@ -1,3 +1,5 @@
+import warnings
+
 import numpy as np
 from numpy.testing import assert_allclose
 
@@ -19,6 +21,17 @@ def test_normalize_along_axis():
         assert (A[:, axis] == 0.0).any()
         normalize(A, axis=axis)
         assert_allclose(A.sum(axis=axis), 1.)
+
+
+def test_normalize_along_axis_no_shape_assignment():
+    # numpy 2.5 deprecates assigning to ndarray.shape; normalize must not.
+    A = np.random.normal(42., size=(3, 4, 5))
+    expected = A / A.sum(axis=1, keepdims=True)
+    with warnings.catch_warnings():
+        warnings.simplefilter("error", DeprecationWarning)
+        normalize(A, axis=1)
+    assert A.shape == (3, 4, 5)
+    assert_allclose(A, expected)
 
 
 def test_fill_covars():
