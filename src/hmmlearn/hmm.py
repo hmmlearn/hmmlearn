@@ -23,6 +23,32 @@ _log = logging.getLogger(__name__)
 COVARIANCE_TYPES = frozenset(("spherical", "diag", "full", "tied"))
 
 
+def _floor_covars(covars, covariance_type, min_covar):
+    """
+    Apply the ``min_covar`` floor to covariances in their compact layout.
+
+    For "spherical" and "diag" every variance is clipped at ``min_covar``.
+    For "full" and "tied" every eigenvalue below ``min_covar`` is raised to
+    it; a matrix whose eigenvalues are all above the floor is returned
+    unchanged.  In both cases the result is the maximiser of the M-step
+    objective over covariances whose eigenvalues are at least ``min_covar``.
+    """
+    if min_covar <= 0:
+        return covars
+    if covariance_type in ('spherical', 'diag'):
+        return np.maximum(covars, min_covar)
+
+    def floor_matrix(cv):
+        eigvals, eigvecs = linalg.eigh(cv)
+        if eigvals.min() >= min_covar:
+            return cv
+        return (eigvecs * np.maximum(eigvals, min_covar)) @ eigvecs.T
+
+    if covariance_type == 'tied':
+        return floor_matrix(covars)
+    return np.array([floor_matrix(cv) for cv in covars])
+
+
 class CategoricalHMM(_emissions.BaseCategoricalHMM, BaseHMM):
     """
     Hidden Markov Model with categorical (discrete) emissions.
@@ -219,8 +245,10 @@ class GaussianHMM(_emissions.BaseGaussianHMM, BaseHMM):
             * "tied" --- all states use **the same** full covariance matrix.
 
         min_covar : float, optional
-            Floor on the diagonal of the covariance matrix to prevent
-            overfitting. Defaults to 1e-3.
+            Floor on the covariance to prevent overfitting, applied at
+            initialisation and after every M-step: variances (spherical,
+            diag) and eigenvalues (full, tied) never fall below it.
+            Defaults to 1e-3.
 
         startprob_prior : array, shape (n_components, ), optional
             Parameters of the Dirichlet prior distribution for
@@ -385,6 +413,12 @@ class GaussianHMM(_emissions.BaseGaussianHMM, BaseHMM):
                 elif self.covariance_type == 'full':
                     self._covars_ = ((covars_prior + c_n) /
                                      (cvweight + stats['post'][:, None, None]))
+
+            # Keep the documented floor after every update, not only at
+            # initialisation: a state that captures exactly repeated values
+            # would otherwise shrink its variance towards zero.
+            self._covars_ = _floor_covars(
+                self._covars_, self.covariance_type, self.min_covar)
 
 
 class GMMHMM(_emissions.BaseGMMHMM):
